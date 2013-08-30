@@ -30,13 +30,13 @@ constant CONST_ROUNDINGMODE \
 sort ROUNDINGMODE_TYPE \
     5 \
     well-founded \
-    "NodeManager::currentNM()->mkConst(RoundingMode)" \
+    "NodeManager::currentNM()->mkConst(RoundingModeType)" \
     "expr/node_manager.h" \
     "floating-point rounding mode"
 
 constant FLOATINGPOINT_TYPE \
     ::CVC4::FloatingPointType \
-    "::CVC4::UnsignedHashFunction< ::CVC4::FloatingPointType >" \
+    ::CVC4::FloatingPointTypeHashFunction \
     "util/floatingpoint.h" \
     "floating-point type"
 #cardinality FLOATINGPOINT_TYPE "function" "header"
@@ -73,8 +73,8 @@ operator FLOATINGPOINT_ISINF 1 "floating-point is infinite"
 operator FLOATINGPOINT_ISNAN 1 "floating-point is NaN"
 
 constant FLOATINGPOINT_CONVERT_SORT_OP \
-    ::CVC4::FloatingPointToFP \
-    "::CVC4::UnsignedHashFunction< ::CVC4::FloatingPointToFP >" \
+    ::CVC4::FloatingPointConvertSort \
+    ::CVC4::FloatingPointConvertSortHashFunction \
     "util/floatingpoint.h" \
     "operator for to_fp"
 
@@ -87,7 +87,7 @@ parameterized FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR FLOATINGPOINT_CONVERT_SORT_
 
 constant FLOATINGPOINT_TO_BV_OP \
     ::CVC4::FloatingPointToBV \
-    "::CVC4::UnsignedHashFunction< ::CVC4::FloatingPointToBV >" \
+    ::CVC4::FloatingPointToBVHashFunction \
     "util/floatingpoint.h" \
     "operator for to_*bv"
 
