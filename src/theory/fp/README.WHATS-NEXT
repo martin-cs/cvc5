@@ -1,0 +1,38 @@
+Congratulations, you now have a new theory of fp !
+
+Your next steps will likely be:
+
+* to specify theory constants, types, and operators in your \`kinds' file
+* to add typing rules to theory_fp_type_rules.h for your operators
+  and constants
+* to write code in theory_fp_rewriter.h to implement a normal form
+  for your theory's terms
+* to write parser rules in src/parser/cvc/Cvc.g to support the CVC input
+  language, src/parser/smt/Smt.g to support the (deprecated) SMT-LIBv1
+  language, and src/parser/smt2/Smt2.g to support SMT-LIBv2
+* to write printer code in src/printer/*/*_printer* to support printing
+  your theory terms and types in various output languages
+
+and finally:
+
+* to implement a decision procedure for your theory by implementing
+  TheoryFp::check() in theory_fp.cpp. Before writing the actual
+  code, you will need :
+
+  * to determine which data structures are context dependent and use for
+    them context-dependent data structures (context/cd*.h)
+  * to choose which work will be done at QUICK_CHECK, STANDARD or at
+    FULL_EFFORT.
+
+You'll probably find the Developer's wiki useful:
+
+  http://cvc4.cs.nyu.edu/wiki/
+
+...and in particular the Developer's Guide:
+
+  http://cvc4.cs.nyu.edu/wiki/Developer%27s_Guide
+
+which contains coding guidelines for the CVC4 project.
+
+Good luck, and please contact cvc4-devel@cs.nyu.edu for assistance
+should you need it!
