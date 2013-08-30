@@ -13,9 +13,88 @@ properties check
 # Theory content goes here.
 
 # constants...
+constant CONST_FLOATINGPOINT \
+    ::CVC4::FloatingPoint \
+    ::CVC4::FloatingPointHashFunction \
+    "util/floatingpoint.h" \
+    "a floating-point literal"
+
+constant CONST_ROUNDINGMODE \
+    ::CVC4::RoundingMode \
+    ::CVC4::RoundingModeHashFunction \
+    "util/floatingpoint.h" \
+    "a floating-point rounding mode"    
+
 
 # types...
+sort ROUNDINGMODE_TYPE \
+    5 \
+    well-founded \
+    "NodeManager::currentNM()->mkConst(RoundingMode)" \
+    "expr/node_manager.h" \
+    "floating-point rounding mode"
+
+constant FLOATINGPOINT_TYPE \
+    ::CVC4::FloatingPointType \
+    "::CVC4::UnsignedHashFunction< ::CVC4::FloatingPointType >" \
+    "util/floatingpoint.h" \
+    "floating-point type"
+#cardinality FLOATINGPOINT_TYPE "function" "header"
+#enumerator FLOATINGPOINT_TYPE "function" "header"
+#well-founded FLOATINGPOINT_TYPE true "function" "header"
+
 
 # operators...
+operator FLOATINGPOINT_FP 3 "construct a floating-point literal from bit vectors"
+
+operator FLOATINGPOINT_EQ 2: "floating-point equality"
+operator FLOATINGPOINT_ABS 1 "floating-point absolute value"
+operator FLOATINGPOINT_NEG 1 "floating-point negation"
+operator FLOATINGPOINT_PLUS 3 "floating-point addition"
+operator FLOATINGPOINT_SUB 3 "floating-point sutraction"
+operator FLOATINGPOINT_MULT 3 "floating-point multiply"
+operator FLOATINGPOINT_DIV 3 "floating-point division"
+operator FLOATINGPOINT_FMA 4 "floating-point fused multiply and add"
+operator FLOATINGPOINT_SQRT 2 "floating-point square root"
+operator FLOATINGPOINT_REM 2 "floating-point remainder"
+operator FLOATINGPOINT_RTI 2 "floating-point round to integral"
+operator FLOATINGPOINT_MIN 2 "floating-point minimum"
+operator FLOATINGPOINT_MAX 2 "floating-point maximum"
+
+operator FLOATINGPOINT_LEQ 2 "floating-point less than or equal"
+operator FLOATINGPOINT_LT 2 "floating-point less than"
+operator FLOATINGPOINT_GEQ 2 "floating-point greater than or equal"
+operator FLOATINGPOINT_GT 2 "floating-point greater than"
+
+operator FLOATINGPOINT_ISN 1 "floating-point is normal"
+operator FLOATINGPOINT_ISSN 1 "floating-point is sub-normal"
+operator FLOATINGPOINT_ISZ 1 "floating-point is zero"
+operator FLOATINGPOINT_ISINF 1 "floating-point is infinite"
+operator FLOATINGPOINT_ISNAN 1 "floating-point is NaN"
+
+constant FLOATINGPOINT_CONVERT_SORT_OP \
+    ::CVC4::FloatingPointToFP \
+    "::CVC4::UnsignedHashFunction< ::CVC4::FloatingPointToFP >" \
+    "util/floatingpoint.h" \
+    "operator for to_fp"
+
+parameterized FLOATINGPOINT_TO_FP_IEEE_BITVECTOR FLOATINGPOINT_CONVERT_SORT_OP 1 "convert an IEEE-754 bit vector to floating-point"
+parameterized FLOATINGPOINT_TO_FP_FLOATINGPOINT FLOATINGPOINT_CONVERT_SORT_OP 2 "convert between floating-point sorts"
+parameterized FLOATINGPOINT_TO_FP_REAL FLOATINGPOINT_CONVERT_SORT_OP 2 "convert a real to floating-point"
+parameterized FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR FLOATINGPOINT_CONVERT_SORT_OP 2 "convert a signed bit vector to floating-point"
+parameterized FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR FLOATINGPOINT_CONVERT_SORT_OP 2 "convert an unsigned bit vector to floating-point"
+
+
+constant FLOATINGPOINT_TO_BV_OP \
+    ::CVC4::FloatingPointToBV \
+    "::CVC4::UnsignedHashFunction< ::CVC4::FloatingPointToBV >" \
+    "util/floatingpoint.h" \
+    "operator for to_*bv"
+
+parameterized FLOATINGPOINT_TO_UBV FLOATINGPOINT_TO_BV_OP 2 "convert a floating-point value to an unsigned bit vector"
+parameterized FLOATINGPOINT_TO_SBV FLOATINGPOINT_TO_BV_OP 2 "convert a floating-point value to a signed bit vector"
+
+
+parameterized FLOATINGPOINT_TO_REAL FLOATINGPOINT_CONVERT_SORT_OP 1 "convert a floating-point value to a real"
 
 endtheory
