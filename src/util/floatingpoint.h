@@ -179,7 +179,7 @@ namespace CVC4 {
   struct CVC4_PUBLIC FloatingPointToBVHashFunction {
     inline size_t operator() (const FloatingPointToBV& fptbv) const {
       return 	0x46504256 ^
-	UnsignedHashFunction< ::CVC4::BitVectorSize >(fp;
+	UnsignedHashFunction< ::CVC4::BitVectorSize >(fp);
     }
   }; /* struct FloatingPointToBVHashFunction */
 
