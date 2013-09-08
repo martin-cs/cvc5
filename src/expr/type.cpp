@@ -229,6 +229,12 @@ bool Type::isBitVector() const {
   return d_typeNode->isBitVector();
 }
 
+/** Is this the floating-point type? */
+bool Type::isFloatingPoint() const {
+  NodeManagerScope nms(d_nodeManager);
+  return d_typeNode->isFloatingPoint();
+}
+
 /** Is this a datatype type? */
 bool Type::isDatatype() const {
   NodeManagerScope nms(d_nodeManager);
@@ -441,6 +447,11 @@ BitVectorType::BitVectorType(const Type& t) throw(IllegalArgumentException) :
   CheckArgument(isNull() || isBitVector(), this);
 }
 
+FloatingPointType::FloatingPointType(const Type& t) throw(IllegalArgumentException) :
+  Type(t) {
+  CheckArgument(isNull() || isFloatingPoint(), this);
+}
+
 DatatypeType::DatatypeType(const Type& t) throw(IllegalArgumentException) :
   Type(t) {
   CheckArgument(isNull() || isDatatype(), this);
@@ -518,6 +529,14 @@ SubrangeType::SubrangeType(const Type& t)
 
 unsigned BitVectorType::getSize() const {
   return d_typeNode->getBitVectorSize();
+}
+
+unsigned FloatingPointType::getExponentSize() const {
+  return d_typeNode->getFloatingPointExponentSize();
+}
+
+unsigned FloatingPointType::getSignificandSize() const {
+  return d_typeNode->getFloatingPointSignificandSize();
 }
 
 Type ArrayType::getIndexType() const {

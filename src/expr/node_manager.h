@@ -753,6 +753,10 @@ public:
    */
   inline TypeNode mkSExprType(const std::vector<TypeNode>& types);
 
+  /** Make the type of floating-point with <code>exp</code> bit exponent and
+      <code>sig</code> bit significand */
+  inline TypeNode mkFloatingPointType(unsigned exp, unsigned sig);  
+
   /** Make the type of bitvectors of size <code>size</code> */
   inline TypeNode mkBitVectorType(unsigned size);
 
@@ -1053,6 +1057,10 @@ inline TypeNode NodeManager::mkSExprType(const std::vector<TypeNode>& types) {
 
 inline TypeNode NodeManager::mkBitVectorType(unsigned size) {
   return TypeNode(mkTypeConst<BitVectorSize>(BitVectorSize(size)));
+}
+
+inline TypeNode mkFloatingPointType(unsigned exp, unsigned sig) {
+  return TypeNode(mkTypeConst<FloatingPointType>(FloatingPointType(exp,sig)));
 }
 
 inline TypeNode NodeManager::mkArrayType(TypeNode indexType,
