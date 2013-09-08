@@ -530,6 +530,11 @@ SExprType ExprManager::mkSExprType(const std::vector<Type>& types) {
   return SExprType(Type(d_nodeManager, new TypeNode(d_nodeManager->mkSExprType(typeNodes))));
 }
 
+FloatingPointType ExprManager::mkFloatingPointType(unsigned exp, unsigned sig) const {
+  NodeManagerScope nms(d_nodeManager);
+  return FloatingPointType(Type(d_nodeManager, new TypeNode(d_nodeManager->mkFloatingPointType(exp,sig))));
+}
+
 BitVectorType ExprManager::mkBitVectorType(unsigned size) const {
   NodeManagerScope nms(d_nodeManager);
   return BitVectorType(Type(d_nodeManager, new TypeNode(d_nodeManager->mkBitVectorType(size))));

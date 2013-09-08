@@ -264,6 +264,12 @@ public:
   bool isBitVector() const;
 
   /**
+   * Is this the floating-point type?
+   * @return true if the type is a floating-point type
+   */
+  bool isFloatingPoint() const;
+
+  /**
    * Is this a function type?
    * @return true if the type is a function type
    */
@@ -586,6 +592,31 @@ public:
   unsigned getSize() const;
 
 };/* class BitVectorType */
+
+
+/**
+ * Class encapsulating the bit-vector type.
+ */
+class CVC4_PUBLIC FloatingPointType : public Type {
+
+public:
+
+  /** Construct from the base type */
+  FloatingPointType(const Type& type = Type()) throw(IllegalArgumentException);
+
+  /**
+   * Returns the size of the floating-point exponent type.
+   * @return the width of the floating-point exponent type (> 0)
+   */
+  unsigned getExponentSize() const;
+
+  /**
+   * Returns the size of the floating-point significand type.
+   * @return the width of the floating-point significand type (> 0)
+   */
+  unsigned getSignificandSize() const;
+
+};/* class FloatingPointType */
 
 
 /**
