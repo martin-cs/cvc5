@@ -169,10 +169,25 @@ namespace CVC4 {
  
   };
 
+  /**
+   * As different conversions are different parameterised kinds, there
+   * is a need for different (C++) types for each one.
+   */
+
+  class CVC4_PUBLIC FloatingPointToFPIEEEBitVector : public FloatingPointConvertSort {};
+  class CVC4_PUBLIC FloatingPointToFPFloatingPoint : public FloatingPointConvertSort {};
+  class CVC4_PUBLIC FloatingPointToFPReal : public FloatingPointConvertSort {};
+  class CVC4_PUBLIC FloatingPointToFPSignedBitVector : public FloatingPointConvertSort {};
+  class CVC4_PUBLIC FloatingPointToFPUnsignedBitVector : public FloatingPointConvertSort {};
+  class CVC4_PUBLIC FloatingPointToReal : public FloatingPointConvertSort {};
+
+
+
+  template <unsigned key>
   struct CVC4_PUBLIC FloatingPointConvertSortHashFunction {
     inline size_t operator() (const FloatingPointConvertSort& fpcs) const {
       FloatingPointSizeHashFunction f;
-      return f(fpcs.t) ^ 0x43005300;
+      return f(fpcs.t) ^ (0x00005300 | (key << 24));
     }
   }; /* struct FloatingPointConvertSortHashFunction */
 
@@ -195,12 +210,19 @@ namespace CVC4 {
     operator unsigned () const { return bvs; }
   };
 
+  class CVC4_PUBLIC FloatingPointToUBV : public FloatingPointToBV {};
+  class CVC4_PUBLIC FloatingPointToSBV : public FloatingPointToBV {};
+
+
+  template <unsigned key>
   struct CVC4_PUBLIC FloatingPointToBVHashFunction {
     inline size_t operator() (const FloatingPointToBV& fptbv) const {
       UnsignedHashFunction< ::CVC4::BitVectorSize > f;
-      return 	0x46504256 ^ f(fptbv.bvs);
+      return 	(key ^ 0x46504256) ^ f(fptbv.bvs);
     }
   }; /* struct FloatingPointToBVHashFunction */
+
+
 
 
 
