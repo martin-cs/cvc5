@@ -35,8 +35,8 @@ sort ROUNDINGMODE_TYPE \
     "floating-point rounding mode"
 
 constant FLOATINGPOINT_TYPE \
-    ::CVC4::FloatingPointType \
-    ::CVC4::FloatingPointTypeHashFunction \
+    ::CVC4::FloatingPointSize \
+    ::CVC4::FloatingPointSizeHashFunction \
     "util/floatingpoint.h" \
     "floating-point type"
 #cardinality FLOATINGPOINT_TYPE "function" "header"

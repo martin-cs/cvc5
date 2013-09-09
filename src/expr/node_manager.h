@@ -1120,8 +1120,8 @@ inline TypeNode NodeManager::mkBitVectorType(unsigned size) {
   return TypeNode(mkTypeConst<BitVectorSize>(BitVectorSize(size)));
 }
 
-inline TypeNode mkFloatingPointType(unsigned exp, unsigned sig) {
-  return TypeNode(mkTypeConst<FloatingPointType>(FloatingPointType(exp,sig)));
+inline TypeNode NodeManager::mkFloatingPointType(unsigned exp, unsigned sig) {
+  return TypeNode(mkTypeConst<FloatingPointSize>(FloatingPointSize(exp,sig)));
 }
 
 inline TypeNode NodeManager::mkArrayType(TypeNode indexType,

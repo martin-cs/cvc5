@@ -41,11 +41,11 @@ namespace CVC4 {
    * giving the width (in bits) of the exponent and significand
    * (including the hidden bit).
    */
-  class CVC4_PUBLIC FloatingPointType {
+  class CVC4_PUBLIC FloatingPointSize {
     /*
       Class invariants:
-      * e > 0
-      * s > 0
+      * e > 1
+      * s > 1
      */
 
   private :
@@ -53,10 +53,10 @@ namespace CVC4 {
     unsigned s;
 
   public :
-    FloatingPointType (unsigned _e, unsigned _s) : e(_e), s(_s)
+    FloatingPointSize (unsigned _e, unsigned _s) : e(_e), s(_s)
     {
-      assert(e > 0);
-      assert(s > 0);
+      assert(e > 1);
+      assert(s > 1);
     }
 
     inline unsigned exponent (void) const {
@@ -66,18 +66,18 @@ namespace CVC4 {
     inline unsigned significand (void) const {
       return this->s;
     }
-  }; /* class FloatingPointType */
+  }; /* class FloatingPointSize */
 
 
 
 #define ROLL(X,N) (((X) << (N)) | ((X) >> (8*sizeof((X)) - (N)) ))
 
-  struct CVC4_PUBLIC FloatingPointTypeHashFunction {
-    inline size_t operator() (const FloatingPointType& fpt) const {
-      return size_t(ROLL(fpt.exponent()), 4*sizeof(unsigned) |
+  struct CVC4_PUBLIC FloatingPointSizeHashFunction {
+    inline size_t operator() (const FloatingPointSize& fpt) const {
+      return size_t(ROLL(fpt.exponent(), 4*sizeof(unsigned)) |
 		    fpt.significand());
     }
-  }; /* struct FloatingPointTypeHashFunction */
+  }; /* struct FloatingPointSizeHashFunction */
 
 
 
@@ -120,10 +120,10 @@ namespace CVC4 {
 
   class CVC4_PUBLIC FloatingPoint {
   protected :
-    FloatingPointType t;
+    FloatingPointSize t;
     /* \todo Floating point literal in correct form */
   public :
-    FloatingPoint () {
+    FloatingPoint () : t(0,0) {
       assert(0);
     }
   }; /* class FloatingPoint */
@@ -131,9 +131,11 @@ namespace CVC4 {
 
   struct CVC4_PUBLIC FloatingPointHashFunction {
     inline size_t operator() (const FloatingPoint& rm) const {
-      return size_t(rm);
+      assert(0);
+      return size_t(1);
     }
   }; /* struct FloatingPointHashFunction */
+
 
 
 
@@ -145,15 +147,16 @@ namespace CVC4 {
    */
   class CVC4_PUBLIC FloatingPointConvertSort {
   public :
-    FloatingPointType type;
+    FloatingPointSize type;
 
     FloatingPointConvertSort (unsigned _e, unsigned _s)
-      : type(e,s) {}
+      : type(_e,_s) {}
   };
 
   struct CVC4_PUBLIC FloatingPointConvertSortHashFunction {
     inline size_t operator() (const FloatingPointConvertSort& fpcs) const {
-      return FloatingPointTypeHashFunction(fpcs->type) ^ 0x43005300;
+      FloatingPointSizeHashFunction f;
+      return f(fpcs.type) ^ 0x43005300;
     }
   }; /* struct FloatingPointConvertSortHashFunction */
 
@@ -178,10 +181,31 @@ namespace CVC4 {
 
   struct CVC4_PUBLIC FloatingPointToBVHashFunction {
     inline size_t operator() (const FloatingPointToBV& fptbv) const {
-      return 	0x46504256 ^
-	UnsignedHashFunction< ::CVC4::BitVectorSize >(fp);
+      UnsignedHashFunction< ::CVC4::BitVectorSize > f;
+      return 	0x46504256 ^ f(fptbv.bvs);
     }
   }; /* struct FloatingPointToBVHashFunction */
+
+
+
+
+  inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) CVC4_PUBLIC;
+  inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) {
+    assert(0);
+  return os << "<floating point number goes here>";
+}
+
+  inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) CVC4_PUBLIC;
+  inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) {
+    assert(0);
+    return os << "(_ FloatingPoint " << fps.exponent() << " " << fps.significand() << ")";
+  }
+
+  inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) CVC4_PUBLIC;
+  inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) {
+    assert(0);
+    return os << "((_ to_fp " << fpcs.type.exponent() << " " << fpcs.type.significand() << ")";
+  }
 
 
 
