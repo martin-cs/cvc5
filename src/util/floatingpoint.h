@@ -66,6 +66,11 @@ namespace CVC4 {
     inline unsigned significand (void) const {
       return this->s;
     }
+
+    bool operator ==(const FloatingPointSize& fps) const {
+      return (e == fps.e) && (s == fps.s);
+    }
+
   }; /* class FloatingPointSize */
 
 
@@ -126,6 +131,12 @@ namespace CVC4 {
     FloatingPoint () : t(0,0) {
       assert(0);
     }
+
+    bool operator ==(const FloatingPoint& f) const {
+      if (!(t == f.t)) return false; 
+      assert(0);
+      return false;
+    }
   }; /* class FloatingPoint */
 
 
@@ -147,16 +158,21 @@ namespace CVC4 {
    */
   class CVC4_PUBLIC FloatingPointConvertSort {
   public :
-    FloatingPointSize type;
+    FloatingPointSize t;
 
     FloatingPointConvertSort (unsigned _e, unsigned _s)
-      : type(_e,_s) {}
+      : t(_e,_s) {}
+
+    bool operator ==(const FloatingPointConvertSort& fpcs) const {
+      return t == fpcs.t;
+    }
+ 
   };
 
   struct CVC4_PUBLIC FloatingPointConvertSortHashFunction {
     inline size_t operator() (const FloatingPointConvertSort& fpcs) const {
       FloatingPointSizeHashFunction f;
-      return f(fpcs.type) ^ 0x43005300;
+      return f(fpcs.t) ^ 0x43005300;
     }
   }; /* struct FloatingPointConvertSortHashFunction */
 
@@ -204,7 +220,7 @@ namespace CVC4 {
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) {
     assert(0);
-    return os << "((_ to_fp " << fpcs.type.exponent() << " " << fpcs.type.significand() << ")";
+    return os << "((_ to_fp " << fpcs.t.exponent() << " " << fpcs.t.significand() << ")";
   }
 
 
