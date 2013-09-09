@@ -987,8 +987,8 @@ inline bool TypeNode::isTester() const {
 inline bool TypeNode::isFloatingPoint(unsigned exp, unsigned sig) const {
   return
     ( getKind() == kind::FLOATINGPOINT_TYPE && 
-      getConst<FloatingPointType>().exponent() == exp &&
-      getConst<FloatingPointType>().significand() == sig ) ||
+      getConst<FloatingPointType>().getExponentSize() == exp &&
+      getConst<FloatingPointType>().getSignificandSize() == sig ) ||
     ( isPredicateSubtype() && getSubtypeParentType().isFloatingPoint(exp,sig) );
 }
 
@@ -1012,13 +1012,13 @@ inline const Datatype& TypeNode::getDatatype() const {
 /** Get the exponent size of this floating-point type */
 inline unsigned TypeNode::getFloatingPointExponentSize() const {
   Assert(isFloatingPoint());
-  return getConst<FloatingPointType>().exponent();
+  return getConst<FloatingPointType>().getExponentSize();
 }
 
 /** Get the significand size of this floating-point type */
 inline unsigned TypeNode::getFloatingPointSignificandSize() const {
  Assert(isFloatingPoint());
- return getConst<FloatingPointType>().signficand();
+ return getConst<FloatingPointType>().getSignificandSize();
 }
 
 /** Get the size of this bit-vector type */
