@@ -47,6 +47,7 @@ class BooleanType;
 class IntegerType;
 class RealType;
 class StringType;
+class RoundingModeType;
 class BitVectorType;
 class ArrayType;
 class SetType;
@@ -259,6 +260,12 @@ public:
   bool isString() const;
 
   /**
+   * Is this the rounding mode type?
+   * @return true if the type is the rounding mode type
+   */
+  bool isRoundingMode() const;
+
+  /**
    * Is this the bit-vector type?
    * @return true if the type is a bit-vector type
    */
@@ -417,6 +424,19 @@ public:
   /** Construct from the base type */
   StringType(const Type& type) throw(IllegalArgumentException);
 };/* class StringType */
+
+/**
+ * Singleton class encapsulating the rounding mode type.
+ */
+class CVC4_PUBLIC RoundingModeType : public Type {
+
+public:
+
+  /** Construct from the base type */
+  RoundingModeType(const Type& type = Type()) throw(IllegalArgumentException);
+};/* class RoundingModeType */
+
+
 
 /**
  * Class encapsulating a function type.
@@ -616,7 +636,7 @@ public:
 
 
 /**
- * Class encapsulating the bit-vector type.
+ * Class encapsulating the floating point type.
  */
 class CVC4_PUBLIC FloatingPointType : public Type {
 

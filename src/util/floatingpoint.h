@@ -27,15 +27,6 @@
 
 namespace CVC4 {
 
-
-
-  /**
-   * A type to represent the rounding mode sort
-   */
-  struct RoundingModeType {};
-
-
-
   /**
    * Floating point sorts are parameterised by two non-zero constants
    * giving the width (in bits) of the exponent and significand
@@ -125,9 +116,10 @@ namespace CVC4 {
 
   class CVC4_PUBLIC FloatingPoint {
   protected :
-    FloatingPointSize t;
     /* \todo Floating point literal in correct form */
   public :
+    FloatingPointSize t;
+
     FloatingPoint () : t(0,0) {
       assert(0);
     }

@@ -756,6 +756,7 @@ public:
   /** Make the type of floating-point with <code>exp</code> bit exponent and
       <code>sig</code> bit significand */
   inline TypeNode mkFloatingPointType(unsigned exp, unsigned sig);  
+  inline TypeNode mkFloatingPointType(FloatingPointSize fs);
 
   /** Make the type of bitvectors of size <code>size</code> */
   inline TypeNode mkBitVectorType(unsigned size);
@@ -1061,6 +1062,10 @@ inline TypeNode NodeManager::mkBitVectorType(unsigned size) {
 
 inline TypeNode NodeManager::mkFloatingPointType(unsigned exp, unsigned sig) {
   return TypeNode(mkTypeConst<FloatingPointSize>(FloatingPointSize(exp,sig)));
+}
+
+inline TypeNode NodeManager::mkFloatingPointType(FloatingPointSize fs) {
+  return TypeNode(mkTypeConst<FloatingPointSize>(fs));
 }
 
 inline TypeNode NodeManager::mkArrayType(TypeNode indexType,
