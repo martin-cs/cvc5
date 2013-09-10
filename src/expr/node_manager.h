@@ -674,6 +674,9 @@ public:
   /** Get the (singleton) type for RegExp. */
   inline TypeNode regexpType();
 
+  /** Get the (singleton) type for rounding modes. */
+  inline TypeNode roundingModeType();
+
   /** Get the bound var list type. */
   inline TypeNode boundVarListType();
 
@@ -972,6 +975,11 @@ inline TypeNode NodeManager::stringType() {
 /** Get the (singleton) type for regexps. */
 inline TypeNode NodeManager::regexpType() {
   return TypeNode(mkTypeConst<TypeConstant>(REGEXP_TYPE));
+}
+
+/** Get the (singleton) type for rounding modes. */
+inline TypeNode NodeManager::roundingModeType() {
+  return TypeNode(mkTypeConst<TypeConstant>(ROUNDINGMODE_TYPE));
 }
 
 /** Get the bound var list type. */
