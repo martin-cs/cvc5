@@ -25,6 +25,9 @@
 
 #include "util/bitvector.h"
 
+#define VALIDEXPONENTSIZE(e) ((e) > 1)
+#define VALIDSIGNIFICANDSIZE(s) ((s) > 1)
+
 namespace CVC4 {
 
   /**
@@ -35,8 +38,8 @@ namespace CVC4 {
   class CVC4_PUBLIC FloatingPointSize {
     /*
       Class invariants:
-      * e > 1
-      * s > 1
+      * VALIDEXPONENTSIZE(e)
+      * VALIDSIGNIFCANDSIZE(s)
      */
 
   private :
@@ -46,8 +49,8 @@ namespace CVC4 {
   public :
     FloatingPointSize (unsigned _e, unsigned _s) : e(_e), s(_s)
     {
-      assert(e > 1);
-      assert(s > 1);
+      assert(VALIDEXPONENTSIZE(e));
+      assert(VALIDSIGNIFICANDSIZE(s));
     }
 
     inline unsigned exponent (void) const {
@@ -227,13 +230,11 @@ namespace CVC4 {
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) {
-    assert(0);
     return os << "(_ FloatingPoint " << fps.exponent() << " " << fps.significand() << ")";
   }
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) {
-    assert(0);
     return os << "((_ to_fp " << fpcs.t.exponent() << " " << fpcs.t.significand() << ")";
   }
 

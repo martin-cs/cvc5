@@ -683,6 +683,9 @@ public:
   /** Get the (singleton) type for strings. */
   inline TypeNode stringType();
 
+  /** Get the (singleton) type for rounding modes. */
+  inline TypeNode roundingModeType();
+
   /** Get the bound var list type. */
   inline TypeNode boundVarListType();
 
@@ -1033,6 +1036,11 @@ inline TypeNode NodeManager::realType() {
 /** Get the (singleton) type for strings. */
 inline TypeNode NodeManager::stringType() {
   return TypeNode(mkTypeConst<TypeConstant>(STRING_TYPE));
+}
+
+/** Get the (singleton) type for rounding modes. */
+inline TypeNode NodeManager::roundingModeType() {
+  return TypeNode(mkTypeConst<TypeConstant>(ROUNDINGMODE_TYPE));
 }
 
 /** Get the bound var list type. */
