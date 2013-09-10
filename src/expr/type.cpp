@@ -222,6 +222,12 @@ bool Type::isString() const {
   return d_typeNode->isString();
 }
 
+/** Is this the rounding mode type? */
+bool Type::isRoundingMode() const {
+  NodeManagerScope nms(d_nodeManager);
+  return d_typeNode->isRoundingMode();
+}
+
 /** Is this the bit-vector type? */
 bool Type::isBitVector() const {
   NodeManagerScope nms(d_nodeManager);

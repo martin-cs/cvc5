@@ -35,7 +35,7 @@ constant CONST_ROUNDINGMODE \
 sort ROUNDINGMODE_TYPE \
     5 \
     well-founded \
-    "NodeManager::currentNM()->mkConst(RoundingModeType)" \
+    "NodeManager::currentNM()->mkConst(true)" \
     "expr/node_manager.h" \
     "floating-point rounding mode"
 

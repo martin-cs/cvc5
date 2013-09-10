@@ -7,6 +7,26 @@ namespace CVC4 {
 namespace theory {
 namespace fp {
 
+class FloatingPointConstantTypeRule {
+public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+      throw (TypeCheckingExceptionPrivate, AssertionException) {
+
+    const FloatingPoint &f = n.getConst<FloatingPoint>();
+    
+    if (check) {
+      if (!(f.t.exponent() > 1)) {
+        throw TypeCheckingExceptionPrivate(n, "constant with invalid exponent size");
+      }
+      if (!(f.t.significand() > 1)) {
+        throw TypeCheckingExceptionPrivate(n, "constant with invalid significand size");
+      }
+    }
+    return nodeManager->mkFloatingPointType(f.t);
+  }
+};
+
+
 class FpTypeRule {
 public:
 
