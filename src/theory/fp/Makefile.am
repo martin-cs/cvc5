@@ -9,6 +9,7 @@ libfp_la_SOURCES = \
 	theory_fp.h \
 	theory_fp.cpp \
 	theory_fp_rewriter.h \
+	theory_fp_rewriter.cpp \
 	theory_fp_type_rules.h
 
 EXTRA_DIST = \
