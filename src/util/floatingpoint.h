@@ -47,11 +47,8 @@ namespace CVC4 {
     unsigned s;
 
   public :
-    FloatingPointSize (unsigned _e, unsigned _s) : e(_e), s(_s)
-    {
-      assert(VALIDEXPONENTSIZE(e));
-      assert(VALIDSIGNIFICANDSIZE(s));
-    }
+    FloatingPointSize (unsigned _e, unsigned _s);
+    FloatingPointSize (const FloatingPointSize &old);
 
     inline unsigned exponent (void) const {
       return this->e;
