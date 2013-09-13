@@ -120,7 +120,7 @@ namespace CVC4 {
   public :
     FloatingPointSize t;
 
-    FloatingPoint () : t(0,0) {
+    FloatingPoint (unsigned e, unsigned s, double d) : t(e,s) {
       assert(0);
     }
 
@@ -166,12 +166,24 @@ namespace CVC4 {
    * is a need for different (C++) types for each one.
    */
 
-  class CVC4_PUBLIC FloatingPointToFPIEEEBitVector : public FloatingPointConvertSort {};
-  class CVC4_PUBLIC FloatingPointToFPFloatingPoint : public FloatingPointConvertSort {};
-  class CVC4_PUBLIC FloatingPointToFPReal : public FloatingPointConvertSort {};
-  class CVC4_PUBLIC FloatingPointToFPSignedBitVector : public FloatingPointConvertSort {};
-  class CVC4_PUBLIC FloatingPointToFPUnsignedBitVector : public FloatingPointConvertSort {};
-  class CVC4_PUBLIC FloatingPointToReal : public FloatingPointConvertSort {};
+  class CVC4_PUBLIC FloatingPointToFPIEEEBitVector : public FloatingPointConvertSort {
+  public : FloatingPointToFPIEEEBitVector (unsigned _e, unsigned _s) : FloatingPointConvertSort(_e,_s) {}
+  };
+  class CVC4_PUBLIC FloatingPointToFPFloatingPoint : public FloatingPointConvertSort {
+  public : FloatingPointToFPFloatingPoint (unsigned _e, unsigned _s) : FloatingPointConvertSort(_e,_s) {}
+  };
+  class CVC4_PUBLIC FloatingPointToFPReal : public FloatingPointConvertSort {
+  public : FloatingPointToFPReal (unsigned _e, unsigned _s) : FloatingPointConvertSort(_e,_s) {}
+  };
+  class CVC4_PUBLIC FloatingPointToFPSignedBitVector : public FloatingPointConvertSort {
+  public : FloatingPointToFPSignedBitVector (unsigned _e, unsigned _s) : FloatingPointConvertSort(_e,_s) {}
+  };
+  class CVC4_PUBLIC FloatingPointToFPUnsignedBitVector : public FloatingPointConvertSort {
+  public : FloatingPointToFPUnsignedBitVector (unsigned _e, unsigned _s) : FloatingPointConvertSort(_e,_s) {}
+  };
+  class CVC4_PUBLIC FloatingPointToReal : public FloatingPointConvertSort {
+  public : FloatingPointToReal (unsigned _e, unsigned _s) : FloatingPointConvertSort(_e,_s) {}
+  };
 
 
 
@@ -202,8 +214,12 @@ namespace CVC4 {
     operator unsigned () const { return bvs; }
   };
 
-  class CVC4_PUBLIC FloatingPointToUBV : public FloatingPointToBV {};
-  class CVC4_PUBLIC FloatingPointToSBV : public FloatingPointToBV {};
+  class CVC4_PUBLIC FloatingPointToUBV : public FloatingPointToBV {
+  public : FloatingPointToUBV (unsigned _s) : FloatingPointToBV(_s) {}
+  };
+  class CVC4_PUBLIC FloatingPointToSBV : public FloatingPointToBV {
+  public : FloatingPointToSBV (unsigned _s) : FloatingPointToBV(_s) {}
+  };
 
 
   template <unsigned key>

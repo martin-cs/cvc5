@@ -441,6 +441,11 @@ StringType::StringType(const Type& t) throw(IllegalArgumentException) :
   CheckArgument(isNull() || isString(), this);
 }
 
+RoundingModeType::RoundingModeType(const Type& t) throw(IllegalArgumentException) :
+  Type(t) {
+  CheckArgument(isNull() || isRoundingMode(), this);
+}
+
 BitVectorType::BitVectorType(const Type& t) throw(IllegalArgumentException) :
   Type(t) {
   CheckArgument(isNull() || isBitVector(), this);

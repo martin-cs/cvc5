@@ -12,7 +12,9 @@
  ** \brief [[ Rewrite rules for floating point theories. ]]
  **
  ** \todo [[ Constant folding
- **          Push negations up through operators ]]
+ **          Push negations up through operators
+ **          FLOATINGPOINT_FP to CONST_FLOATINGPOINT
+ **          classifications to normal tests ]]
  **/
 
 #include "theory/fp/theory_fp_rewriter.h"

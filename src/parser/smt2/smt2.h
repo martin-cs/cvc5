@@ -44,6 +44,7 @@ public:
     THEORY_REALS,
     THEORY_REALS_INTS,
     THEORY_QUANTIFIERS,
+    THEORY_FP
   };
 
 private:
@@ -126,6 +127,8 @@ private:
   void addArithmeticOperators();
 
   void addBitvectorOperators();
+
+  void addFloatingPointOperators();
 
 };/* class Smt2 */
 

@@ -152,6 +152,12 @@ IntegerType ExprManager::integerType() const {
   return IntegerType(Type(d_nodeManager, new TypeNode(d_nodeManager->integerType())));
 }
 
+RoundingModeType ExprManager::roundingModeType() const {
+  NodeManagerScope nms(d_nodeManager);
+  return RoundingModeType(Type(d_nodeManager, new TypeNode(d_nodeManager->roundingModeType())));
+}
+
+
 Expr ExprManager::mkExpr(Kind kind, Expr child1) {
   const unsigned n = 1 - (kind::metaKindOf(kind) == kind::metakind::PARAMETERIZED ? 1 : 0);
   CheckArgument(n >= minArity(kind) && n <= maxArity(kind), kind,
