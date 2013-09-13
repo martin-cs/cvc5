@@ -148,6 +148,10 @@ public:
   /** Get the type for integers */
   IntegerType integerType() const;
 
+  /** Get the type for rounding modes */
+  RoundingModeType roundingModeType() const;
+ 
+
   /**
    * Make a unary expression of a given kind (NOT, BVNOT, ...).
    * @param kind the kind of expression

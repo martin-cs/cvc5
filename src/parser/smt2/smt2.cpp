@@ -95,6 +95,41 @@ void Smt2::addStringOperators() {
   Parser::addOperator(kind::STRING_LENGTH);
 }
 
+void Smt2::addFloatingPointOperators() {
+    addOperator(kind::FLOATINGPOINT_FP);
+    addOperator(kind::FLOATINGPOINT_EQ);
+    addOperator(kind::FLOATINGPOINT_ABS);
+    addOperator(kind::FLOATINGPOINT_NEG);
+    addOperator(kind::FLOATINGPOINT_PLUS);
+    addOperator(kind::FLOATINGPOINT_SUB);
+    addOperator(kind::FLOATINGPOINT_MULT);
+    addOperator(kind::FLOATINGPOINT_DIV);
+    addOperator(kind::FLOATINGPOINT_FMA);
+    addOperator(kind::FLOATINGPOINT_SQRT);
+    addOperator(kind::FLOATINGPOINT_REM);
+    addOperator(kind::FLOATINGPOINT_RTI);
+    addOperator(kind::FLOATINGPOINT_MIN);
+    addOperator(kind::FLOATINGPOINT_MAX);
+    addOperator(kind::FLOATINGPOINT_LEQ);
+    addOperator(kind::FLOATINGPOINT_LT);
+    addOperator(kind::FLOATINGPOINT_GEQ);
+    addOperator(kind::FLOATINGPOINT_GT);
+    addOperator(kind::FLOATINGPOINT_ISN);
+    addOperator(kind::FLOATINGPOINT_ISSN);
+    addOperator(kind::FLOATINGPOINT_ISZ);  
+    addOperator(kind::FLOATINGPOINT_ISINF);
+    addOperator(kind::FLOATINGPOINT_ISNAN);
+    addOperator(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
+    addOperator(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT);
+    addOperator(kind::FLOATINGPOINT_TO_FP_REAL);
+    addOperator(kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR);
+    addOperator(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR);
+    addOperator(kind::FLOATINGPOINT_TO_UBV);
+    addOperator(kind::FLOATINGPOINT_TO_SBV);
+    addOperator(kind::FLOATINGPOINT_TO_REAL);
+}
+
+
 void Smt2::addTheory(Theory theory) {
   switch(theory) {
   case THEORY_ARRAYS:
@@ -172,6 +207,24 @@ void Smt2::addTheory(Theory theory) {
     Parser::addOperator(kind::APPLY_UF);
     break;
 
+  case THEORY_FP:
+    defineType("RoundingMode", getExprManager()->roundingModeType());
+    defineVar("roundNearestTiesToEven", getExprManager()->mkConst(roundNearestTiesToEven));
+    defineVar("roundNearestTiesToAway", getExprManager()->mkConst(roundNearestTiesToAway));
+    defineVar("roundTowardPositive", getExprManager()->mkConst(roundTowardPositive));
+    defineVar("roundTowardNegative", getExprManager()->mkConst(roundTowardNegative));
+    defineVar("roundTowardZero", getExprManager()->mkConst(roundTowardZero));
+    defineVar("RNE", getExprManager()->mkConst(roundNearestTiesToEven));
+    defineVar("RNA", getExprManager()->mkConst(roundNearestTiesToAway));
+    defineVar("RTP", getExprManager()->mkConst(roundTowardPositive));
+    defineVar("RTN", getExprManager()->mkConst(roundTowardNegative));
+    defineVar("RTZ", getExprManager()->mkConst(roundTowardZero));
+    addFloatingPointOperators();
+    break;
+
+  case THEORY_QUANTIFIERS:
+    break;
+
   default:
     std::stringstream ss;
     ss << "internal error: unsupported theory " << theory;
@@ -243,6 +296,10 @@ void Smt2::setLogic(const std::string& name) {
 
   // Core theory belongs to every logic
   addTheory(THEORY_CORE);
+
+  // Temporarily add the floating point operations to all theories
+  // \todo Implement the proposed floating-point logics
+  addTheory(THEORY_FP);
 
   if(d_logic.isTheoryEnabled(theory::THEORY_UF)) {
     addTheory(THEORY_UF);

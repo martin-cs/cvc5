@@ -112,10 +112,13 @@ namespace CVC4 {
 #include "util/output.h"
 #include "util/rational.h"
 #include "util/hash.h"
+#include "util/floatingpoint.h"
 #include <vector>
 #include <set>
 #include <string>
 #include <sstream>
+// \todo Review the need for this header
+#include "math.h"
 
 using namespace CVC4;
 using namespace CVC4::parser;
@@ -1292,6 +1295,31 @@ indexedFunctionName[CVC4::Expr& op]
         if(PARSER_STATE->strictModeEnabled()) {
           PARSER_STATE->parseError("bv2nat and int2bv are not part of SMT-LIB, and aren't available in SMT-LIB strict compliance mode");
         } }
+    | FP_PINF_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                    AntlrInput::tokenToUnsigned($sb),
+                                    +INFINITY)); }
+    | FP_NINF_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                    AntlrInput::tokenToUnsigned($sb),
+                                    -INFINITY)); }
+    | FP_NAN_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                    AntlrInput::tokenToUnsigned($sb),
+                                    NAN)); }
+//    | FP_TO_FP_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+//      { op = MK_CONST(FloatingPointToFPUnsignedBitVector(AntlrInput::tokenToUnsigned($eb),
+//                                                         AntlrInput::tokenToUnsigned($sb))); }
+    | FP_TO_FPU_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToFPUnsignedBitVector(AntlrInput::tokenToUnsigned($eb),
+                                                         AntlrInput::tokenToUnsigned($sb))); }
+    | FP_TO_UBV_TOK m=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToUBV(AntlrInput::tokenToUnsigned($m))); }
+    | FP_TO_SBV_TOK m=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToSBV(AntlrInput::tokenToUnsigned($m))); }
+    | FP_TO_REAL_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToReal(AntlrInput::tokenToUnsigned($eb),
+                                         AntlrInput::tokenToUnsigned($sb))); }
     | badIndexedFunctionName
    )
     RPAREN_TOK
@@ -1428,7 +1456,6 @@ builtinOp[CVC4::Kind& kind]
   | BVSLE_TOK     { $kind = CVC4::kind::BITVECTOR_SLE; }
   | BVSGT_TOK     { $kind = CVC4::kind::BITVECTOR_SGT; }
   | BVSGE_TOK     { $kind = CVC4::kind::BITVECTOR_SGE; }
-
   | BV2NAT_TOK     { $kind = CVC4::kind::BITVECTOR_TO_NAT;
                      if(PARSER_STATE->strictModeEnabled()) {
                        PARSER_STATE->parseError("bv2nat and int2bv are not part of SMT-LIB, and aren't available in SMT-LIB strict compliance mode");
@@ -1458,9 +1485,35 @@ builtinOp[CVC4::Kind& kind]
   | REOPT_TOK      { $kind = CVC4::kind::REGEXP_OPT; }
   | RERANGE_TOK    { $kind = CVC4::kind::REGEXP_RANGE; }
   | RELOOP_TOK    { $kind = CVC4::kind::REGEXP_LOOP; }
-  
   | FMFCARD_TOK    { $kind = CVC4::kind::CARDINALITY_CONSTRAINT; }
-
+  | SETUNION_TOK  { $kind = CVC4::kind::UNION; }
+  | SETINT_TOK    { $kind = CVC4::kind::INTERSECTION; }
+  | SETMINUS_TOK  { $kind = CVC4::kind::SETMINUS; }
+  | SETSUB_TOK    { $kind = CVC4::kind::SUBSET; }
+  | SETIN_TOK     { $kind = CVC4::kind::MEMBER; }
+  | SETSINGLETON_TOK { $kind = CVC4::kind::SET_SINGLETON; }
+  | FP_EQ_TOK     { $kind = CVC4::kind::FLOATINGPOINT_EQ; }
+  | FP_ABS_TOK    { $kind = CVC4::kind::FLOATINGPOINT_ABS; }
+  | FP_NEG_TOK    { $kind = CVC4::kind::FLOATINGPOINT_NEG; }
+  | FP_PLUS_TOK   { $kind = CVC4::kind::FLOATINGPOINT_PLUS; }
+  | FP_SUB_TOK    { $kind = CVC4::kind::FLOATINGPOINT_SUB; }
+  | FP_MUL_TOK    { $kind = CVC4::kind::FLOATINGPOINT_MULT; }
+  | FP_DIV_TOK    { $kind = CVC4::kind::FLOATINGPOINT_DIV; }
+  | FP_FMA_TOK    { $kind = CVC4::kind::FLOATINGPOINT_FMA; }
+  | FP_SQRT_TOK   { $kind = CVC4::kind::FLOATINGPOINT_SQRT; }
+  | FP_REM_TOK    { $kind = CVC4::kind::FLOATINGPOINT_REM; }
+  | FP_RTI_TOK    { $kind = CVC4::kind::FLOATINGPOINT_RTI; }
+  | FP_MIN_TOK    { $kind = CVC4::kind::FLOATINGPOINT_MIN; }
+  | FP_MAX_TOK    { $kind = CVC4::kind::FLOATINGPOINT_MAX; }
+  | FP_LEQ_TOK    { $kind = CVC4::kind::FLOATINGPOINT_LEQ; }
+  | FP_LT_TOK     { $kind = CVC4::kind::FLOATINGPOINT_LT; }
+  | FP_GEQ_TOK    { $kind = CVC4::kind::FLOATINGPOINT_GEQ; }
+  | FP_GT_TOK     { $kind = CVC4::kind::FLOATINGPOINT_GT; }
+  | FP_ISN_TOK    { $kind = CVC4::kind::FLOATINGPOINT_ISN; }
+  | FP_ISSN_TOK   { $kind = CVC4::kind::FLOATINGPOINT_ISSN; }
+  | FP_ISZ_TOK    { $kind = CVC4::kind::FLOATINGPOINT_ISZ; }
+  | FP_ISINF_TOK  { $kind = CVC4::kind::FLOATINGPOINT_ISINF; }
+  | FP_ISNAN_TOK  { $kind = CVC4::kind::FLOATINGPOINT_ISNAN; }
   // NOTE: Theory operators go here
   ;
 
@@ -1544,6 +1597,17 @@ sortSymbol[CVC4::Type& t, CVC4::parser::DeclarationCheck check]
           PARSER_STATE->parseError("Illegal bitvector size: 0");
         }
         t = EXPR_MANAGER->mkBitVectorType(numerals.front());
+      } else if ( name == "FloatingPoint" ) {
+        if( numerals.size() != 2 ) {
+          PARSER_STATE->parseError("Illegal floating-point type.");
+        }
+        if(!VALIDEXPONENTSIZE(numerals[0])) {
+          PARSER_STATE->parseError("Illegal floating-point exponent size");
+        }
+        if(!VALIDSIGNIFICANDSIZE(numerals[1])) {
+          PARSER_STATE->parseError("Illegal floating-point significand size");
+        }
+        t = EXPR_MANAGER->mkFloatingPointType(numerals[0],numerals[1]);
       } else {
         std::stringstream ss;
         ss << "unknown indexed symbol `" << name << "'";
@@ -1864,6 +1928,38 @@ EMPTYSET_TOK: { PARSER_STATE->isTheoryEnabled(Smt2::THEORY_SETS) }? 'emptyset';
 // Other set theory operators are not
 // tokenized and handled directly when
 // processing a term
+
+FP_TOK : 'fp';
+FP_PINF_TOK : '+oo';
+FP_NINF_TOK : '-oo';
+FP_NAN_TOK : 'NaN';
+FP_EQ_TOK : 'fp.eq';
+FP_ABS_TOK : 'fp.abs';
+FP_NEG_TOK : 'fp.neg';
+FP_PLUS_TOK : 'fp.add';
+FP_SUB_TOK : 'fp.sub';
+FP_MUL_TOK : 'fp.mul';
+FP_DIV_TOK : 'fp.div';
+FP_FMA_TOK : 'fp.fma';
+FP_SQRT_TOK : 'fp.sqrt';
+FP_REM_TOK : 'fp.rem';
+FP_RTI_TOK : 'roundToIntegral';
+FP_MIN_TOK : 'fp.min';
+FP_MAX_TOK : 'fp.max';
+FP_LEQ_TOK : 'fp.leq';
+FP_LT_TOK : 'fp.lt';
+FP_GEQ_TOK : 'fp.geq';
+FP_GT_TOK : 'fp.gt';
+FP_ISN_TOK : 'fp.isNormal';
+FP_ISSN_TOK : 'fp.isSubnormal';
+FP_ISZ_TOK : 'fp.isZero';
+FP_ISINF_TOK : 'fp.isInfinite';
+FP_ISNAN_TOK : 'fp.isNaN';
+FP_TO_FP_TOK : 'to_fp';
+FP_TO_FPU_TOK : 'to_fp_unsigned';
+FP_TO_UBV_TOK : 'fp.to_ubv';
+FP_TO_SBV_TOK : 'fp.to_sbv';
+FP_TO_REAL_TOK : 'fp.to_real';
 
 /**
  * A sequence of printable ASCII characters (except backslash) that starts

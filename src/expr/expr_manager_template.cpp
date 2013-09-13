@@ -152,6 +152,12 @@ IntegerType ExprManager::integerType() const {
   return IntegerType(Type(d_nodeManager, new TypeNode(d_nodeManager->integerType())));
 }
 
+RoundingModeType ExprManager::roundingModeType() const {
+  NodeManagerScope nms(d_nodeManager);
+  return RoundingModeType(Type(d_nodeManager, new TypeNode(d_nodeManager->roundingModeType())));
+}
+
+
 Expr ExprManager::mkExpr(Kind kind, Expr child1) {
   const kind::MetaKind mk = kind::metaKindOf(kind);
   const unsigned n = 1 - (mk == kind::metakind::PARAMETERIZED ? 1 : 0);
