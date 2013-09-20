@@ -62,9 +62,9 @@ public:
 
       if (signBits != 1) {
 	throw TypeCheckingExceptionPrivate(n, "sign bit vector in fp must be 1 bit long");
-      } else if (VALIDEXPONENTSIZE(exponentBits)) {
+      } else if (!(VALIDEXPONENTSIZE(exponentBits))) {
 	throw TypeCheckingExceptionPrivate(n, "exponent bit vector in fp is an invalid size");
-      } else if (VALIDSIGNIFICANDSIZE(significandBits)) {
+      } else if (!(VALIDSIGNIFICANDSIZE(significandBits))) {
 	throw TypeCheckingExceptionPrivate(n, "significand bit vector in fp is an invalid size");
       }
     }
