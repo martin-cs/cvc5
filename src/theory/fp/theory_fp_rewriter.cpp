@@ -73,6 +73,23 @@ namespace rewrite {
     return RewriteResponse(REWRITE_DONE, node);
   }
 
+  RewriteResponse variable (TNode node, bool) {  
+    // We should only get floating point variables to rewrite.
+    Assert(node.getType(true).isFloatingPoint());
+    // Not that we do anything with them...
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse equal (TNode node, bool) {  
+    // We should only get equalities of floating point types
+    Assert(node.getKind() == kind::EQUAL);
+    Assert(node[0].getType(true).isFloatingPoint());
+    Assert(node[0].getType(true) == node[1].getType(true));
+
+    // Not that we do anything with them...
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
 }; /* CVC4::theory::fp::rewrite */
 
 RewriteFunction TheoryFpRewriter::preRewriteTable[kind::LAST_KIND]; 
@@ -138,6 +155,11 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     preRewriteTable[kind::FLOATINGPOINT_TO_SBV] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_TO_REAL] = rewrite::identity;
 
+    /******** Variables ********/
+    preRewriteTable[kind::VARIABLE] = rewrite::variable;
+    preRewriteTable[kind::BOUND_VARIABLE] = rewrite::variable;
+
+    preRewriteTable[kind::EQUAL] = rewrite::equal;
 
 
 
@@ -196,6 +218,12 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     postRewriteTable[kind::FLOATINGPOINT_TO_SBV] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_TO_REAL] = rewrite::identity;
 
+    /******** Variables ********/
+    postRewriteTable[kind::VARIABLE] = rewrite::variable;
+    postRewriteTable[kind::BOUND_VARIABLE] = rewrite::variable;
+
+    postRewriteTable[kind::EQUAL] = rewrite::equal;
+
 
   }
 
@@ -213,7 +241,7 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
    */
 
   RewriteResponse TheoryFpRewriter::preRewrite(TNode node) {
-    RewriteResponse res = postRewriteTable [node.getKind()] (node, true);
+    RewriteResponse res = preRewriteTable [node.getKind()] (node, true);
     if (res.node != node) {
       Debug("floating-point-rewrite") << "TheoryFpRewriter::preRewrite before " << node << std::endl;
       Debug("floating-point-rewrite") << "TheoryFpRewriter::preRewrite after  " << res.node << std::endl;
