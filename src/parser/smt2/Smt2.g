@@ -753,7 +753,7 @@ term[CVC4::Expr& expr, CVC4::Expr& expr2]
   std::vector<Expr> args;
   SExpr sexpr;
   std::vector< std::pair<std::string, Type> > sortedVarNames;
-  Expr f, f2;
+  Expr f, f2, f3, f4;
   std::string attr;
   Expr attexpr;
   std::vector<Expr> patexprs;
@@ -996,13 +996,30 @@ term[CVC4::Expr& expr, CVC4::Expr& expr2]
       // valid GMP rational string
       expr = MK_CONST( AntlrInput::tokenToRational($DECIMAL_LITERAL) ); }
 
-  | LPAREN_TOK INDEX_TOK bvLit=SIMPLE_SYMBOL size=INTEGER_LITERAL RPAREN_TOK
-    { if(AntlrInput::tokenText($bvLit).find("bv") == 0) {
-        expr = MK_CONST( AntlrInput::tokenToBitvector($bvLit, $size) );
-      } else {
-        PARSER_STATE->parseError("Unexpected symbol `" + AntlrInput::tokenText($bvLit) + "'");
+  | LPAREN_TOK INDEX_TOK 
+    ( bvLit=SIMPLE_SYMBOL size=INTEGER_LITERAL 
+      { if(AntlrInput::tokenText($bvLit).find("bv") == 0) {
+           expr = MK_CONST( AntlrInput::tokenToBitvector($bvLit, $size) );
+        } else {
+           PARSER_STATE->parseError("Unexpected symbol `" + AntlrInput::tokenText($bvLit) + "'");
+        }
       }
-    }
+    | FP_PINF_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { expr = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                      AntlrInput::tokenToUnsigned($sb),
+                                      +INFINITY)); }
+    | FP_NINF_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { expr = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                      AntlrInput::tokenToUnsigned($sb),
+                                     -INFINITY)); }
+    | FP_NAN_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { expr = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                      AntlrInput::tokenToUnsigned($sb),
+                                      NAN)); }
+    // NOTE: Theory parametric constants go here
+
+    )
+    RPAREN_TOK
 
   | HEX_LITERAL
     { assert( AntlrInput::tokenText($HEX_LITERAL).find("#x") == 0 );
@@ -1013,6 +1030,49 @@ term[CVC4::Expr& expr, CVC4::Expr& expr2]
     { assert( AntlrInput::tokenText($BINARY_LITERAL).find("#b") == 0 );
       std::string binString = AntlrInput::tokenTextSubstr($BINARY_LITERAL, 2);
       expr = MK_CONST( BitVector(binString, 2) ); }
+
+  | FP_RNE_TOK      { expr = MK_CONST(roundNearestTiesToEven); }
+  | FP_RNA_TOK      { expr = MK_CONST(roundNearestTiesToAway); }
+  | FP_RTP_TOK      { expr = MK_CONST(roundTowardPositive); }
+  | FP_RTN_TOK      { expr = MK_CONST(roundTowardNegative); }
+  | FP_RTZ_TOK      { expr = MK_CONST(roundTowardZero); }
+  | FP_RNE_FULL_TOK { expr = MK_CONST(roundNearestTiesToEven); }
+  | FP_RNA_FULL_TOK { expr = MK_CONST(roundNearestTiesToAway); }
+  | FP_RTP_FULL_TOK { expr = MK_CONST(roundTowardPositive); }
+  | FP_RTN_FULL_TOK { expr = MK_CONST(roundTowardNegative); }
+  | FP_RTZ_FULL_TOK { expr = MK_CONST(roundTowardZero); }
+
+/*
+    // Nice context free language you got there, be a shame if something happened to it...
+  | LPAREN_TOK LPAREN_TOK INDEX_TOK FP_TO_FP_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL RPAREN_TOK term[f,f2] RPAREN_TOK
+      { op = MK_CONST(FloatingPointToFPIEEEBitVector(AntlrInput::tokenToUnsigned($eb),
+                                                     AntlrInput::tokenToUnsigned($sb)));
+        expr = MK_EXPR(op, f);
+        PARSER_STATE->checkOperator(expr.getKind(), 1);
+      }
+  | LPAREN_TOK LPAREN_TOK INDEX_TOK FP_TO_FP_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL RPAREN_TOK term[f,f2] term[f3, f4] RPAREN_TOK
+      { 
+        // First arg should be the rounding mode, second argument determines which kind to build
+        TypeNode secondOperand = f3.getType(check);
+
+        if (secondOperand.isFloatingPoint()) {
+            op = MK_CONST(FloatingPointToFPFloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                                         AntlrInput::tokenToUnsigned($sb)));
+
+        } else if (secondOperand.isReal()) {
+            op = MK_CONST(FloatingPointToFPReal(AntlrInput::tokenToUnsigned($eb),
+                                                AntlrInput::tokenToUnsigned($sb)));
+
+        } else if (secondOperand.isBitVector()) {
+            op = MK_CONST(FloatingPointToFPSignedBitVector(AntlrInput::tokenToUnsigned($eb),
+                                                           AntlrInput::tokenToUnsigned($sb)));
+        } else {
+            PARSER_STATE->parseError("Unexpected type in argument to to_fp `" + secondOperand.toString() + "'");
+        }
+        expr = MK_EXPR(op, f);
+        PARSER_STATE->checkOperator(expr.getKind(), 2);
+      }
+*/
 
     // NOTE: Theory constants go here
   ;
@@ -1115,21 +1175,18 @@ indexedFunctionName[CVC4::Expr& op]
       { op = MK_CONST(BitVectorRotateRight(AntlrInput::tokenToUnsigned($n))); }
     | DIVISIBLE_TOK n=INTEGER_LITERAL
       { op = MK_CONST(Divisible(AntlrInput::tokenToUnsigned($n))); }
-    | FP_PINF_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
-      { op = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
-                                    AntlrInput::tokenToUnsigned($sb),
-                                    +INFINITY)); }
-    | FP_NINF_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
-      { op = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
-                                    AntlrInput::tokenToUnsigned($sb),
-                                    -INFINITY)); }
-    | FP_NAN_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
-      { op = MK_CONST(FloatingPoint(AntlrInput::tokenToUnsigned($eb),
-                                    AntlrInput::tokenToUnsigned($sb),
-                                    NAN)); }
-//    | FP_TO_FP_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
-//      { op = MK_CONST(FloatingPointToFPUnsignedBitVector(AntlrInput::tokenToUnsigned($eb),
-//                                                         AntlrInput::tokenToUnsigned($sb))); }
+    | FP_TO_FPBV_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToFPIEEEBitVector(AntlrInput::tokenToUnsigned($eb),
+                                                     AntlrInput::tokenToUnsigned($sb))); }
+    | FP_TO_FPFP_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToFPFloatingPoint(AntlrInput::tokenToUnsigned($eb),
+                                                     AntlrInput::tokenToUnsigned($sb))); }
+    | FP_TO_FPR_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToFPReal(AntlrInput::tokenToUnsigned($eb),
+                                            AntlrInput::tokenToUnsigned($sb))); }
+    | FP_TO_FPS_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPointToFPSignedBitVector(AntlrInput::tokenToUnsigned($eb),
+                                                       AntlrInput::tokenToUnsigned($sb))); }
     | FP_TO_FPU_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
       { op = MK_CONST(FloatingPointToFPUnsignedBitVector(AntlrInput::tokenToUnsigned($eb),
                                                          AntlrInput::tokenToUnsigned($sb))); }
@@ -1141,7 +1198,7 @@ indexedFunctionName[CVC4::Expr& op]
       { op = MK_CONST(FloatingPointToReal(AntlrInput::tokenToUnsigned($eb),
                                          AntlrInput::tokenToUnsigned($sb))); }
     | badIndexedFunctionName
-   )
+        )
     RPAREN_TOK
   ;
 
@@ -1250,6 +1307,7 @@ builtinOp[CVC4::Kind& kind]
   | BVSGT_TOK     { $kind = CVC4::kind::BITVECTOR_SGT; }
   | BVSGE_TOK     { $kind = CVC4::kind::BITVECTOR_SGE; }
 
+  | FP_TOK        { $kind = CVC4::kind::FLOATINGPOINT_FP; }
   | FP_EQ_TOK     { $kind = CVC4::kind::FLOATINGPOINT_EQ; }
   | FP_ABS_TOK    { $kind = CVC4::kind::FLOATINGPOINT_ABS; }
   | FP_NEG_TOK    { $kind = CVC4::kind::FLOATINGPOINT_NEG; }
@@ -1277,21 +1335,6 @@ builtinOp[CVC4::Kind& kind]
   // NOTE: Theory operators go here
   ;
 
-roundingMode[CVC4::Expr& rm]
-@init {
-  Debug("parser") << "builtin: " << AntlrInput::tokenText(LT(1)) << std::endl;
-}
-  : FP_RNE      { $rm = MK_CONST(roundNearestTiesToEven); }
-  | FP_RNA      { $rm = MK_CONST(roundNearestTiesToAway); }
-  | FP_RTP      { $rm = MK_CONST(roundTowardPositive); }
-  | FP_RTN      { $rm = MK_CONST(roundTowardNegative); }
-  | FP_RTZ      { $rm = MK_CONST(roundTowardZero); }
-  | FP_RNE_FULL { $rm = MK_CONST(roundNearestTiesToEven); }
-  | FP_RNA_FULL { $rm = MK_CONST(roundNearestTiesToAway); }
-  | FP_RTP_FULL { $rm = MK_CONST(roundTowardPositive); }
-  | FP_RTN_FULL { $rm = MK_CONST(roundTowardNegative); }
-  | FP_RTZ_FULL { $rm = MK_CONST(roundTowardZero); }
-  ;
 
 quantOp[CVC4::Kind& kind]
 @init {
@@ -1685,20 +1728,24 @@ FP_ISZ_TOK : 'fp.isZero';
 FP_ISINF_TOK : 'fp.isInfinite';
 FP_ISNAN_TOK : 'fp.isNaN';
 FP_TO_FP_TOK : 'to_fp';
+FP_TO_FPBV_TOK : 'to_fp_bv';
+FP_TO_FPFP_TOK : 'to_fp_fp';
+FP_TO_FPR_TOK : 'to_fp_real';
+FP_TO_FPS_TOK : 'to_fp_signed';
 FP_TO_FPU_TOK : 'to_fp_unsigned';
 FP_TO_UBV_TOK : 'fp.to_ubv';
 FP_TO_SBV_TOK : 'fp.to_sbv';
 FP_TO_REAL_TOK : 'fp.to_real';
-FT_RNE : 'RNE';
-FT_RNA : 'RNA';
-FT_RTP : 'RTP';
-FT_RTN : 'RTN';
-FT_RTZ : 'RTZ';
-FT_RNE_FULL : 'roundNearestTiesToEven';
-FT_RNA_FULL : 'roundNearestTiesToAway';
-FT_RTP_FULL : 'roundTowardPositive';
-FT_RTN_FULL : 'roundTowardNegative';
-FT_RTZ_FULL : 'roundTowardZero';
+FP_RNE_TOK : 'RNE';
+FP_RNA_TOK : 'RNA';
+FP_RTP_TOK : 'RTP';
+FP_RTN_TOK : 'RTN';
+FP_RTZ_TOK : 'RTZ';
+FP_RNE_FULL_TOK : 'roundNearestTiesToEven';
+FP_RNA_FULL_TOK : 'roundNearestTiesToAway';
+FP_RTP_FULL_TOK : 'roundTowardPositive';
+FP_RTN_FULL_TOK : 'roundTowardNegative';
+FP_RTZ_FULL_TOK : 'roundTowardZero';
 
 /**
  * A sequence of printable ASCII characters (except backslash) that starts
