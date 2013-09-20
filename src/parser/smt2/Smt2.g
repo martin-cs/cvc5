@@ -1517,6 +1517,22 @@ builtinOp[CVC4::Kind& kind]
   // NOTE: Theory operators go here
   ;
 
+roundingMode[CVC4::Expr& rm]
+@init {
+  Debug("parser") << "builtin: " << AntlrInput::tokenText(LT(1)) << std::endl;
+}
+  : FP_RNE      { $rm = MK_CONST(roundNearestTiesToEven); }
+  | FP_RNA      { $rm = MK_CONST(roundNearestTiesToAway); }
+  | FP_RTP      { $rm = MK_CONST(roundTowardPositive); }
+  | FP_RTN      { $rm = MK_CONST(roundTowardNegative); }
+  | FP_RTZ      { $rm = MK_CONST(roundTowardZero); }
+  | FP_RNE_FULL { $rm = MK_CONST(roundNearestTiesToEven); }
+  | FP_RNA_FULL { $rm = MK_CONST(roundNearestTiesToAway); }
+  | FP_RTP_FULL { $rm = MK_CONST(roundTowardPositive); }
+  | FP_RTN_FULL { $rm = MK_CONST(roundTowardNegative); }
+  | FP_RTZ_FULL { $rm = MK_CONST(roundTowardZero); }
+  ;
+
 quantOp[CVC4::Kind& kind]
 @init {
   Debug("parser") << "quant: " << AntlrInput::tokenText(LT(1)) << std::endl;
@@ -1960,6 +1976,16 @@ FP_TO_FPU_TOK : 'to_fp_unsigned';
 FP_TO_UBV_TOK : 'fp.to_ubv';
 FP_TO_SBV_TOK : 'fp.to_sbv';
 FP_TO_REAL_TOK : 'fp.to_real';
+FT_RNE : 'RNE';
+FT_RNA : 'RNA';
+FT_RTP : 'RTP';
+FT_RTN : 'RTN';
+FT_RTZ : 'RTZ';
+FT_RNE_FULL : 'roundNearestTiesToEven';
+FT_RNA_FULL : 'roundNearestTiesToAway';
+FT_RTP_FULL : 'roundTowardPositive';
+FT_RTN_FULL : 'roundTowardNegative';
+FT_RTZ_FULL : 'roundTowardZero';
 
 /**
  * A sequence of printable ASCII characters (except backslash) that starts

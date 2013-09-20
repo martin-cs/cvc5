@@ -209,16 +209,6 @@ void Smt2::addTheory(Theory theory) {
 
   case THEORY_FP:
     defineType("RoundingMode", getExprManager()->roundingModeType());
-    defineVar("roundNearestTiesToEven", getExprManager()->mkConst(roundNearestTiesToEven));
-    defineVar("roundNearestTiesToAway", getExprManager()->mkConst(roundNearestTiesToAway));
-    defineVar("roundTowardPositive", getExprManager()->mkConst(roundTowardPositive));
-    defineVar("roundTowardNegative", getExprManager()->mkConst(roundTowardNegative));
-    defineVar("roundTowardZero", getExprManager()->mkConst(roundTowardZero));
-    defineVar("RNE", getExprManager()->mkConst(roundNearestTiesToEven));
-    defineVar("RNA", getExprManager()->mkConst(roundNearestTiesToAway));
-    defineVar("RTP", getExprManager()->mkConst(roundTowardPositive));
-    defineVar("RTN", getExprManager()->mkConst(roundTowardNegative));
-    defineVar("RTZ", getExprManager()->mkConst(roundTowardZero));
     addFloatingPointOperators();
     break;
 
