@@ -86,8 +86,11 @@ namespace rewrite {
     Assert(node[0].getType(true).isFloatingPoint());
     Assert(node[0].getType(true) == node[1].getType(true));
 
-    // Not that we do anything with them...
-    return RewriteResponse(REWRITE_DONE, node);
+    if (node[0] == node[1]) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(true));
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    }
   }
 
 }; /* CVC4::theory::fp::rewrite */
