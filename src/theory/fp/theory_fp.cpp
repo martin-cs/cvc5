@@ -18,6 +18,10 @@ TheoryFp::TheoryFp(context::Context* c,
 
 void TheoryFp::check(Effort level) {
 
+  Trace("fp") << "TheoryFP::check(" << level << ") called" << std::endl;
+
+  Unimplemented("TRP goes here!");
+
   while(!done()) {
     // Get all the assertions
     Assertion assertion = get();

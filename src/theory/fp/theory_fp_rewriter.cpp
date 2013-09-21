@@ -53,8 +53,8 @@ namespace rewrite {
 
   RewriteResponse convertSubtractionToAddition (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_SUB);
-    TNode negation = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_NEG,node[2]);
-    TNode addition = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_PLUS,node[0],node[1],negation);
+    Node negation = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_NEG,node[2]);
+    Node addition = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_PLUS,node[0],node[1],negation);
     return RewriteResponse(REWRITE_DONE, addition);
   }
 
@@ -241,10 +241,11 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
    */
 
   RewriteResponse TheoryFpRewriter::preRewrite(TNode node) {
+    Trace("fp-rewrite") << __FUNCTION << ' ' << node << std::endl;
     RewriteResponse res = preRewriteTable [node.getKind()] (node, true);
     if (res.node != node) {
-      Debug("floating-point-rewrite") << "TheoryFpRewriter::preRewrite before " << node << std::endl;
-      Debug("floating-point-rewrite") << "TheoryFpRewriter::preRewrite after  " << res.node << std::endl;
+      Debug("fp-rewrite") << "TheoryFpRewriter::preRewrite before " << node << std::endl;
+      Debug("fp-rewrite") << "TheoryFpRewriter::preRewrite after  " << res.node << std::endl;
     }
     return res;
   }
@@ -273,10 +274,11 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
    */
 
   RewriteResponse TheoryFpRewriter::postRewrite(TNode node) {
+    Trace("fp-rewrite") << __FUNCTION << ' ' << node << std::endl;
     RewriteResponse res = postRewriteTable [node.getKind()] (node, false);
     if (res.node != node) {
-      Debug("floating-point-rewrite") << "TheoryFpRewriter::postRewrite before " << node << std::endl;
-      Debug("floating-point-rewrite") << "TheoryFpRewriter::postRewrite after  " << res.node << std::endl;
+      Debug("fp-rewrite") << __FUNCTION__ << " before " << node << std::endl;
+      Debug("fp-rewrite") << __FUNCTION__ << " after  " << res.node << std::endl;
     }
     return res;
   }

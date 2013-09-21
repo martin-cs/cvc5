@@ -7,10 +7,13 @@ namespace CVC4 {
 namespace theory {
 namespace fp {
 
+#define TRACE Trace("fp-type") << __FUNCTION__ << "(" << check << ") on " << n << std::endl
+
 class FloatingPointConstantTypeRule {
 public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     const FloatingPoint &f = n.getConst<FloatingPoint>();
     
@@ -31,6 +34,7 @@ class RoundingModeConstantTypeRule {
 public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     // Nothing to check!
     return nodeManager->roundingModeType();
@@ -43,6 +47,7 @@ class FloatingPointFPTypeRule {
 public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     TypeNode signType = n[0].getType(check);
     TypeNode exponentType = n[1].getType(check);
@@ -80,6 +85,7 @@ class FloatingPointTestTypeRule {
 public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     if (check) {
       TypeNode firstOperand = n[0].getType(check);
@@ -105,6 +111,7 @@ class FloatingPointOperationTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     TypeNode firstOperand = n[0].getType(check);
 
@@ -130,6 +137,7 @@ class FloatingPointRoundingOperationTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     if (check) {
       TypeNode roundingModeType = n[0].getType(check);
@@ -164,6 +172,7 @@ class FloatingPointToFPIEEEBitVectorTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToFPIEEEBitVector info = n.getOperator().getConst<FloatingPointToFPIEEEBitVector>();
 
@@ -186,6 +195,7 @@ class FloatingPointToFPFloatingPointTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToFPFloatingPoint info = n.getOperator().getConst<FloatingPointToFPFloatingPoint>();
 
@@ -213,6 +223,7 @@ class FloatingPointToFPRealTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToFPReal info = n.getOperator().getConst<FloatingPointToFPReal>();
 
@@ -240,6 +251,7 @@ class FloatingPointToFPSignedBitVectorTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToFPSignedBitVector info = n.getOperator().getConst<FloatingPointToFPSignedBitVector>();
 
@@ -267,6 +279,7 @@ class FloatingPointToFPUnsignedBitVectorTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToFPUnsignedBitVector info = n.getOperator().getConst<FloatingPointToFPUnsignedBitVector>();
 
@@ -294,6 +307,7 @@ class FloatingPointToUBVTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToUBV info = n.getOperator().getConst<FloatingPointToUBV>();
 
@@ -321,6 +335,7 @@ class FloatingPointToSBVTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToSBV info = n.getOperator().getConst<FloatingPointToSBV>();
 
@@ -349,6 +364,7 @@ class FloatingPointToRealTypeRule {
 public :
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
       throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE;
 
     FloatingPointToReal info = n.getOperator().getConst<FloatingPointToReal>();
     TypeNode returnType = nodeManager->mkFloatingPointType(info.t);
@@ -392,6 +408,7 @@ public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n,
                                      bool check)
     throw (TypeCheckingExceptionPrivate) {
+    TRACE;
 
     // TODO: implement me!
     Unimplemented();
