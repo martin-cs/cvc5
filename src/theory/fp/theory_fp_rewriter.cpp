@@ -241,11 +241,11 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
    */
 
   RewriteResponse TheoryFpRewriter::preRewrite(TNode node) {
-    Trace("fp-rewrite") << __FUNCTION << ' ' << node << std::endl;
+    Trace("fp-rewrite") << __FUNCTION__ << ' ' << node << std::endl;
     RewriteResponse res = preRewriteTable [node.getKind()] (node, true);
     if (res.node != node) {
-      Debug("fp-rewrite") << "TheoryFpRewriter::preRewrite before " << node << std::endl;
-      Debug("fp-rewrite") << "TheoryFpRewriter::preRewrite after  " << res.node << std::endl;
+      Debug("fp-rewrite") << __FUNCTION__ " before " << node << std::endl;
+      Debug("fp-rewrite") << __FUNCTION__ " after  " << res.node << std::endl;
     }
     return res;
   }
@@ -274,7 +274,7 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
    */
 
   RewriteResponse TheoryFpRewriter::postRewrite(TNode node) {
-    Trace("fp-rewrite") << __FUNCTION << ' ' << node << std::endl;
+    Trace("fp-rewrite") << __FUNCTION__ << ' ' << node << std::endl;
     RewriteResponse res = postRewriteTable [node.getKind()] (node, false);
     if (res.node != node) {
       Debug("fp-rewrite") << __FUNCTION__ << " before " << node << std::endl;
