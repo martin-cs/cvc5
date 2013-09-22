@@ -12,7 +12,7 @@
  ** \brief [[ Rewrite rules for floating point theories. ]]
  **
  ** \todo [[ Constant folding
- **          Push negations up through arithmetic operators
+ **          Push negations up through arithmetic operators (include max and min? maybe not due to +0/-0)
  **          classifications to normal tests
  **          (= x (fp.neg x)) --> (isNaN x)
  **          (fp.eq x (fp.neg x)) --> (isZero x) 
@@ -83,7 +83,7 @@ namespace rewrite {
     return RewriteResponse(REWRITE_DONE, node);
   }
 
-  RewriteResponse equal (TNode node, bool) {  
+  RewriteResponse equal (TNode node, bool isPreRewrite) {  
     // We should only get equalities of floating point types
     Assert(node.getKind() == kind::EQUAL);
     Assert(node[0].getType(true).isFloatingPoint());
@@ -91,6 +91,9 @@ namespace rewrite {
 
     if (node[0] == node[1]) {
       return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(true));
+    } else if (isPreRewrite && (node[0] > node[1])) {
+	Node normal = NodeManager::currentNM()->mkNode(kind::EQUAL,node[1],node[0]);
+	return RewriteResponse(REWRITE_DONE, normal);
     } else {
       return RewriteResponse(REWRITE_DONE, node);
     }
@@ -164,6 +167,56 @@ namespace rewrite {
     }
   }
 
+  // Note these cannot be assumed to be symmetric for +0/-0, thus no symmetry reorder
+  RewriteResponse compactMinMax (TNode node, bool isPreRewrite) {
+    Kind k = node.getKind();
+
+    Assert((k == kind::FLOATINGPOINT_MIN) || (k == kind::FLOATINGPOINT_MAX));
+
+    if (node[0] == node[1]) {
+      return RewriteResponse(REWRITE_DONE, node[0]);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    }
+  }
+
+
+  RewriteResponse reorderFPEquality (TNode node, bool isPreRewrite) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_EQ);
+    Assert(!isPreRewrite);    // Likely redundant in pre-rewrite
+
+    if (node[0] > node[1]) {
+      Node normal = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_EQ,node[1],node[0]);
+      return RewriteResponse(REWRITE_DONE, normal);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    } 
+  }
+
+  RewriteResponse reorderBinaryOperation (TNode node, bool isPreRewrite) {
+    Kind k = node.getKind();
+    Assert((k == kind::FLOATINGPOINT_PLUS) || (k == kind::FLOATINGPOINT_MULT));
+    Assert(!isPreRewrite);    // Likely redundant in pre-rewrite
+
+    if (node[1] > node[2]) {
+      Node normal = NodeManager::currentNM()->mkNode(k,node[0],node[2],node[1]);
+      return RewriteResponse(REWRITE_DONE, normal);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    } 
+  }
+
+  RewriteResponse reorderFMA (TNode node, bool isPreRewrite) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_FMA);
+    Assert(!isPreRewrite);    // Likely redundant in pre-rewrite
+
+    if (node[1] > node[2]) {
+      Node normal = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_FMA,node[0],node[2],node[1],node[3]);
+      return RewriteResponse(REWRITE_DONE, normal);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    } 
+  }
 
 }; /* CVC4::theory::fp::rewrite */
 
@@ -204,8 +257,8 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     preRewriteTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_REM] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_RTI] = rewrite::identity;
-    preRewriteTable[kind::FLOATINGPOINT_MIN] = rewrite::identity;
-    preRewriteTable[kind::FLOATINGPOINT_MAX] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_MIN] = rewrite::compactMinMax;
+    preRewriteTable[kind::FLOATINGPOINT_MAX] = rewrite::compactMinMax;
 
     /******** Comparisons ********/
     preRewriteTable[kind::FLOATINGPOINT_LEQ] = rewrite::identity;
@@ -256,19 +309,19 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
       
     /******** Operations ********/
     postRewriteTable[kind::FLOATINGPOINT_FP] = rewrite::convertFromLiteral;
-    postRewriteTable[kind::FLOATINGPOINT_EQ] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_EQ] = rewrite::reorderFPEquality;
     postRewriteTable[kind::FLOATINGPOINT_ABS] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_NEG] = rewrite::removeDoubleNegation;
-    postRewriteTable[kind::FLOATINGPOINT_PLUS] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_PLUS] = rewrite::reorderBinaryOperation;
     postRewriteTable[kind::FLOATINGPOINT_SUB] = rewrite::removed;
-    postRewriteTable[kind::FLOATINGPOINT_MULT] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_MULT] = rewrite::reorderBinaryOperation;
     postRewriteTable[kind::FLOATINGPOINT_DIV] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_FMA] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_FMA] = rewrite::reorderFMA;
     postRewriteTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_REM] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_RTI] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_MIN] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_MAX] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_MIN] = rewrite::compactMinMax;
+    postRewriteTable[kind::FLOATINGPOINT_MAX] = rewrite::compactMinMax;
 
     /******** Comparisons ********/
     postRewriteTable[kind::FLOATINGPOINT_LEQ] = rewrite::identity;
