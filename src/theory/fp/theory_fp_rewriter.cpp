@@ -84,10 +84,13 @@ namespace rewrite {
   }
 
   RewriteResponse equal (TNode node, bool isPreRewrite) {  
-    // We should only get equalities of floating point types
+    // We should only get equalities of floating point or rounding mode types
     Assert(node.getKind() == kind::EQUAL);
-    Assert(node[0].getType(true).isFloatingPoint());
-    Assert(node[0].getType(true) == node[1].getType(true));
+
+    TypeNode tn = node[0].getType(true);
+
+    Assert(tn.isFloatingPoint() || tn.isRoundingMode());
+    Assert(tn == node[1].getType(true));   // Should be ensured by the typing rules
 
     if (node[0] == node[1]) {
       return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(true));
