@@ -20,13 +20,13 @@
 #include "cvc4_public.h"
 
 
+#include "trp/datatypes/floatingPoint.h"
+
 #ifndef __CVC4__FLOATINGPOINT_H
 #define __CVC4__FLOATINGPOINT_H
 
 #include "util/bitvector.h"
 
-#define VALIDEXPONENTSIZE(e) ((e) > 1)
-#define VALIDSIGNIFICANDSIZE(s) ((s) > 1)
 
 namespace CVC4 {
 
@@ -88,11 +88,11 @@ namespace CVC4 {
    * A concrete instance of the rounding mode sort
    */
   enum CVC4_PUBLIC RoundingMode {
-    roundNearestTiesToEven,
+    roundNearestTiesToEven = FE_TONEAREST,
     roundNearestTiesToAway,
-    roundTowardPositive,
-    roundTowardNegative,
-    roundTowardZero
+    roundTowardPositive = FE_UPWARD,
+    roundTowardNegative = FE_DOWNWARD,
+    roundTowardZero = FE_TOWARDZERO
   }; /* enum RoundingMode */
 
   struct CVC4_PUBLIC RoundingModeHashFunction {
@@ -114,28 +114,35 @@ namespace CVC4 {
    * A concrete floating point number
    */
 
+  // We used the wrapped multi-precision floats from TRP
+  typedef TRP::primitiveLiteral<double> FloatingPointLiteral;
+
   class CVC4_PUBLIC FloatingPoint {
   protected :
-    /* \todo Floating point literal in correct form */
+    FloatingPointLiteral fpl;
+
   public :
     FloatingPointSize t;
 
-    FloatingPoint (unsigned e, unsigned s, double d) : t(e,s) {
-      assert(0);
+    FloatingPoint (unsigned e, unsigned s, double d) : fpl(e,s,d), t(e,s) {}
+    FloatingPoint (unsigned e, unsigned s, const std::string &bitString) : fpl(e,s,bitString), t(e,s) {}
+    FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
+
+    bool operator ==(const FloatingPoint& fp) const {
+      return ( (t == fp.t) && fpl.logicalEqual(fp.fpl) );
     }
 
-    bool operator ==(const FloatingPoint& f) const {
-      if (!(t == f.t)) return false; 
-      assert(0);
-      return false;
+    const FloatingPointLiteral & getLiteral (void) const {
+      return this->fpl;
     }
+
   }; /* class FloatingPoint */
 
 
   struct CVC4_PUBLIC FloatingPointHashFunction {
-    inline size_t operator() (const FloatingPoint& rm) const {
-      assert(0);
-      return size_t(1);
+    inline size_t operator() (const FloatingPoint& fp) const {   
+      FloatingPointSizeHashFunction h;
+      return h(fp.t) ^ fp.getLiteral().hash();
     }
   }; /* struct FloatingPointHashFunction */
 
@@ -237,9 +244,8 @@ namespace CVC4 {
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) {
-    assert(0);
-  return os << "<floating point number goes here>";
-}
+    return os << fp.getLiteral();
+  }
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) {
@@ -248,7 +254,7 @@ namespace CVC4 {
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointConvertSort& fpcs) {
-    return os << "((_ to_fp " << fpcs.t.exponent() << " " << fpcs.t.significand() << ")";
+    return os << "(_ to_fp " << fpcs.t.exponent() << " " << fpcs.t.significand() << ")";
   }
 
 

@@ -12,9 +12,12 @@
  ** \brief [[ Rewrite rules for floating point theories. ]]
  **
  ** \todo [[ Constant folding
- **          Push negations up through operators
- **          FLOATINGPOINT_FP to CONST_FLOATINGPOINT
- **          classifications to normal tests ]]
+ **          Push negations up through arithmetic operators
+ **          classifications to normal tests
+ **          (= x (fp.neg x)) --> (isNaN x)
+ **          (fp.eq x (fp.neg x)) --> (isZero x) 
+ **          (fp.eq x x) --> (not (isNaN x))
+ **          (fp.eq x const) --> various = depending on const ]]
  **/
 
 #include "theory/fp/theory_fp_rewriter.h"
@@ -92,6 +95,75 @@ namespace rewrite {
       return RewriteResponse(REWRITE_DONE, node);
     }
   }
+
+  RewriteResponse convertFromRealLiteral (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
+
+    // \todo Honour the rounding mode and work for something other than doubles!
+
+    if (node[1].getKind() == kind::CONST_RATIONAL) {
+      TNode op = node.getOperator();
+      const FloatingPointToFPReal &param = op.getConst<FloatingPointToFPReal>();
+      Node lit =
+	NodeManager::currentNM()->mkConst(FloatingPoint(param.t.exponent(),
+							param.t.significand(),
+							node[1].getConst<Rational>().getDouble()));
+      
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    }
+  }
+
+  RewriteResponse convertFromIEEEBitVectorLiteral (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
+
+    // \todo Handle arbitrary length bit vectors without using strings!
+
+    if (node[0].getKind() == kind::CONST_BITVECTOR) {
+      TNode op = node.getOperator();
+      const FloatingPointToFPIEEEBitVector &param = op.getConst<FloatingPointToFPIEEEBitVector>();
+      const BitVector &bv = node[0].getConst<BitVector>();
+      std::string bitString(bv.toString());
+
+      Node lit =
+	NodeManager::currentNM()->mkConst(FloatingPoint(param.t.exponent(),
+							param.t.significand(),
+							bitString));
+
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    }
+  }
+
+  RewriteResponse convertFromLiteral (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_FP);
+
+    // \todo Handle arbitrary length bit vectors without using strings!
+
+    if ((node[0].getKind() == kind::CONST_BITVECTOR) &&
+	(node[1].getKind() == kind::CONST_BITVECTOR) &&
+	(node[2].getKind() == kind::CONST_BITVECTOR)) {
+
+      BitVector bv(node[0].getConst<BitVector>());
+      bv = bv.concat(node[1].getConst<BitVector>());
+      bv = bv.concat(node[2].getConst<BitVector>());
+
+      std::string bitString(bv.toString());
+
+      // +1 to support the hidden bit
+      Node lit =
+	NodeManager::currentNM()->mkConst(FloatingPoint(node[1].getConst<BitVector>().getSize(),
+							node[2].getConst<BitVector>().getSize() + 1,
+							bitString));
+
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      return RewriteResponse(REWRITE_DONE, node);
+    }
+  }
+
 
 }; /* CVC4::theory::fp::rewrite */
 
@@ -183,7 +255,7 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     postRewriteTable[kind::FLOATINGPOINT_TYPE] = rewrite::type;
       
     /******** Operations ********/
-    postRewriteTable[kind::FLOATINGPOINT_FP] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_FP] = rewrite::convertFromLiteral;
     postRewriteTable[kind::FLOATINGPOINT_EQ] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_ABS] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_NEG] = rewrite::removeDoubleNegation;
@@ -212,9 +284,9 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     postRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::identity;
 
     /******** Conversions ********/
-    postRewriteTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = rewrite::convertFromIEEEBitVectorLiteral;
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_TO_FP_REAL] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_TO_FP_REAL] = rewrite::convertFromRealLiteral;
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_TO_UBV] = rewrite::identity;
