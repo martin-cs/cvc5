@@ -172,8 +172,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
       break;
     }
     case kind::CONST_FLOATINGPOINT:
-      // \todo fix me with actual literal
-      out << "(fp S EEEEEEEE SSSSSSSSSSSSSSSSSSSSSSS)";
+      out << n.getConst<FloatingPoint>().getLiteral();
       break;
     case kind::CONST_ROUNDINGMODE:
       switch (n.getConst<RoundingMode>()) {
