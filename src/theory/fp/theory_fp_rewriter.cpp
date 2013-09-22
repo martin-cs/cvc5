@@ -77,14 +77,16 @@ namespace rewrite {
   }
 
   RewriteResponse variable (TNode node, bool) {  
-    // We should only get floating point variables to rewrite.
-    Assert(node.getType(true).isFloatingPoint());
+    // We should only get floating point and rounding mode variables to rewrite.
+    TypeNode tn = node.getType(true);
+    Assert(tn.isFloatingPoint() || tn.isRoundingMode());
+ 
     // Not that we do anything with them...
     return RewriteResponse(REWRITE_DONE, node);
   }
 
   RewriteResponse equal (TNode node, bool isPreRewrite) {  
-    // We should only get equalities of floating point or rounding mode types
+    // We should only get equalities of floating point or rounding mode types.
     Assert(node.getKind() == kind::EQUAL);
 
     TypeNode tn = node[0].getType(true);
