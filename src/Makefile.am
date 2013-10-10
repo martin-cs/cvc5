@@ -423,6 +423,7 @@ libcvc4_la_LIBADD = \
 	@builddir@/expr/libexpr.la \
 	@builddir@/prop/minisat/libminisat.la \
 	@builddir@/prop/bvminisat/libbvminisat.la
+
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
 	@top_builddir@/proofs/lfsc_checker/liblfsc_checker.la \
