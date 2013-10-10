@@ -44,7 +44,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/printer/libprinter.la \
 	@builddir@/smt/libsmt.la \
 	@builddir@/theory/libtheory.la \
-	@builddir@/decision/libdecision.la
+	@builddir@/decision/libdecision.la \
+	@srcdir@/trp/trp.a
 libcvc4_noinst_la_LIBADD = \
 	@builddir@/options/liboptions.la \
 	@builddir@/util/libutil.la \
@@ -57,7 +58,8 @@ libcvc4_noinst_la_LIBADD = \
 	@builddir@/printer/libprinter.la \
 	@builddir@/smt/libsmt.la \
 	@builddir@/theory/libtheory.la \
-	@builddir@/decision/libdecision.la
+	@builddir@/decision/libdecision.la \
+	@srcdir@/trp/trp.a
 
 if CVC4_NEEDS_REPLACEMENT_FUNCTIONS
 libcvc4_la_LIBADD += \
