@@ -154,9 +154,9 @@ namespace rewrite {
 	(node[1].getKind() == kind::CONST_BITVECTOR) &&
 	(node[2].getKind() == kind::CONST_BITVECTOR)) {
 
-      BitVector bv(node[0].getConst<BitVector>());
+      BitVector bv(node[2].getConst<BitVector>());
       bv = bv.concat(node[1].getConst<BitVector>());
-      bv = bv.concat(node[2].getConst<BitVector>());
+      bv = bv.concat(node[0].getConst<BitVector>());
 
       std::string bitString(bv.toString());
 
