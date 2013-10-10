@@ -129,7 +129,7 @@ namespace CVC4 {
     FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
 
     bool operator ==(const FloatingPoint& fp) const {
-      return ( (t == fp.t) && fpl.logicalEqual(fp.fpl) );
+      return ( (t == fp.t) && fpl == fp.fpl );
     }
 
     const FloatingPointLiteral & getLiteral (void) const {
