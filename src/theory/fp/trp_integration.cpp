@@ -87,7 +87,7 @@ namespace TRP {
     bool childActivated;
     int activeNode;
 
-    Trace("fp") << "cvc4term<interval>::update(): " << this->node;
+    TRACE("cvc4term<interval>") << "update " << this->node;
 
     if (activatedList == &(this->main)) {
       childActivated = false;
@@ -108,7 +108,7 @@ namespace TRP {
       Assert((activeNode >= 0) && ((unsigned) activeNode < this->node.getNumChildren()));
     }
     
-    Trace("fp") << " activated by " << this->node[activeNode] << std::endl;
+    TRACE("cvc4term<interval>") << " activated by " << this->node[activeNode] << std::endl;
 
 
 
