@@ -93,6 +93,8 @@ namespace TRP {
 
       Assert(this->childWL + activeNode == &this->main);
 
+      TRACE("cvc4term<interval>") << "update " << this->node << " activated by " << this->node << std::endl;
+
     } else {
       memMix base;
       memMix offset;
@@ -104,8 +106,10 @@ namespace TRP {
       activeNode = (offset.n - base.n) / sizeof(wlist);
 
       Assert((activeNode >= 0) && ((unsigned) activeNode < this->node.getNumChildren()));
+
+      TRACE("cvc4term<interval>") << "update " << this->node << " activated by " << this->node[activeNode] << std::endl;
     }
-    TRACE("cvc4term<interval>") << "update " << this->node << " activated by " << this->node[activeNode] << std::endl;
+
 
 
 
