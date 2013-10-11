@@ -163,6 +163,7 @@ void TheoryFp::check(Effort level) {
 	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
       } else {
+	clause.clear();
 	clause.push_back(CartesianAssignment(*i,false));
 	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 	
