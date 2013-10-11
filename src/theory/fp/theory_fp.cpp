@@ -120,6 +120,12 @@ void TheoryFp::check(Effort level) {
   // Only call once the Boolean part has been decided
   if (level >= EFFORT_FULL) {
 
+    // DO NOT REMOVE!
+    // The CVC4 build system needs at least one non-macro usage of
+    // each debug and trace tag for the build to recognise these as valid
+    Trace("TRP") << "TRP trace enabled" << std::endl;
+    Debug("TRP") << "TRP debug enabled" << std::endl;
+
     AbstractElementWithTrail astate;
     Transformer trans(astate);
     std::vector<Assignment> clause;
@@ -232,6 +238,7 @@ void TheoryFp::check(Effort level) {
       bool ret = this->d_valuation.hasSatValue(*i,value);
       Assert(ret == true); // At the given effort level, all relations
 			   // should have an assigned SAT value.
+      Trace("fp") << *i << " is " << (value ? "true" : "false") << std::endl;
 
       ((Expressions &)trans).add(TRP::createCVC4Term<AbstractElementWithTrail>(*i,value));
     }
