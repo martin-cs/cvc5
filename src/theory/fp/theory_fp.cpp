@@ -146,27 +146,27 @@ void TheoryFp::check(Effort level) {
       if (val.isNaN()) {
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,true));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 	
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,TRP::meetIrreducible< TRP::interval< CVC4::FloatingPointLiteral > >(+INFINITY, false)));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,TRP::meetIrreducible< TRP::interval< CVC4::FloatingPointLiteral > >(-INFINITY, true)));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
       } else {
 	clause.push_back(CartesianAssignment(*i,false));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 	
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,TRP::meetIrreducible< TRP::interval< CVC4::FloatingPointLiteral > >(val, false)));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,TRP::meetIrreducible< TRP::interval< CVC4::FloatingPointLiteral > >(val, true)));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
       }
     }
@@ -179,7 +179,7 @@ void TheoryFp::check(Effort level) {
 	 i != floatingPointOperations.end();
 	 ++i) {
       astate.add(*i);
-      ((Expressions)trans).add(TRP::createCVC4Term<AbstractElementWithTrail>(*i));
+      ((Expressions &)trans).add(TRP::createCVC4Term<AbstractElementWithTrail>(*i));
 
       // Some operations imply auxillary constraints
       // \todo consider other alternatives
@@ -188,7 +188,7 @@ void TheoryFp::check(Effort level) {
 
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,TRP::meetIrreducible< TRP::interval< CVC4::FloatingPointLiteral > >(+0.0, false)));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
 	break;
 
@@ -196,7 +196,7 @@ void TheoryFp::check(Effort level) {
 
 	clause.clear();
 	clause.push_back(CartesianAssignment(*i,TRP::meetIrreducible< TRP::interval< CVC4::FloatingPointLiteral > >(-INFINITY, true)));
-	((ClauseDB)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
+	((ClauseDB &)trans).add(TRP::createDisjunction<AbstractElementWithTrail>(clause));
 
 	break;
 
@@ -233,7 +233,7 @@ void TheoryFp::check(Effort level) {
       Assert(ret == true); // At the given effort level, all relations
 			   // should have an assigned SAT value.
 
-      ((Expressions)trans).add(TRP::createCVC4Term<AbstractElementWithTrail>(*i,value));
+      ((Expressions &)trans).add(TRP::createCVC4Term<AbstractElementWithTrail>(*i,value));
     }
 
 
@@ -242,6 +242,7 @@ void TheoryFp::check(Effort level) {
 
     switch ( solver.solve(astate, trans) ) {
     case TRP::transformerRefinementResult::Bottom : 
+      Trace("fp") << "TRP returns bottom" << std::endl;
       {
 	// \todo : return more compact failure clauses to the SAT-solver
 
@@ -260,6 +261,7 @@ void TheoryFp::check(Effort level) {
       break;
 
     case TRP::transformerRefinementResult::NotBottom :
+      Trace("fp") << "TRP returns not-bottom" << std::endl;
       // \todo : model generation
 
       // This is kind of ugly as we don't work like this at the moment
@@ -269,6 +271,7 @@ void TheoryFp::check(Effort level) {
       break;
 
     case TRP::transformerRefinementResult::Unknown : 
+      Trace("fp") << "TRP returns unknown" << std::endl;
       Assert("Floating-point decision procedure appears to be incomplete?");
       this->d_out->setIncomplete();
       break;

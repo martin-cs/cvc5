@@ -1,4 +1,5 @@
-
+// If this is included first, TRP will use the CVC4 tracing and debugging
+#include "util/output.h"
 
 
 #include "trp/abstractions/floatingPointInterval.h"

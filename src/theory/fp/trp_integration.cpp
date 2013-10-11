@@ -103,7 +103,7 @@ namespace TRP {
       offset.ptr = activatedList;
 
       childActivated = true;
-      activeNode = (base.n - offset.n) / sizeof(wlist);
+      activeNode = (offset.n - base.n) / sizeof(wlist);
 
       Assert((activeNode >= 0) && ((unsigned) activeNode < this->node.getNumChildren()));
     }
@@ -134,6 +134,21 @@ namespace TRP {
       break;
 
     case CVC4::kind::FLOATINGPOINT_NEG :
+      if (childActivated) {
+	fpi newMain;
+	if (fpi::negForwardPropagate(astate[this->node], astate[this->node[0]], newMain)) {
+	  return updateInterval(astate, this->node, astate[this->node], newMain);
+	}
+      } else {
+	fpi newChild;
+	if (fpi::negBackwardPropagate(astate[this->node], astate[this->node[0]], newChild)) {
+	  return updateInterval(astate, this->node[0], astate[this->node[0]], newChild);
+	}
+      }
+      return transformerResult::None;
+      break;
+
+
     case CVC4::kind::FLOATINGPOINT_PLUS :
     case CVC4::kind::FLOATINGPOINT_MULT :
     case CVC4::kind::FLOATINGPOINT_DIV :
@@ -147,6 +162,30 @@ namespace TRP {
       break;
       
       /******** Comparisons ********/
+    case CVC4::kind::FLOATINGPOINT_LT :
+      Assert(childActivated);   // As the actual nodes themselves don't have an abstract value
+      {
+	fpi newLeft;
+	fpi newRight;
+	
+	if (this->assignment) {
+	  if (fpi::ltTruePropagate(astate[this->node[0]], astate[this->node[1]], newLeft, newRight)) {
+	    return updateInterval(astate, this->node[0], astate[this->node[0]], newLeft) |
+	      updateInterval(astate, this->node[1], astate[this->node[1]], newRight);
+	  }
+	  
+	} else {
+	  if (fpi::ltFalsePropagate(astate[this->node[0]], astate[this->node[1]], newLeft, newRight)) {
+	    return updateInterval(astate, this->node[0], astate[this->node[0]], newLeft) |
+	      updateInterval(astate, this->node[1], astate[this->node[1]], newRight);
+	  }
+	  
+	}
+	
+	return transformerResult::None;
+      }
+      break;
+
     case CVC4::kind::FLOATINGPOINT_LEQ :
       Assert(childActivated);   // As the actual nodes themselves don't have an abstract value
       {
@@ -173,7 +212,6 @@ namespace TRP {
 
     case CVC4::kind::EQUAL : 
     case CVC4::kind::FLOATINGPOINT_EQ :
-    case CVC4::kind::FLOATINGPOINT_LT :
     case CVC4::kind::FLOATINGPOINT_ISN :
     case CVC4::kind::FLOATINGPOINT_ISSN :
     case CVC4::kind::FLOATINGPOINT_ISZ :
