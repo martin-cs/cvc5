@@ -212,7 +212,53 @@ namespace TRP {
       break;
 
     case CVC4::kind::EQUAL : 
+      Assert(childActivated);   // As the actual nodes themselves don't have an abstract value
+      {
+	fpi newLeft;
+	fpi newRight;
+	
+	if (this->assignment) {
+	  if (fpi::equalTruePropagate(astate[this->node[0]], astate[this->node[1]], newLeft, newRight)) {
+	    return updateInterval(astate, this->node[0], astate[this->node[0]], newLeft) |
+	      updateInterval(astate, this->node[1], astate[this->node[1]], newRight);
+	  }
+	  
+	} else {
+	  if (fpi::equalFalsePropagate(astate[this->node[0]], astate[this->node[1]], newLeft, newRight)) {
+	    return updateInterval(astate, this->node[0], astate[this->node[0]], newLeft) |
+	      updateInterval(astate, this->node[1], astate[this->node[1]], newRight);
+	  }
+	  
+	}
+	
+	return transformerResult::None;
+      }
+      break;
+
     case CVC4::kind::FLOATINGPOINT_EQ :
+      Assert(childActivated);   // As the actual nodes themselves don't have an abstract value
+      {
+	fpi newLeft;
+	fpi newRight;
+	
+	if (this->assignment) {
+	  if (fpi::fpeqTruePropagate(astate[this->node[0]], astate[this->node[1]], newLeft, newRight)) {
+	    return updateInterval(astate, this->node[0], astate[this->node[0]], newLeft) |
+	      updateInterval(astate, this->node[1], astate[this->node[1]], newRight);
+	  }
+	  
+	} else {
+	  if (fpi::fpeqFalsePropagate(astate[this->node[0]], astate[this->node[1]], newLeft, newRight)) {
+	    return updateInterval(astate, this->node[0], astate[this->node[0]], newLeft) |
+	      updateInterval(astate, this->node[1], astate[this->node[1]], newRight);
+	  }
+	  
+	}
+	
+	return transformerResult::None;
+      }
+      break;
+
     case CVC4::kind::FLOATINGPOINT_ISN :
     case CVC4::kind::FLOATINGPOINT_ISSN :
     case CVC4::kind::FLOATINGPOINT_ISZ :
