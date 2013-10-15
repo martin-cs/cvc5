@@ -151,7 +151,57 @@ namespace TRP {
 
 
     case CVC4::kind::FLOATINGPOINT_PLUS :
+      {
+	DYNAMICASSERT(this->node[0].getKind() == CVC4::kind::CONST_ROUNDINGMODE);
+	roundingMode rm = this->node[0].getConst<CVC4::RoundingMode>();
+	
+	if (childActivated) {
+	  fpi newMain;
+	  if (fpi::plusForwardPropagate(rm, astate[this->node],
+					astate[this->node[1]], astate[this->node[2]],
+					newMain)) {
+	    return updateInterval(astate, this->node, astate[this->node], newMain);
+	  }
+	} else {
+	  fpi newLeft;
+	  fpi newRight;
+	  if (fpi::plusBackwardPropagate(rm, astate[this->node],
+					 astate[this->node[1]], astate[this->node[2]],
+					 newLeft, newRight)) {
+	    return updateInterval(astate, this->node[1], astate[this->node[1]], newLeft) |
+	      updateInterval(astate, this->node[2], astate[this->node[2]], newRight);
+	  }
+	}
+      }
+      return transformerResult::None;
+      break;
+
     case CVC4::kind::FLOATINGPOINT_MULT :
+      {
+	DYNAMICASSERT(this->node[0].getKind() == CVC4::kind::CONST_ROUNDINGMODE);
+	roundingMode rm = this->node[0].getConst<CVC4::RoundingMode>();
+	
+	if (childActivated) {
+	  fpi newMain;
+	  if (fpi::multForwardPropagate(rm, astate[this->node],
+					astate[this->node[1]], astate[this->node[2]],
+					newMain)) {
+	    return updateInterval(astate, this->node, astate[this->node], newMain);
+	  }
+	} else {
+	  fpi newLeft;
+	  fpi newRight;
+	  if (fpi::multBackwardPropagate(rm, astate[this->node],
+					 astate[this->node[1]], astate[this->node[2]],
+					 newLeft, newRight)) {
+	    return updateInterval(astate, this->node[1], astate[this->node[1]], newLeft) |
+	      updateInterval(astate, this->node[2], astate[this->node[2]], newRight);
+	  }
+	}
+      }
+      return transformerResult::None;
+      break;
+
     case CVC4::kind::FLOATINGPOINT_DIV :
     case CVC4::kind::FLOATINGPOINT_FMA :
     case CVC4::kind::FLOATINGPOINT_SQRT :
