@@ -41,6 +41,7 @@ void TheoryFp::preRegisterTerm(TNode node) {
   /******** Variables ********/
   case kind::VARIABLE :
   case kind::BOUND_VARIABLE :
+  case kind::SELECT :         // Support array reasoning, \todo check
     if (node.getType().isFloatingPoint()) {
       floatingPointVariables.insert(node);
     } else {
