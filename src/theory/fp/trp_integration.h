@@ -116,7 +116,7 @@ namespace TRP {
 	    if (((const proposition &)((*i).second)).isComplete() == downwardCompleteness::Incomplete) {
 		// Can be set to NaN, thus finish the search
 	      currentLargest = (*i).first;
-	      uninitialised = true;
+	      uninitialised = false;
 	      break;
 	    }
 
@@ -153,6 +153,8 @@ namespace fp {
 
 
   typedef TRP::firstUnassigned< FloatingPointInterval, TRP::typePair<TRP::split<TRP::proposition>, TRP::split<TRP::interval< CVC4::FloatingPointLiteral > > > >  NANFirstThenSplit;
+  
+  // Old branching heuristic
   typedef TRP::firstUnassigned< AbstractElement, NANFirstThenSplit > Heuristic;
 
   // New branching heuristic

@@ -270,6 +270,8 @@ void TheoryFp::check(Effort level) {
 
     case TRP::transformerRefinementResult::NotBottom :
       Trace("fp") << "TRP returns not-bottom" << std::endl;
+
+      Trace("fp") << astate << std::endl;
       // \todo : model generation
 
       // This is kind of ugly as we don't work like this at the moment
