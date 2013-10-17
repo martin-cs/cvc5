@@ -97,7 +97,7 @@ namespace rewrite {
 
     if (node[0] == node[1]) {
       return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(true));
-    } else if (isPreRewrite && (node[0] > node[1])) {
+    } else if (!isPreRewrite && (node[0] > node[1])) {
 	Node normal = NodeManager::currentNM()->mkNode(kind::EQUAL,node[1],node[0]);
 	return RewriteResponse(REWRITE_DONE, normal);
     } else {
