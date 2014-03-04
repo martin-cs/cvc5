@@ -409,7 +409,15 @@ libcvc4_la_SOURCES = \
 	theory/booleans/circuit_propagator.cpp \
 	theory/booleans/boolean_term_conversion_mode.h \
 	theory/booleans/boolean_term_conversion_mode.cpp \
-	theory/booleans/options_handlers.h
+	theory/booleans/options_handlers.h \
+	theory/fp/theory_fp.h \
+	theory/fp/theory_fp.cpp \
+	theory/fp/theory_fp_type_rules.h \
+	theory/fp/theory_fp_rewriter.h \
+	theory/fp/theory_fp_rewriter.cpp \
+	theory/fp/trp_integration.h \
+	theory/fp/trp_integration.cpp
+
 
 nodist_libcvc4_la_SOURCES = \
 	smt/smt_options.cpp \
@@ -422,7 +430,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/util/libutil.la \
 	@builddir@/expr/libexpr.la \
 	@builddir@/prop/minisat/libminisat.la \
-	@builddir@/prop/bvminisat/libbvminisat.la
+	@builddir@/prop/bvminisat/libbvminisat.la \
+	@srcdir@/trp/trp.a
 
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
@@ -491,6 +500,7 @@ EXTRA_DIST = \
 	theory/quantifiers/kinds \
 	theory/arith/kinds \
 	theory/booleans/kinds \
+	theory/fp/kinds \
 	theory/example/ecdata.h \
 	theory/example/ecdata.cpp \
 	theory/example/theory_uf_tim.h \

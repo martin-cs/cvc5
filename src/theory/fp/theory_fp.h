@@ -35,8 +35,7 @@ public:
                context::UserContext* u,
                OutputChannel& out,
                Valuation valuation,
-               const LogicInfo& logicInfo,
-               QuantifiersEngine* qe);
+               const LogicInfo& logicInfo);
 
   void preRegisterTerm(TNode);
   void check(Effort);

@@ -14,9 +14,8 @@ TheoryFp::TheoryFp(context::Context* c,
                            context::UserContext* u,
                            OutputChannel& out,
                            Valuation valuation,
-                           const LogicInfo& logicInfo,
-                           QuantifiersEngine* qe) :
-  Theory(THEORY_FP, c, u, out, valuation, logicInfo, qe),
+                           const LogicInfo& logicInfo) :
+  Theory(THEORY_FP, c, u, out, valuation, logicInfo),
   floatingPointConstants(u),
   roundingModeConstants(u),
   floatingPointVariables(u),
