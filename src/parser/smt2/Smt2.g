@@ -1527,6 +1527,7 @@ builtinOp[CVC4::Kind& kind]
   | BVSLE_TOK     { $kind = CVC4::kind::BITVECTOR_SLE; }
   | BVSGT_TOK     { $kind = CVC4::kind::BITVECTOR_SGT; }
   | BVSGE_TOK     { $kind = CVC4::kind::BITVECTOR_SGE; }
+
   | BV2NAT_TOK     { $kind = CVC4::kind::BITVECTOR_TO_NAT;
                      if(PARSER_STATE->strictModeEnabled()) {
                        PARSER_STATE->parseError("bv2nat and int2bv are not part of SMT-LIB, and aren't available in SMT-LIB strict compliance mode");
@@ -1556,13 +1557,9 @@ builtinOp[CVC4::Kind& kind]
   | REOPT_TOK      { $kind = CVC4::kind::REGEXP_OPT; }
   | RERANGE_TOK    { $kind = CVC4::kind::REGEXP_RANGE; }
   | RELOOP_TOK    { $kind = CVC4::kind::REGEXP_LOOP; }
+  
   | FMFCARD_TOK    { $kind = CVC4::kind::CARDINALITY_CONSTRAINT; }
-  | SETUNION_TOK  { $kind = CVC4::kind::UNION; }
-  | SETINT_TOK    { $kind = CVC4::kind::INTERSECTION; }
-  | SETMINUS_TOK  { $kind = CVC4::kind::SETMINUS; }
-  | SETSUB_TOK    { $kind = CVC4::kind::SUBSET; }
-  | SETIN_TOK     { $kind = CVC4::kind::MEMBER; }
-  | SETSINGLETON_TOK { $kind = CVC4::kind::SET_SINGLETON; }
+
   | FP_TOK        { $kind = CVC4::kind::FLOATINGPOINT_FP; }
   | FP_EQ_TOK     { $kind = CVC4::kind::FLOATINGPOINT_EQ; }
   | FP_ABS_TOK    { $kind = CVC4::kind::FLOATINGPOINT_ABS; }
@@ -1588,7 +1585,6 @@ builtinOp[CVC4::Kind& kind]
   | FP_ISNAN_TOK  { $kind = CVC4::kind::FLOATINGPOINT_ISNAN; }
   // NOTE: Theory operators go here
   ;
-
 
 quantOp[CVC4::Kind& kind]
 @init {
