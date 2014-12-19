@@ -58,7 +58,7 @@ public:
    * 
    * @return 
    */
-  prop::SatValue checkSat(std::vector<Node>& assumptions, unsigned long budget);
+  CVC4::prop::SatValue checkSat(std::vector<Node>& assumptions, unsigned long budget);
   /** 
    * Checks the satisfiability of given assertions.
    * 
@@ -66,7 +66,7 @@ public:
    * 
    * @return 
    */
-  prop::SatValue checkSat(unsigned long budget);
+  CVC4::prop::SatValue checkSat(unsigned long budget);
   
   /** 
    * Convert to CNF and assert the given literal.

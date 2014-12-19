@@ -35,7 +35,7 @@ TLazyBitblaster::TLazyBitblaster(context::Context* c, bv::TheoryBV* bv, const st
   : TBitblaster<Node>()
   , d_bv(bv)
   , d_ctx(c)
-  , d_assertedAtoms(new(true) context::CDList<prop::SatLiteral>(c))
+  , d_assertedAtoms(new(true) context::CDList<CVC4::prop::SatLiteral>(c))
   , d_explanations(new(true) ExplanationMap(c))
   , d_variables()
   , d_bbAtoms()
@@ -44,16 +44,16 @@ TLazyBitblaster::TLazyBitblaster(context::Context* c, bv::TheoryBV* bv, const st
   , d_satSolverFullModel(c, false)
   , d_name(name)
   , d_statistics(name) {
-  d_satSolver = prop::SatSolverFactory::createMinisat(c, name);
-  d_nullRegistrar = new prop::NullRegistrar();
+  d_satSolver = CVC4::prop::SatSolverFactory::createMinisat(c, name);
+  d_nullRegistrar = new CVC4::prop::NullRegistrar();
   d_nullContext = new context::Context();
-  d_cnfStream = new prop::TseitinCnfStream(d_satSolver,
+  d_cnfStream = new CVC4::prop::TseitinCnfStream(d_satSolver,
                                            d_nullRegistrar,
                                            d_nullContext);
   
   d_satSolverNotify = d_emptyNotify ?
-    (prop::BVSatSolverInterface::Notify*) new MinisatEmptyNotify() :
-    (prop::BVSatSolverInterface::Notify*) new MinisatNotify(d_cnfStream, bv, this);
+    (CVC4::prop::BVSatSolverInterface::Notify*) new MinisatEmptyNotify() :
+    (CVC4::prop::BVSatSolverInterface::Notify*) new MinisatNotify(d_cnfStream, bv, this);
 
   d_satSolver->setNotify(d_satSolverNotify);
 }
@@ -184,24 +184,24 @@ void TLazyBitblaster::bbTerm(TNode node, Bits& bits) {
 
 void TLazyBitblaster::addAtom(TNode atom) {
   d_cnfStream->ensureLiteral(atom);
-  prop::SatLiteral lit = d_cnfStream->getLiteral(atom);
+  CVC4::prop::SatLiteral lit = d_cnfStream->getLiteral(atom);
   d_satSolver->addMarkerLiteral(lit);
 }
 
 void TLazyBitblaster::explain(TNode atom, std::vector<TNode>& explanation) {
-  prop::SatLiteral lit = d_cnfStream->getLiteral(atom);
+  CVC4::prop::SatLiteral lit = d_cnfStream->getLiteral(atom);
 
   ++(d_statistics.d_numExplainedPropagations);
   if (options::bvEagerExplanations()) {
     Assert (d_explanations->find(lit) != d_explanations->end());
-    const std::vector<prop::SatLiteral>& literal_explanation = (*d_explanations)[lit].get();
+    const std::vector<CVC4::prop::SatLiteral>& literal_explanation = (*d_explanations)[lit].get();
     for (unsigned i = 0; i < literal_explanation.size(); ++i) {
       explanation.push_back(d_cnfStream->getNode(literal_explanation[i]));
     }
     return; 
   }
   
-  std::vector<prop::SatLiteral> literal_explanation;
+  std::vector<CVC4::prop::SatLiteral> literal_explanation;
   d_satSolver->explain(lit, literal_explanation);
   for (unsigned i = 0; i < literal_explanation.size(); ++i) {
     explanation.push_back(d_cnfStream->getNode(literal_explanation[i]));
@@ -217,7 +217,7 @@ void TLazyBitblaster::explain(TNode atom, std::vector<TNode>& explanation) {
  */
 
 bool TLazyBitblaster::propagate() {
-  return d_satSolver->propagate() == prop::SAT_VALUE_TRUE;
+  return d_satSolver->propagate() == CVC4::prop::SAT_VALUE_TRUE;
 }
 
 bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
@@ -231,7 +231,7 @@ bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
 
   Assert (hasBBAtom(atom));
 
-  prop::SatLiteral markerLit = d_cnfStream->getLiteral(atom);
+  CVC4::prop::SatLiteral markerLit = d_cnfStream->getLiteral(atom);
 
   if(lit.getKind() == kind::NOT) {
     markerLit = ~markerLit;
@@ -240,11 +240,11 @@ bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
   Debug("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat asserting node: " << atom <<"\n";
   Debug("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat with literal:   " << markerLit << "\n";
 
-  prop::SatValue ret = d_satSolver->assertAssumption(markerLit, propagate);
+  CVC4::prop::SatValue ret = d_satSolver->assertAssumption(markerLit, propagate);
 
   d_assertedAtoms->push_back(markerLit);
 
-  return ret == prop::SAT_VALUE_TRUE || ret == prop::SAT_VALUE_UNKNOWN;
+  return ret == CVC4::prop::SAT_VALUE_TRUE || ret == CVC4::prop::SAT_VALUE_UNKNOWN;
 }
 
 /**
@@ -257,20 +257,20 @@ bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
 bool TLazyBitblaster::solve() {
   if (Trace.isOn("bitvector")) {
     Trace("bitvector") << "TLazyBitblaster::solve() asserted atoms ";
-    context::CDList<prop::SatLiteral>::const_iterator it = d_assertedAtoms->begin();
+    context::CDList<CVC4::prop::SatLiteral>::const_iterator it = d_assertedAtoms->begin();
     for (; it != d_assertedAtoms->end(); ++it) {
       Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
   }
   Debug("bitvector") << "TLazyBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
   d_satSolverFullModel.set(true); 
-  return prop::SAT_VALUE_TRUE == d_satSolver->solve();
+  return CVC4::prop::SAT_VALUE_TRUE == d_satSolver->solve();
 }
 
-prop::SatValue TLazyBitblaster::solveWithBudget(unsigned long budget) {
+CVC4::prop::SatValue TLazyBitblaster::solveWithBudget(unsigned long budget) {
   if (Trace.isOn("bitvector")) {
     Trace("bitvector") << "TLazyBitblaster::solveWithBudget() asserted atoms ";
-    context::CDList<prop::SatLiteral>::const_iterator it = d_assertedAtoms->begin();
+    context::CDList<CVC4::prop::SatLiteral>::const_iterator it = d_assertedAtoms->begin();
     for (; it != d_assertedAtoms->end(); ++it) {
       Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
@@ -281,11 +281,11 @@ prop::SatValue TLazyBitblaster::solveWithBudget(unsigned long budget) {
 
 
 void TLazyBitblaster::getConflict(std::vector<TNode>& conflict) {
-  prop::SatClause conflictClause;
+  CVC4::prop::SatClause conflictClause;
   d_satSolver->getUnsatCore(conflictClause);
 
   for (unsigned i = 0; i < conflictClause.size(); i++) {
-    prop::SatLiteral lit = conflictClause[i];
+    CVC4::prop::SatLiteral lit = conflictClause[i];
     TNode atom = d_cnfStream->getNode(lit);
     Node  not_atom;
     if (atom.getKind() == kind::NOT) {
@@ -326,11 +326,11 @@ TLazyBitblaster::Statistics::~Statistics() {
   StatisticsRegistry::unregisterStat(&d_bitblastTimer);
 }
 
-bool TLazyBitblaster::MinisatNotify::notify(prop::SatLiteral lit) {
+bool TLazyBitblaster::MinisatNotify::notify(CVC4::prop::SatLiteral lit) {
   if(options::bvEagerExplanations()) {
     // compute explanation
     if (d_lazyBB->d_explanations->find(lit) == d_lazyBB->d_explanations->end()) {
-      std::vector<prop::SatLiteral> literal_explanation;
+      std::vector<CVC4::prop::SatLiteral> literal_explanation;
       d_lazyBB->d_satSolver->explain(lit, literal_explanation);
       d_lazyBB->d_explanations->insert(lit, literal_explanation);
     } else {
@@ -343,7 +343,7 @@ bool TLazyBitblaster::MinisatNotify::notify(prop::SatLiteral lit) {
   return d_bv->storePropagation(atom, SUB_BITBLAST);
 }
 
-void TLazyBitblaster::MinisatNotify::notify(prop::SatClause& clause) {
+void TLazyBitblaster::MinisatNotify::notify(CVC4::prop::SatClause& clause) {
   if (clause.size() > 1) {
     NodeBuilder<> lemmab(kind::OR);
     for (unsigned i = 0; i < clause.size(); ++ i) {
@@ -408,11 +408,11 @@ bool TLazyBitblaster::hasValue(TNode a) {
   Bits bits;
   getBBTerm(a, bits); 
   for (int i = bits.size() -1; i >= 0; --i) {
-    prop::SatValue bit_value;
+    CVC4::prop::SatValue bit_value;
     if (d_cnfStream->hasLiteral(bits[i])) {
-      prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
+      CVC4::prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
       bit_value = d_satSolver->value(bit);
-      if (bit_value ==  prop::SAT_VALUE_UNKNOWN)
+      if (bit_value ==  CVC4::prop::SAT_VALUE_UNKNOWN)
         return false;
     } else {
       return false;
@@ -439,17 +439,17 @@ Node TLazyBitblaster::getModelFromSatSolver(TNode a, bool fullModel) {
   getBBTerm(a, bits);
   Integer value(0);
   for (int i = bits.size() -1; i >= 0; --i) {
-    prop::SatValue bit_value;
+    CVC4::prop::SatValue bit_value;
     if (d_cnfStream->hasLiteral(bits[i])) {
-      prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
+      CVC4::prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
       bit_value = d_satSolver->value(bit);
-      Assert (bit_value != prop::SAT_VALUE_UNKNOWN);
+      Assert (bit_value != CVC4::prop::SAT_VALUE_UNKNOWN);
     } else {
       if (!fullModel) return Node();
       // unconstrained bits default to false
-      bit_value = prop::SAT_VALUE_FALSE;
+      bit_value = CVC4::prop::SAT_VALUE_FALSE;
     }
-    Integer bit_int = bit_value == prop::SAT_VALUE_TRUE ? Integer(1) : Integer(0);
+    Integer bit_int = bit_value == CVC4::prop::SAT_VALUE_TRUE ? Integer(1) : Integer(0);
     value = value * 2 + bit_int;
   }
   return utils::mkConst(BitVector(bits.size(), value));
@@ -486,7 +486,7 @@ void TLazyBitblaster::clearSolver() {
   delete d_satSolverNotify;
   delete d_cnfStream;
   d_assertedAtoms->deleteSelf();
-  d_assertedAtoms = new(true) context::CDList<prop::SatLiteral>(d_ctx);
+  d_assertedAtoms = new(true) context::CDList<CVC4::prop::SatLiteral>(d_ctx);
   d_explanations->deleteSelf();
   d_explanations = new(true) ExplanationMap(d_ctx);
   d_bbAtoms.clear();
@@ -495,13 +495,13 @@ void TLazyBitblaster::clearSolver() {
   
   invalidateModelCache();  
   // recreate sat solver
-  d_satSolver = prop::SatSolverFactory::createMinisat(d_ctx);
-  d_cnfStream = new prop::TseitinCnfStream(d_satSolver,
+  d_satSolver = CVC4::prop::SatSolverFactory::createMinisat(d_ctx);
+  d_cnfStream = new CVC4::prop::TseitinCnfStream(d_satSolver,
                                            d_nullRegistrar,
                                            d_nullContext);
 
   d_satSolverNotify = d_emptyNotify ?
-    (prop::BVSatSolverInterface::Notify*) new MinisatEmptyNotify() :
-    (prop::BVSatSolverInterface::Notify*) new MinisatNotify(d_cnfStream, d_bv, this);
+    (CVC4::prop::BVSatSolverInterface::Notify*) new MinisatEmptyNotify() :
+    (CVC4::prop::BVSatSolverInterface::Notify*) new MinisatNotify(d_cnfStream, d_bv, this);
   d_satSolver->setNotify(d_satSolverNotify);
 }

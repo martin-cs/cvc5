@@ -53,7 +53,9 @@ class NullRegistrar;
 namespace theory {
 class OutputChannel;
 class TheoryModel;
-
+namespace prop {
+class CnfStream; 
+}
 namespace bv {
 
 class BitblastingRegistrar;
@@ -100,7 +102,7 @@ public:
   virtual T getBBAtom(TNode atom) const = 0;
   virtual bool hasBBAtom(TNode atom) const = 0;
   virtual void storeBBAtom(TNode atom, T atom_bb) = 0;
-  
+  virtual CVC4::prop::CnfStream* getCnfStream() = 0;
   
   bool hasBBTerm(TNode node) const;
   void getBBTerm(TNode node, Bits& bits) const;
@@ -120,34 +122,35 @@ class TheoryBV;
 
 class TLazyBitblaster :  public TBitblaster<Node> {
   typedef std::vector<Node> Bits;
-  typedef context::CDList<prop::SatLiteral> AssertionList;
-  typedef context::CDHashMap<prop::SatLiteral, std::vector<prop::SatLiteral> , prop::SatLiteralHashFunction> ExplanationMap;
+  typedef context::CDList<CVC4::prop::SatLiteral> AssertionList;
+  typedef context::CDHashMap<CVC4::prop::SatLiteral, std::vector<CVC4::prop::SatLiteral> , CVC4::prop::SatLiteralHashFunction> ExplanationMap;
   /** This class gets callbacks from minisat on propagations */
-  class MinisatNotify : public prop::BVSatSolverInterface::Notify {
-    prop::CnfStream* d_cnf;
+  class MinisatNotify : public CVC4::prop::BVSatSolverInterface::Notify {
+    CVC4::prop::CnfStream* d_cnf;
     TheoryBV *d_bv;
     TLazyBitblaster* d_lazyBB; 
   public:
-    MinisatNotify(prop::CnfStream* cnf, TheoryBV *bv, TLazyBitblaster* lbv)
+    MinisatNotify(CVC4::prop::CnfStream* cnf, TheoryBV *bv, TLazyBitblaster* lbv)
     : d_cnf(cnf)
     , d_bv(bv)
     , d_lazyBB(lbv)
     {}
-    bool notify(prop::SatLiteral lit);
-    void notify(prop::SatClause& clause);
+    bool notify(CVC4::prop::SatLiteral lit);
+    void notify(CVC4::prop::SatClause& clause);
     void spendResource();
     void safePoint();
   };
+
   
   TheoryBV *d_bv;
   context::Context* d_ctx;
 
-  prop::NullRegistrar* d_nullRegistrar;
+  CVC4::prop::NullRegistrar* d_nullRegistrar;
   context::Context* d_nullContext;
   // sat solver used for bitblasting and associated CnfStream
-  prop::BVSatSolverInterface*         d_satSolver;
-  prop::BVSatSolverInterface::Notify* d_satSolverNotify;
-  prop::CnfStream*                    d_cnfStream;
+  CVC4::prop::BVSatSolverInterface*         d_satSolver;
+  CVC4::prop::BVSatSolverInterface::Notify* d_satSolverNotify;
+  CVC4::prop::CnfStream*                    d_cnfStream;
 
   AssertionList* d_assertedAtoms; /**< context dependent list storing the atoms
                                      currently asserted by the DPLL SAT solver. */
@@ -164,6 +167,7 @@ class TLazyBitblaster :  public TBitblaster<Node> {
   bool hasValue(TNode a);
   Node getModelFromSatSolver(TNode a, bool fullModel);  
 public:
+  CVC4::prop::CnfStream* getCnfStream() { return d_cnfStream; }
   void bbTerm(TNode node, Bits&  bits);
   void bbAtom(TNode node);
   Node getBBAtom(TNode atom) const;
@@ -183,7 +187,7 @@ public:
   bool assertToSat(TNode node, bool propagate = true);
   bool propagate();
   bool solve();
-  prop::SatValue solveWithBudget(unsigned long conflict_budget);
+  CVC4::prop::SatValue solveWithBudget(unsigned long conflict_budget);
   void getConflict(std::vector<TNode>& conflict);
   void explain(TNode atom, std::vector<TNode>& explanation);
   void setAbstraction(AbstractionModule* abs);
@@ -235,11 +239,11 @@ public:
   Statistics d_statistics;
 };
 
-class MinisatEmptyNotify : public prop::BVSatSolverInterface::Notify {
+class MinisatEmptyNotify : public CVC4::prop::BVSatSolverInterface::Notify {
 public:
   MinisatEmptyNotify() {}
-  bool notify(prop::SatLiteral lit) { return true; }
-  void notify(prop::SatClause& clause) { }
+  bool notify(CVC4::prop::SatLiteral lit) { return true; }
+  void notify(CVC4::prop::SatClause& clause) { }
   void spendResource() {
     NodeManager::currentResourceManager()->spendResource();
   }
@@ -250,10 +254,10 @@ public:
 class EagerBitblaster : public TBitblaster<Node> {
   typedef __gnu_cxx::hash_set<TNode, TNodeHashFunction> TNodeSet;
   // sat solver used for bitblasting and associated CnfStream
-  prop::BVSatSolverInterface*        d_satSolver;
+  CVC4::prop::BVSatSolverInterface*        d_satSolver;
   BitblastingRegistrar*              d_bitblastingRegistrar;
   context::Context*                  d_nullContext;
-  prop::CnfStream*                   d_cnfStream;
+  CVC4::prop::CnfStream*                   d_cnfStream;
 
   theory::bv::TheoryBV* d_bv;
   TNodeSet d_bbAtoms;
@@ -263,6 +267,7 @@ class EagerBitblaster : public TBitblaster<Node> {
   bool isSharedTerm(TNode node); 
 
 public:
+  CVC4::prop::CnfStream* getCnfStream() { return d_cnfStream; }
   void addAtom(TNode atom);
   void makeVariable(TNode node, Bits& bits);
   void bbTerm(TNode node, Bits&  bits);
@@ -278,7 +283,7 @@ public:
   void collectModelInfo(TheoryModel* m, bool fullModel);
 };
 
-class BitblastingRegistrar: public prop::Registrar {
+class BitblastingRegistrar: public CVC4::prop::Registrar {
   EagerBitblaster* d_bitblaster; 
 public:
   BitblastingRegistrar(EagerBitblaster* bb)
@@ -293,7 +298,7 @@ class AigBitblaster : public TBitblaster<Abc_Obj_t*> {
   
   static Abc_Ntk_t* abcAigNetwork;
   context::Context* d_nullContext;
-  prop::BVSatSolverInterface* d_satSolver;
+  CVC4::prop::BVSatSolverInterface* d_satSolver;
   TNodeAigMap d_aigCache;
   NodeAigMap d_bbAtoms;
   
@@ -317,7 +322,7 @@ class AigBitblaster : public TBitblaster<Abc_Obj_t*> {
 public:
   AigBitblaster();
   ~AigBitblaster();
-
+  CVC4::prop::CnfStream* getCnfStream() { return NULL; }
   void makeVariable(TNode node, Bits& bits);
   void bbTerm(TNode node, Bits&  bits);
   void bbAtom(TNode node);
@@ -377,7 +382,7 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_NOR ]          = DefaultNorBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_COMP ]         = DefaultCompBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_MULT ]         = DefaultMultBB<T>;
-  d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = DefaultPlusBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = OptimalPlusBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_SUB ]          = DefaultSubBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NEG ]          = DefaultNegBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_UDIV ]         = UndefinedTermBBStrategy<T>;

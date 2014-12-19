@@ -41,8 +41,8 @@ EagerBitblaster::EagerBitblaster(TheoryBV* theory_bv)
   d_bitblastingRegistrar = new BitblastingRegistrar(this); 
   d_nullContext = new context::Context();
 
-  d_satSolver = prop::SatSolverFactory::createMinisat(d_nullContext, "EagerBitblaster");
-  d_cnfStream = new prop::TseitinCnfStream(d_satSolver, d_bitblastingRegistrar, d_nullContext);
+  d_satSolver = CVC4::prop::SatSolverFactory::createMinisat(d_nullContext, "EagerBitblaster");
+  d_cnfStream = new CVC4::prop::TseitinCnfStream(d_satSolver, d_bitblastingRegistrar, d_nullContext);
   
   MinisatEmptyNotify* notify = new MinisatEmptyNotify();
   d_satSolver->setNotify(notify);
@@ -143,7 +143,7 @@ bool EagerBitblaster::solve() {
   //   Rewriter::garbageCollect();
   //   nm->reclaimZombiesUntil(options::zombieHuntThreshold());
   // }
-  return prop::SAT_VALUE_TRUE == d_satSolver->solve();
+  return CVC4::prop::SAT_VALUE_TRUE == d_satSolver->solve();
 }
 
 
@@ -166,17 +166,17 @@ Node EagerBitblaster::getModelFromSatSolver(TNode a, bool fullModel) {
   getBBTerm(a, bits);
   Integer value(0);
   for (int i = bits.size() -1; i >= 0; --i) {
-    prop::SatValue bit_value;
+    CVC4::prop::SatValue bit_value;
     if (d_cnfStream->hasLiteral(bits[i])) {
-      prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
+      CVC4::prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
       bit_value = d_satSolver->value(bit);
-      Assert (bit_value != prop::SAT_VALUE_UNKNOWN);
+      Assert (bit_value != CVC4::prop::SAT_VALUE_UNKNOWN);
     } else {
       if (!fullModel) return Node();
       // unconstrained bits default to false
-      bit_value = prop::SAT_VALUE_FALSE;
+      bit_value = CVC4::prop::SAT_VALUE_FALSE;
     }
-    Integer bit_int = bit_value == prop::SAT_VALUE_TRUE ? Integer(1) : Integer(0);
+    Integer bit_int = bit_value == CVC4::prop::SAT_VALUE_TRUE ? Integer(1) : Integer(0);
     value = value * 2 + bit_int;
   }
   return utils::mkConst(BitVector(bits.size(), value));

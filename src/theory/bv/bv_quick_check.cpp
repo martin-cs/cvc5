@@ -47,7 +47,7 @@ void BVQuickCheck::setConflict() {
   d_conflict = confl;
 }
 
-prop::SatValue BVQuickCheck::checkSat(std::vector<Node>& assumptions, unsigned long budget) {
+CVC4::prop::SatValue BVQuickCheck::checkSat(std::vector<Node>& assumptions, unsigned long budget) {
   Node conflict; 
 
   for (unsigned i = 0; i < assumptions.size(); ++i) {
@@ -70,7 +70,7 @@ prop::SatValue BVQuickCheck::checkSat(std::vector<Node>& assumptions, unsigned l
     return SAT_VALUE_UNKNOWN; // could check if assignment is full and return SAT_VALUE_TRUE
   }
 
-  prop::SatValue res = d_bitblaster->solveWithBudget(budget);
+  CVC4::prop::SatValue res = d_bitblaster->solveWithBudget(budget);
   if (res == SAT_VALUE_FALSE) {
     setConflict();
     return res;
@@ -79,8 +79,8 @@ prop::SatValue BVQuickCheck::checkSat(std::vector<Node>& assumptions, unsigned l
    return res;
 }
 
-prop::SatValue BVQuickCheck::checkSat(unsigned long budget) {
-  prop::SatValue res = d_bitblaster->solveWithBudget(budget);
+CVC4::prop::SatValue BVQuickCheck::checkSat(unsigned long budget) {
+  CVC4::prop::SatValue res = d_bitblaster->solveWithBudget(budget);
   if (res == SAT_VALUE_FALSE) {
     setConflict();
   }

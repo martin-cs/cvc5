@@ -22,7 +22,6 @@
 
 #include <ostream>
 #include "expr/node.h"
-
 #ifdef CVC4_USE_ABC
 #include "base/main/main.h"
 #include "base/abc/abc.h"
@@ -209,6 +208,7 @@ T inline rippleCarryAdder(const std::vector<T>&a, const std::vector<T>& b, std::
 
   return carry;
 }
+
 
 template <class T>
 inline void shiftAddMultiplier(const std::vector<T>&a, const std::vector<T>&b, std::vector<T>& res) {
