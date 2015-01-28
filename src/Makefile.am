@@ -430,7 +430,9 @@ libcvc4_la_SOURCES = \
 	theory/fp/theory_fp.cpp \
 	theory/fp/theory_fp_rewriter.h \
 	theory/fp/theory_fp_rewriter.cpp \
-	theory/fp/theory_fp_type_rules.h
+	theory/fp/theory_fp_type_rules.h \
+	theory/fp/fp_converter.h \
+	theory/fp/fp_converter.cpp
 
 nodist_libcvc4_la_SOURCES = \
 	smt/smt_options.cpp \
@@ -443,7 +445,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/util/libutil.la \
 	@builddir@/expr/libexpr.la \
 	@builddir@/prop/minisat/libminisat.la \
-	@builddir@/prop/bvminisat/libbvminisat.la
+	@builddir@/prop/bvminisat/libbvminisat.la \
+	@srcdir@/symfpu/symfpu.a
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
 	@top_builddir@/proofs/lfsc_checker/liblfsc_checker.la \
