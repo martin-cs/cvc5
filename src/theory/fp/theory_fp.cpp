@@ -79,17 +79,25 @@ namespace removeToFPGeneric {
 TheoryFp::TheoryFp(context::Context* c, context::UserContext* u,
                    OutputChannel& out, Valuation valuation,
                    const LogicInfo& logicInfo)
-    : Theory(THEORY_FP, c, u, out, valuation, logicInfo)
+    : Theory(THEORY_FP, c, u, out, valuation, logicInfo),
+      conv(u),
+      expansionRequested(false)
 {}/* TheoryFp::TheoryFp() */
 
 
-Node TheoryFp::expandDefinition(LogicRequest &, Node node) {
+Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << std::endl;
+
+  if (!this->expansionRequested) {
+    lr.widenLogic(THEORY_UF);
+    lr.widenLogic(THEORY_BV);
+    this->expansionRequested = true;
+  }
 
   if (node.getKind() == kind::FLOATINGPOINT_TO_FP_GENERIC) {
     Node res(removeToFPGeneric::removeToFPGeneric(node));
 
-    Trace("fp-expandDefinition") << "TO_FP_GENERIC rewritten to " << res << std::endl;
+    Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): TO_FP_GENERIC rewritten to " << res << std::endl;
 
     return res;
   } else {
@@ -97,8 +105,66 @@ Node TheoryFp::expandDefinition(LogicRequest &, Node node) {
   }
 }
 
+void TheoryFp::convertAndEquateTerm(TNode node) {
+  Trace("fp-convertTerm") << "TheoryFp::convertTerm(): " << node << std::endl;
+  size_t oldAdditionalAssertions = conv.additionalAssertions.size();
+
+  Node converted(conv.convert(node));
+
+  if (converted != node) {
+    Debug("fp-convertTerm") << "TheoryFp::convertTerm(): before " << node << std::endl;
+    Debug("fp-convertTerm") << "TheoryFp::convertTerm(): after  " << converted << std::endl;
+  }
+
+  size_t newAdditionalAssertions = conv.additionalAssertions.size();
+  Assert(oldAdditionalAssertions <= newAdditionalAssertions);
+
+  while (oldAdditionalAssertions < newAdditionalAssertions) {
+    Node addA = conv.additionalAssertions[oldAdditionalAssertions];
+
+    Debug("fp-convertTerm") << "TheoryFp::convertTerm(): additional assertion  " << addA << std::endl;
+    
+    d_out->lemma(addA, false, true);
+
+    ++oldAdditionalAssertions;
+  }
+
+
+  // Equate the floating-point atom and the converted one
+  // Also adds the bit-vectors to the bit-vector solver
+  if (node.getType().isBoolean()) {
+    Assert(converted != node);
+
+    d_out->lemma(NodeManager::currentNM()->mkNode(kind::EQUAL, node, converted),
+		 false,
+		 true);
+  }
+
+  return;
+}
+
+void TheoryFp::preRegisterTerm(TNode node) {
+  Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
+
+  convertAndEquateTerm(node);
+  return;
+}
+
+void TheoryFp::addSharedTerm(TNode node) {
+  Trace("fp-addSharedTerm") << "TheoryFp::addSharedTerm(): " << node << std::endl;
+
+  convertAndEquateTerm(node);
+  return;
+}
+
+
 
 void TheoryFp::check(Effort level) {
+
+  /* Checking should be handled by the bit-vector engine */
+  return;
+
+#if 0
   if (done() && !fullEffort(level)) {
     return;
   }
@@ -119,8 +185,15 @@ void TheoryFp::check(Effort level) {
       Unhandled(fact.getKind());
     }
   }
+#endif
 
 }/* TheoryFp::check() */
+
+
+  Node TheoryFp::getModelValue(TNode var) {
+    return conv.getValue(d_valuation, var);
+  }
+
 
 }/* CVC4::theory::fp namespace */
 }/* CVC4::theory namespace */

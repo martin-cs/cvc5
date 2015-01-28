@@ -37,6 +37,16 @@ namespace fp {
 
 namespace rewrite {
   /** Rewrite rules **/
+  template <RewriteFunction first, RewriteFunction second>
+  RewriteResponse then (TNode node, bool isPreRewrite) {
+    RewriteResponse result(first(node, isPreRewrite));
+
+    if (result.status == REWRITE_DONE) {
+      return second(result.node, isPreRewrite);
+    } else {
+      return result;
+    }
+  }
 
   RewriteResponse notFP (TNode node, bool) {
     Unreachable("non floating-point kind (%d) in floating point rewrite?",node.getKind());
@@ -272,6 +282,204 @@ namespace rewrite {
   }
 
 
+  // \todo We will need an option to disable constant folding
+  bool constantFoldEnabled = true;
+
+  // \todo Move the eval code into util/floatingpoint.h
+
+  RewriteResponse constantFoldAbs (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ABS);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().absolute()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
+  RewriteResponse constantFoldNeg (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_NEG);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().negate()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
+  RewriteResponse constantFoldPlus (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_PLUS);
+    Assert(node.getNumChildren() == 3);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_ROUNDINGMODE &&
+	node[1].getKind() == kind::CONST_FLOATINGPOINT &&
+	node[2].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      RoundingMode rm(node[0].getConst<RoundingMode>());
+      FloatingPoint arg1(node[1].getConst<FloatingPoint>());
+      FloatingPoint arg2(node[2].getConst<FloatingPoint>());
+
+      Assert(arg1.t == arg2.t);
+      
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.plus(rm, arg2)));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldMult (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MULT);
+    Assert(node.getNumChildren() == 3);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_ROUNDINGMODE &&
+	node[1].getKind() == kind::CONST_FLOATINGPOINT &&
+	node[2].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      RoundingMode rm(node[0].getConst<RoundingMode>());
+      FloatingPoint arg1(node[1].getConst<FloatingPoint>());
+      FloatingPoint arg2(node[2].getConst<FloatingPoint>());
+
+      Assert(arg1.t == arg2.t);
+
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.mult(rm, arg2)));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
+  RewriteResponse constantFoldLeq (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_LT);
+    Assert(node.getNumChildren() == 2);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT &&
+	node[1].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+      FloatingPoint arg2(node[1].getConst<FloatingPoint>());
+
+      Assert(arg1.t == arg2.t);
+      
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1 <= arg2));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
+  RewriteResponse constantFoldLt (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_LT);
+    Assert(node.getNumChildren() == 2);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT &&
+	node[1].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+      FloatingPoint arg2(node[1].getConst<FloatingPoint>());
+
+      Assert(arg1.t == arg2.t);
+
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1 < arg2));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
+  RewriteResponse constantFoldIsNormal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISN);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isNormal()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldIsSubnormal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISSN);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isSubnormal()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldIsZero (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISZ);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isZero()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldIsInfinite (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISINF);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isInfinite()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldIsNaN (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISNAN);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isNaN()));
+    }
+	
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldIsNegative (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISNEG);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isNegative()));
+    }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldIsPositive (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISPOS);
+    Assert(node.getNumChildren() == 1);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isPositive()));
+   }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
 }; /* CVC4::theory::fp::rewrite */
 
 RewriteFunction TheoryFpRewriter::preRewriteTable[kind::LAST_KIND]; 
@@ -366,11 +574,11 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
       
     /******** Operations ********/
     postRewriteTable[kind::FLOATINGPOINT_FP] = rewrite::convertFromLiteral;
-    postRewriteTable[kind::FLOATINGPOINT_ABS] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_NEG] = rewrite::removeDoubleNegation;
-    postRewriteTable[kind::FLOATINGPOINT_PLUS] = rewrite::reorderBinaryOperation;
+    postRewriteTable[kind::FLOATINGPOINT_ABS] = rewrite::constantFoldAbs;
+    postRewriteTable[kind::FLOATINGPOINT_NEG] = rewrite::then<rewrite::removeDoubleNegation, rewrite::constantFoldNeg>;
+    postRewriteTable[kind::FLOATINGPOINT_PLUS] = rewrite::then<rewrite::reorderBinaryOperation, rewrite::constantFoldPlus>;
     postRewriteTable[kind::FLOATINGPOINT_SUB] = rewrite::removed;
-    postRewriteTable[kind::FLOATINGPOINT_MULT] = rewrite::reorderBinaryOperation;
+    postRewriteTable[kind::FLOATINGPOINT_MULT] = rewrite::then<rewrite::reorderBinaryOperation, rewrite::constantFoldMult>;
     postRewriteTable[kind::FLOATINGPOINT_DIV] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_FMA] = rewrite::reorderFMA;
     postRewriteTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
@@ -381,19 +589,19 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
 
     /******** Comparisons ********/
     postRewriteTable[kind::FLOATINGPOINT_EQ] = rewrite::removed;
-    postRewriteTable[kind::FLOATINGPOINT_LEQ] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_LT] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_LEQ] = rewrite::constantFoldLeq;
+    postRewriteTable[kind::FLOATINGPOINT_LT] = rewrite::constantFoldLt;
     postRewriteTable[kind::FLOATINGPOINT_GEQ] = rewrite::removed;
     postRewriteTable[kind::FLOATINGPOINT_GT] = rewrite::removed;
 
     /******** Classifications ********/
-    postRewriteTable[kind::FLOATINGPOINT_ISN] = rewrite::removeSignOperations;
-    postRewriteTable[kind::FLOATINGPOINT_ISSN] = rewrite::removeSignOperations;
-    postRewriteTable[kind::FLOATINGPOINT_ISZ] = rewrite::removeSignOperations;
-    postRewriteTable[kind::FLOATINGPOINT_ISINF] = rewrite::removeSignOperations;
-    postRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::removeSignOperations;
-    postRewriteTable[kind::FLOATINGPOINT_ISNEG] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_ISPOS] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_ISN] = rewrite::then<rewrite::removeSignOperations, rewrite::constantFoldIsNormal>;
+    postRewriteTable[kind::FLOATINGPOINT_ISSN] = rewrite::then<rewrite::removeSignOperations, rewrite::constantFoldIsSubnormal>;;
+    postRewriteTable[kind::FLOATINGPOINT_ISZ] = rewrite::then<rewrite::removeSignOperations, rewrite::constantFoldIsZero>;;
+    postRewriteTable[kind::FLOATINGPOINT_ISINF] = rewrite::then<rewrite::removeSignOperations, rewrite::constantFoldIsInfinite>;;
+    postRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::then<rewrite::removeSignOperations, rewrite::constantFoldIsNaN>;;
+    postRewriteTable[kind::FLOATINGPOINT_ISNEG] = rewrite::constantFoldIsNegative;
+    postRewriteTable[kind::FLOATINGPOINT_ISPOS] = rewrite::constantFoldIsPositive;
 
     /******** Conversions ********/
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = rewrite::convertFromIEEEBitVectorLiteral;

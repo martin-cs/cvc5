@@ -94,31 +94,40 @@ namespace CVC4 {
     }
   }; /* struct RoundingModeHashFunction */
 
+};
+
+
+/* The symfpu CVC4/literal back-end makes uses of the types above and
+   so the headers need to be included here. */
+#include "symfpu/baseTypes/cvc4_literal.h"
+#include "symfpu/core/unpackedFloat.h"
+#include "symfpu/core/packing.h"
+#include "symfpu/core/compare.h"
+
+
+namespace CVC4 {
+
+  /**
+   * Use symfpu to handle literals
+   */
+  // To simplify the naming of various types
+  namespace symfpuLiteral {
+    typedef ::symfpu::cvc4_literal::traits traits;   // Use the CVC4 literal back-end
+    typedef ::symfpu::unpackedFloat<traits> uf;
+    typedef traits::rm rm;
+    typedef traits::fpt fpt;
+    typedef traits::prop prop;
+    typedef traits::ubv ubv;
+    typedef traits::sbv sbv;
+  };
+
+
 
   /**
    * A concrete floating point number
    */
+  typedef symfpuLiteral::uf FloatingPointLiteral;
 
-  class CVC4_PUBLIC FloatingPointLiteral {
-  public :
-    // This intentional left unfinished as the choice of literal
-    // representation is solver specific.
-    void unfinished (void) const;
-
-    FloatingPointLiteral(unsigned, unsigned, double) { unfinished(); }
-    FloatingPointLiteral(unsigned, unsigned, const std::string &) { unfinished(); }
-    FloatingPointLiteral(const FloatingPointLiteral &) { unfinished(); }
-
-    bool operator == (const FloatingPointLiteral &op) const {
-      unfinished();
-      return false;
-    }
-
-    size_t hash (void) const {
-      unfinished();
-      return 23;
-    }
-  };
 
   class CVC4_PUBLIC FloatingPoint {
   protected :
@@ -127,17 +136,34 @@ namespace CVC4 {
   public :
     FloatingPointSize t;
 
-    FloatingPoint (unsigned e, unsigned s, double d) : fpl(e,s,d), t(e,s) {}
-    FloatingPoint (unsigned e, unsigned s, const std::string &bitString) : fpl(e,s,bitString), t(e,s) {}
+    FloatingPoint (unsigned e, unsigned s, double d);
+    FloatingPoint (unsigned e, unsigned s, const std::string &bitString);
+    FloatingPoint (const FloatingPointSize &oldt, const FloatingPointLiteral &oldfpl) : fpl(oldfpl), t(oldt) {}
     FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
 
     bool operator ==(const FloatingPoint& fp) const {
-      return ( (t == fp.t) && fpl == fp.fpl );
+      return ( (t == fp.t) && symfpu::smtlibEqual<symfpuLiteral::traits>(t,fpl,fp.fpl) );
     }
 
     const FloatingPointLiteral & getLiteral (void) const {
       return this->fpl;
     }
+
+    FloatingPoint absolute (void) const;
+    FloatingPoint negate (void) const;
+    FloatingPoint plus (const RoundingMode &rm, const FloatingPoint &arg) const;
+    FloatingPoint sub (const RoundingMode &rm, const FloatingPoint &arg) const;
+    FloatingPoint mult (const RoundingMode &rm, const FloatingPoint &arg) const;
+    bool operator <= (const FloatingPoint &arg) const;
+    bool operator < (const FloatingPoint &arg) const;
+    bool isNormal (void) const;
+    bool isSubnormal (void) const;
+    bool isZero (void) const;
+    bool isInfinite (void) const;
+    bool isNaN (void) const;
+    bool isNegative (void) const;
+    bool isPositive (void) const;
+
 
   }; /* class FloatingPoint */
 
@@ -235,16 +261,28 @@ namespace CVC4 {
   }; /* struct FloatingPointToBVHashFunction */
 
 
-
+  // It is not possible to pack a number without a size to pack to,
+  // thus it is difficult to implement this in a sensible way.  Use
+  // FloatingPoint instead...
+  /*
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointLiteral& fp) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointLiteral& fp) {
-    fp.unfinished();
-    return os;
+    return os << "FloatingPointLiteral";
   }
+  */
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) {
-    return os << fp.getLiteral();
+    BitVector bv(symfpu::pack<symfpuLiteral::traits>(fp.t,fp.getLiteral()));
+
+    unsigned largestSignificandBit = fp.t.significand() - 2; // -1 for -inclusive, -1 for hidden
+    unsigned largestExponentBit = (fp.t.exponent() - 1) + (largestSignificandBit + 1);
+
+    return os 
+      << "(fp " << bv.extract(largestExponentBit + 1, largestExponentBit + 1)
+      << " " << bv.extract(largestExponentBit, largestSignificandBit + 1)
+      << " " << bv.extract(largestSignificandBit, 0)
+      << ")";
   }
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPointSize& fps) CVC4_PUBLIC;
