@@ -432,7 +432,9 @@ libcvc4_la_SOURCES = \
 	theory/fp/theory_fp_rewriter.cpp \
 	theory/fp/theory_fp_type_rules.h \
 	theory/fp/fp_converter.h \
-	theory/fp/fp_converter.cpp
+	theory/fp/fp_converter.cpp \
+	symfpu/baseTypes/cvc4_symbolic.cpp \
+	symfpu/baseTypes/cvc4_literal.cpp
 
 nodist_libcvc4_la_SOURCES = \
 	smt/smt_options.cpp \

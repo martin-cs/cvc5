@@ -24,6 +24,7 @@
 #include "symfpu/core/compare.h"
 #include "symfpu/core/classify.h"
 
+#if 0
 // \todo Fix this ugly hack
 // So, the problem is that the CVC4 back-end is not just a .h file, it
 // also requires some code.  This code, currently, should sit in the
@@ -33,6 +34,7 @@
 
 #include "symfpu/baseTypes/cvc4_symbolic.cpp"
 #include "symfpu/baseTypes/cvc4_literal.cpp"
+#endif
 
 namespace CVC4 {
 namespace theory {
