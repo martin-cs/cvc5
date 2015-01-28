@@ -462,6 +462,8 @@ libcvc4_la_SOURCES = \
 	theory/uf/theory_uf_strong_solver.h \
 	theory/uf/theory_uf_type_rules.h
 
+
+
 nodist_libcvc4_la_SOURCES = \
 	theory/rewriter_tables.h \
 	theory/theory_traits.h \
@@ -474,8 +476,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/expr/libexpr.la \
 	@builddir@/smt_util/libsmtutil.la \
 	@builddir@/prop/minisat/libminisat.la \
-	@builddir@/prop/bvminisat/libbvminisat.la \
-	@srcdir@/symfpu/symfpu.a
+	@builddir@/prop/bvminisat/libbvminisat.la 
+
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
 	@top_builddir@/proofs/lfsc_checker/liblfsc_checker.la \
