@@ -27,6 +27,7 @@
 **
 */
 
+#include "util/floatingpoint.h"   // cvc4_literal needs this but can't include it or it will create a loop
 #include "symfpu/baseTypes/cvc4_literal.h"
 
 namespace symfpu {

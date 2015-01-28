@@ -426,15 +426,17 @@ libcvc4_la_SOURCES = \
 	theory/booleans/boolean_term_conversion_mode.h \
 	theory/booleans/boolean_term_conversion_mode.cpp \
 	theory/booleans/options_handlers.h \
+	symfpu/baseTypes/cvc4_symbolic.cpp \
+	symfpu/baseTypes/cvc4_literal.cpp \
+	symfpu/utils/common.cpp \
+	symfpu/core/nondet.cpp \
 	theory/fp/theory_fp.h \
 	theory/fp/theory_fp.cpp \
 	theory/fp/theory_fp_rewriter.h \
 	theory/fp/theory_fp_rewriter.cpp \
 	theory/fp/theory_fp_type_rules.h \
 	theory/fp/fp_converter.h \
-	theory/fp/fp_converter.cpp \
-	symfpu/baseTypes/cvc4_symbolic.cpp \
-	symfpu/baseTypes/cvc4_literal.cpp
+	theory/fp/fp_converter.cpp
 
 nodist_libcvc4_la_SOURCES = \
 	smt/smt_options.cpp \
@@ -447,8 +449,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/util/libutil.la \
 	@builddir@/expr/libexpr.la \
 	@builddir@/prop/minisat/libminisat.la \
-	@builddir@/prop/bvminisat/libbvminisat.la \
-	@srcdir@/symfpu/symfpu.a
+	@builddir@/prop/bvminisat/libbvminisat.la 
+
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
 	@top_builddir@/proofs/lfsc_checker/liblfsc_checker.la \
