@@ -239,6 +239,109 @@ public:
   Statistics d_statistics;
 };
 
+
+class EncodingBitblaster :  public TBitblaster<Node> {
+public:
+  typedef std::vector<Node> Bits;
+  typedef context::CDList<CVC4::prop::SatLiteral> AssertionList;
+  typedef context::CDHashMap<CVC4::prop::SatLiteral, std::vector<CVC4::prop::SatLiteral> , CVC4::prop::SatLiteralHashFunction> ExplanationMap;
+private:
+  context::Context* d_ctx;
+
+  CVC4::prop::NullRegistrar* d_nullRegistrar;
+  context::Context* d_nullContext;
+  // sat solver used for bitblasting and associated CnfStream
+  CVC4::prop::BVSatSolverInterface*         d_satSolver;
+  CVC4::prop::BVSatSolverInterface::Notify* d_satSolverNotify;
+  CVC4::prop::CnfStream*                    d_cnfStream;
+
+  AssertionList* d_assertedAtoms; /**< context dependent list storing the atoms
+                                     currently asserted by the DPLL SAT solver. */
+  TNodeSet d_variables;
+  TNodeSet d_bbAtoms; 
+
+  context::CDO<bool> d_satSolverFullModel;
+  
+  void addAtom(TNode atom);
+  bool hasValue(TNode a);
+  Node getModelFromSatSolver(TNode a, bool fullModel);  
+public:
+  /** This class gets callbacks from minisat on propagations */
+  class EncodingNotify : public CVC4::prop::BVSatSolverInterface::Notify {
+    CVC4::prop::CnfStream* d_cnf_this;
+    CVC4::prop::CnfStream* d_cnf_other;
+    __gnu_cxx::hash_set<TNode, TNodeHashFunction> d_propagated;
+    EncodingBitblaster* d_lazyBB; 
+  public:
+    EncodingNotify(CVC4::prop::CnfStream* cnf, EncodingBitblaster* lbv)
+      : d_cnf_this(lbv->getCnfStream())
+      , d_cnf_other(cnf)
+      , d_lazyBB(lbv)
+      , d_numBothPropagate(0)
+      , d_numUniquePropagate(0)
+    {}
+    bool notify(CVC4::prop::SatLiteral lit);
+    void notify(CVC4::prop::SatClause& clause);
+    unsigned d_numBothPropagate;
+    unsigned d_numUniquePropagate;
+    void spendResource() {}
+    void safePoint() {}
+    virtual ~EncodingNotify() {};
+  };
+
+  void setNotify(EncodingBitblaster::EncodingNotify* en);
+  void setTermBBStrategy(Kind k, TermBBStrategy strategy) {
+    d_termBBStrategies[k] = strategy;
+  }
+  void setAtomBBStrategy(Kind k, AtomBBStrategy strategy) {
+    d_atomBBStrategies[k] = strategy;
+  }
+  CVC4::prop::CnfStream* getCnfStream() { return d_cnfStream; }
+  void bbTerm(TNode node, Bits&  bits);
+  void bbAtom(TNode node);
+  Node getBBAtom(TNode atom) const;
+  void storeBBAtom(TNode atom, Node atom_bb);
+  bool hasBBAtom(TNode atom) const; 
+  EncodingBitblaster(context::Context* c, const std::string name="");
+  ~EncodingBitblaster();
+
+  bool propagate();
+  bool solve();
+  CVC4::prop::SatValue solveWithBudget(unsigned long conflict_budget);
+  void getConflict(std::vector<TNode>& conflict);
+
+  /**
+   * Creates the bits corresponding to the variable (or non-bv term). 
+   *
+   * @param var
+   */
+  void makeVariable(TNode var, Bits& bits);
+  /**
+   * Assert the given fact as holding top-level.
+   */
+  void assertFact(TNode fact);
+  /**
+   * Assumes the literal in the current context.
+   */
+  void assumeLiteral (TNode literal);
+private:
+
+  class Statistics {
+  public:
+    IntStat d_numTermClauses, d_numAtomClauses;
+    IntStat d_numTerms, d_numAtoms;
+    IntStat d_numExplainedPropagations;
+    IntStat d_numBitblastingPropagations;
+    TimerStat d_bitblastTimer;
+    Statistics(const std::string& name);
+    ~Statistics();
+  };
+  std::string d_name;
+public:
+  Statistics d_statistics;
+};
+
+
 class MinisatEmptyNotify : public CVC4::prop::BVSatSolverInterface::Notify {
 public:
   MinisatEmptyNotify() {}

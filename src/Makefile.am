@@ -89,6 +89,9 @@ libcvc4_la_SOURCES = \
 	proof/theory_proof.cpp \
 	proof/proof_manager.h \
 	proof/proof_manager.cpp \
+	encoding/encoding_experiments.h \
+	encoding/encoding_experiments.cpp \
+	encoding/encoding_bitblaster.cpp \
 	prop/registrar.h \
 	prop/prop_engine.cpp \
 	prop/prop_engine.h \

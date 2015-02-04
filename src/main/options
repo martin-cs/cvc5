@@ -60,4 +60,17 @@ expert-option tearDownIncremental : --tear-down-incremental bool :default false
 expert-option waitToJoin --wait-to-join bool :default true
  wait for other threads to join before quitting
 
+expert-option encodingExperiment --encoding-experiment bool :default false
+ run encoding experiments instead of actual solver
+
+expert-option encodingBitwidth --encoding-bitwidth unsigned :default 32
+ run encoding experiments with given bitwidth
+
+expert-option encodingNumFixed --encoding-num-fixed unsigned :default 3
+ number of bits fixed on each input/output
+
+expert-option encodingNumIterations --encoding-num-iter unsigned :default 100
+ number of bits fixed on each input/output
+ 
+ 
 endmodule

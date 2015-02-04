@@ -35,7 +35,7 @@
 #include "util/configuration.h"
 #include "options/options.h"
 #include "main/command_executor.h"
-
+#include "encoding/encoding_experiments.h"
 #ifdef PORTFOLIO_BUILD
 #  include "main/command_executor_portfolio.h"
 #endif
@@ -132,6 +132,11 @@ int runCvc4(int argc, char* argv[], Options& opts) {
   // Parse the options
   vector<string> filenames = opts.parseOptions(argc, argv);
 
+  if (opts[options::encodingExperiment]) {
+    runEncodingExperiment(opts);
+    exit(0);
+  }
+  
 # ifndef PORTFOLIO_BUILD
   if( opts.wasSetByUser(options::threads) ||
       opts.wasSetByUser(options::threadStackSize) ||
