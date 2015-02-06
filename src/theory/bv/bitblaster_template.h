@@ -527,6 +527,13 @@ void TBitblaster<T>::getBBTerm(TNode node, Bits& bits) const {
 
 template <class T>
 void TBitblaster<T>::storeBBTerm(TNode node, const Bits& bits) {
+  if (Debug.isOn("paranoid-bitblast")) {
+    Debug("paranoid-bitblast") << "Bitblasting term " << node << std::endl;
+    for (unsigned i = 0; i < bits.size(); ++i) {
+      Debug("paranoid-bitblast") << bits[i] << " ";
+    }
+    Debug("paranoid-bitblast") << std::endl;
+  }
   d_termCache.insert(std::make_pair(node, bits));
 }
 

@@ -56,7 +56,7 @@ Node inline optimalRippleCarryAdder(const std::vector<Node>&av,
     res[i] = nm->mkSkolem("s", carry.getType());
   }
 
-  for (unsigned i = 0 ; i < av.size() - 1; ++i) {
+  for (unsigned i = 0 ; i < av.size(); ++i) {
     // get CNF stream and add new clauses
     Node a = av[i];
     Node b = bv[i];
