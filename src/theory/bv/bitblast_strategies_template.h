@@ -30,6 +30,7 @@ namespace theory {
 namespace bv {
 template <class T>
 T optimalRippleCarryAdder(const std::vector<T>&a, const std::vector<T>& b, std::vector<T>& res, T carry, prop::CnfStream* cnf) {
+  Unreachable();
   return carry;
 }
 
@@ -47,22 +48,20 @@ Node inline optimalRippleCarryAdder(const std::vector<Node>&av,
                                     const std::vector<Node>& bv,
                                     std::vector<Node>& res, Node carry, prop::CnfStream* cnf) {
   Assert(av.size() == bv.size() && res.size() == av.size());
-  std::vector<Node> cinv(av.size());
-  std::vector<Node> coutv(av.size());
+  std::vector<Node> carryv(av.size() + 1);
   NodeManager* nm = NodeManager::currentNM();
-  // add fresh variables for the cin and cout
-  for (unsigned i = 0; i < cinv.size(); ++i) {
-    cinv[i] = nm->mkSkolem("cin", carry.getType());
-    coutv[i] = nm->mkSkolem("cout", carry.getType());
+  carryv[0] = carry;
+  for (unsigned i = 0; i < av.size(); ++i) {
+    carryv[i+1] = nm->mkSkolem("carry", carry.getType());
     res[i] = nm->mkSkolem("s", carry.getType());
-  } 
-  cinv[0] = carry;
-  for (unsigned i = 0 ; i < av.size(); ++i) {
+  }
+
+  for (unsigned i = 0 ; i < av.size() - 1; ++i) {
     // get CNF stream and add new clauses
     Node a = av[i];
     Node b = bv[i];
-    Node cin = cinv[i];
-    Node cout = coutv[i];
+    Node cin = carryv[i];
+    Node cout = carryv[i+1];
     Node s = res[i];
     
     Node na = nm->mkNode(kind::NOT, a);
@@ -71,21 +70,6 @@ Node inline optimalRippleCarryAdder(const std::vector<Node>&av,
     Node ncout = nm->mkNode(kind::NOT, cout);
     Node ns = nm->mkNode(kind::NOT, s);
     
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, b, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, cin, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, b, cin, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, ns, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, b, ns, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, cin, ns, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, b, cin, ns),
-                          false, false, RULE_INVALID, TNode::null());
-
     cnf->convertAndAssert(nm->mkNode(kind::OR, na, nb, cout),
                           false, false, RULE_INVALID, TNode::null());
     cnf->convertAndAssert(nm->mkNode(kind::OR, na, ncin, cout),
@@ -98,12 +82,27 @@ Node inline optimalRippleCarryAdder(const std::vector<Node>&av,
                           false, false, RULE_INVALID, TNode::null());
     cnf->convertAndAssert(nm->mkNode(kind::OR, ncin, s, cout),
                           false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, na,nb, ncin,s),
+    cnf->convertAndAssert(nm->mkNode(kind::OR, na, nb, ncin, s),
+                          false, false, RULE_INVALID, TNode::null());
+
+    cnf->convertAndAssert(nm->mkNode(kind::OR, a, b, ncout),
+                          false, false, RULE_INVALID, TNode::null());
+    cnf->convertAndAssert(nm->mkNode(kind::OR, a, cin, ncout),
+                          false, false, RULE_INVALID, TNode::null());
+    cnf->convertAndAssert(nm->mkNode(kind::OR, b, cin, ncout),
+                          false, false, RULE_INVALID, TNode::null());
+    cnf->convertAndAssert(nm->mkNode(kind::OR, a, ns, ncout),
+                          false, false, RULE_INVALID, TNode::null());
+    cnf->convertAndAssert(nm->mkNode(kind::OR, b, ns, ncout),
+                          false, false, RULE_INVALID, TNode::null());
+    cnf->convertAndAssert(nm->mkNode(kind::OR, cin, ns, ncout),
+                          false, false, RULE_INVALID, TNode::null());
+    cnf->convertAndAssert(nm->mkNode(kind::OR, a,b, cin,ns),
                           false, false, RULE_INVALID, TNode::null());
 
   }
 
-  return coutv.back();
+  return carryv.back();
 }
 
 

@@ -201,8 +201,10 @@ bool EncodingBitblaster::solve() {
     }
   }
   Debug("bitvector") << "EncodingBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
-  d_satSolverFullModel.set(true); 
-  return CVC4::prop::SAT_VALUE_TRUE == d_satSolver->solve();
+  d_satSolverFullModel.set(true);
+  CVC4::prop::SatValue res = d_satSolver->solve();
+  std::cout << "Solve returns "<< ((res == CVC4::prop::SAT_VALUE_UNKNOWN) ? "unknown" : (res == CVC4::prop::SAT_VALUE_FALSE? "false" : "true"))  << std::endl;
+  return CVC4::prop::SAT_VALUE_TRUE == res;
 }
 
 CVC4::prop::SatValue EncodingBitblaster::solveWithBudget(unsigned long budget) {

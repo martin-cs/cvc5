@@ -127,8 +127,10 @@ void CVC4::runEncodingExperiment(Options& opts) {
 
     bool res1 = bb1.solve();
     bool res2 = bb2.solve();
+    std::cout << "Res1 "<< res1 << std::endl;
+    std::cout << "Res2 "<< res2 << std::endl;
     Assert( res1 == res2);
-    Assert( en1.d_numBothPropagate == en2.d_numBothPropagate); 
+    // Assert( en1.d_numBothPropagate == en2.d_numBothPropagate); 
     std::cout << "Both propagate # " << en1.d_numBothPropagate << std::endl;
     std::cout << "DefaultPlusBB unique propagate # " << en1.d_numUniquePropagate << std::endl;
     std::cout << "OptimalPlusBB unique propagate # " << en2.d_numUniquePropagate << std::endl;
