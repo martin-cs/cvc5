@@ -264,31 +264,46 @@ private:
   
   void addAtom(TNode atom);
   bool hasValue(TNode a);
+ public:
   Node getModelFromSatSolver(TNode a, bool fullModel);  
-public:
   /** This class gets callbacks from minisat on propagations */
   class EncodingNotify : public CVC4::prop::BVSatSolverInterface::Notify {
     CVC4::prop::CnfStream* d_cnf_this;
     CVC4::prop::CnfStream* d_cnf_other;
-    __gnu_cxx::hash_set<TNode, TNodeHashFunction> d_propagated;
     EncodingBitblaster* d_lazyBB; 
-  public:
+    TNodeSet d_propagated; // shared literals that have been propagated
+    TNodeSet d_assumptions; // literals that are assumptions to the current query (not counted towards propagations)
+ public:
+
     EncodingNotify(CVC4::prop::CnfStream* cnf, EncodingBitblaster* lbv)
       : d_cnf_this(lbv->getCnfStream())
       , d_cnf_other(cnf)
       , d_lazyBB(lbv)
-      , d_numBothPropagate(0)
-      , d_numUniquePropagate(0)
+      , d_propagated()
+      , d_assumptions()
+      , d_numTotalPropagations(0)
+      , d_numSharedPropagations(0)
     {}
     bool notify(CVC4::prop::SatLiteral lit);
     void notify(CVC4::prop::SatClause& clause);
-    unsigned d_numBothPropagate;
-    unsigned d_numUniquePropagate;
-    void spendResource() {}
-    void safePoint() {}
-    virtual ~EncodingNotify() {};
-  };
+    unsigned d_numTotalPropagations; // total number of literals propagated
+    unsigned d_numSharedPropagations;// number of literals propagated that existed in the other encoding as well
+     void spendResource() {}
+     void safePoint() {}
+     virtual ~EncodingNotify() {};
+     bool isPropagated(TNode node) { return d_propagated.find(node) != d_propagated.end(); }
+     TNodeSet::const_iterator begin() { return d_propagated.begin(); }
+     TNodeSet::const_iterator end() { return d_propagated.end(); }
+     void addAssumption(TNode node) { d_assumptions.insert(node); }
+     void clear() {
+       d_propagated.clear();
+       d_numTotalPropagations = 0;
+       d_numSharedPropagations = 0;
+       d_assumptions.clear();
+     }
+ };
 
+  std::string getName() { return d_name; }
   void setNotify(EncodingBitblaster::EncodingNotify* en);
   void setTermBBStrategy(Kind k, TermBBStrategy strategy) {
     d_termBBStrategies[k] = strategy;

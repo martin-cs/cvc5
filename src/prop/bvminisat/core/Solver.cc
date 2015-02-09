@@ -92,7 +92,8 @@ Solver::Solver(CVC4::context::Context* c) :
 
     // Parameters (user settable):
     //
-    c(c)
+    notify(NULL)
+  , c(c)
   , verbosity        (0)
   , var_decay        (opt_var_decay)
   , clause_decay     (opt_clause_decay)
@@ -566,8 +567,15 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     assigns[var(p)] = lbool(!sign(p));
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
-    if (decisionLevel() <= assumptions.size() && marker[var(p)] == 1) {
+    // HACK FOR ENCODING
+    // if (decisionLevel() <= assumptions.size() && marker[var(p)] == 1) {
+    if (decisionLevel() <= assumptions.size()) {
       if (notify) {
+	// variables marked with 2 are "decided" assumptions
+	if (marker[var(p)] == 2) {
+	  // Debug("encoding-detailed")<< "Skip assumption " << p << std::endl;
+	  return;
+	}
         Debug("bvminisat::explain") << OUTPUT_TAG << "propagating " << p << std::endl;
         notify->notify(p);
       }
@@ -828,7 +836,9 @@ lbool Solver::search(int nof_conflicts, UIP uip)
                 assert (level(var(learnt_clause[i])) <= decisionLevel()); 
                 seen[var(learnt_clause[i])] = 1;
               }
-              analyzeFinal(p, conflict);
+	      // FIXME IN TRUNK: calling solve without changing the assumptions
+	      // is unsound at this point!!!!
+	      analyzeFinal(p, conflict);
               Debug("bvminisat::search") << OUTPUT_TAG << " conflict on assumptions " << std::endl;
               return l_False;
             }

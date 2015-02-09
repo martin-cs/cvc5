@@ -101,6 +101,7 @@ void CVC4::runEncodingExperiment(Options& opts) {
   bb2.getBBTerm(c, c2_bits);
   
   for (unsigned i = 0; i < opts[options::encodingNumIterations]; ++i) {
+    std::cout << "RUNNING iteration " << i << std::endl;
     ctx->push();
     std::vector<int> a_fixed, b_fixed, c_fixed;
     std::vector<Node> assumps1, assumps2;
@@ -120,20 +121,66 @@ void CVC4::runEncodingExperiment(Options& opts) {
 
     Assert (assumps1.size() == assumps2.size()); 
 
+    Debug("encoding") << "Fixed bits "<< std::endl;
     for (unsigned i = 0; i < assumps1.size(); ++i) {
+      Debug("encoding") << "   " << assumps1[i] << std::endl; 
       bb1.assumeLiteral(assumps1[i]);
       bb2.assumeLiteral(assumps2[i]);
     }
 
-    bool res1 = bb1.solve();
-    bool res2 = bb2.solve();
-    std::cout << "Res1 "<< res1 << std::endl;
-    std::cout << "Res2 "<< res2 << std::endl;
+    // bool res1 = bb1.solve();
+    // bool res2 = bb2.solve();
+    Debug("encoding") << "  Propagating " << bb1.getName() << std::endl;
+    bool res1 = bb1.propagate();
+    Debug("encoding") << "       res = "<< res1 << std::endl;
+
+    Debug("encoding") << "  Propagating " << bb2.getName() << std::endl;
+    bool res2 = bb2.propagate();
+    Debug("encoding") << "      res = "<< res2 << std::endl;
+
+    unsigned en1_unique = 0;
+    unsigned both = 0;
+    for (TNodeSet::const_iterator it = en1.begin(); it != en1.end(); ++it) {
+      if (en2.isPropagated(*it)) {
+	++both; 
+      } else {
+	++en1_unique;
+      }
+    }
+
+    unsigned en2_unique = 0;
+    for (TNodeSet::const_iterator it = en2.begin(); it != en2.end(); ++it) {
+      if (! en1.isPropagated(*it)) {
+	++en2_unique;
+      }
+    }
+
+    std::cout << "  Both propagate " << both << std::endl;
+    std::cout << "  " << bb1.getName() << " unique propagate # " << en1_unique << std::endl;
+    std::cout << "  " << bb1.getName() << " total propagations # " << en1.d_numTotalPropagations << std::endl;
+    std::cout << "  " << bb1.getName() << " shared propagations # " << en1.d_numSharedPropagations << std::endl;
+										  
+    std::cout << "  " << bb2.getName() << " unique propagate # " << en2_unique << std::endl;
+    std::cout << "  " << bb2.getName() << " total propagations # " << en2.d_numTotalPropagations << std::endl;
+    std::cout << "  " << bb2.getName() << " shared propagations # " << en2.d_numSharedPropagations << std::endl;
+
+    // call solve to ensure that the encodings are correct
+    res1 = res1 ? bb1.solve() : res1;
+    std::cout << "   " << bb1.getName() <<" full solve result " << res1 << std::endl;
+    res2 = res2 ? bb2.solve() : res2;
+    std::cout << "   " << bb2.getName() <<" full solve result " << res2 << std::endl;
+    
+    // Node a_model = bb1.getModelFromSatSolver(a, false);
+    // Node b_model = bb1.getModelFromSatSolver(b, false);
+    // Node c_model = bb1.getModelFromSatSolver(c, false);
+
+    // std::cout << a << " => " << a_model << std::endl;
+    // std::cout << b << " => " << b_model << std::endl;
+    // std::cout << c << " => " << c_model << std::endl;
+    
     Assert( res1 == res2);
-    // Assert( en1.d_numBothPropagate == en2.d_numBothPropagate); 
-    std::cout << "Both propagate # " << en1.d_numBothPropagate << std::endl;
-    std::cout << "DefaultPlusBB unique propagate # " << en1.d_numUniquePropagate << std::endl;
-    std::cout << "OptimalPlusBB unique propagate # " << en2.d_numUniquePropagate << std::endl;
+    en1.clear();
+    en2.clear();
     ctx->pop();
     // print statistics
   }

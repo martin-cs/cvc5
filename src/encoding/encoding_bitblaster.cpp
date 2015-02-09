@@ -51,13 +51,16 @@ EncodingBitblaster::EncodingBitblaster(context::Context* c, const std::string na
 }
 
 bool EncodingBitblaster::EncodingNotify::notify(CVC4::prop::SatLiteral lit) {
-  TNode atom = d_cnf_this->getNode(lit);
-  std::cout << "EncodingNotify::notify " << atom << std::endl;
-  d_propagated.insert(atom);
-  if (d_cnf_other->hasLiteral(atom)) {
-    ++d_numBothPropagate;
-  } else {
-    ++d_numUniquePropagate;
+  TNode theory_lit = d_cnf_this->getNode(lit);
+  Debug("encoding-detailed") << "EncodingNotify::notify<" << d_lazyBB->getName()
+			     <<">" << theory_lit << std::endl;
+  ++d_numTotalPropagations;
+  // mark literals that the other solver also had internally
+  if (d_cnf_other->hasLiteral(theory_lit)) {
+    Debug("encoding") << "EncodingNotify::notify<" << d_lazyBB->getName()
+		      <<"> shared " << theory_lit << std::endl;
+    d_propagated.insert(theory_lit);
+    ++d_numSharedPropagations;
   }
   return true;
 }
@@ -79,11 +82,13 @@ void EncodingBitblaster::assertFact(TNode node) {
     normalized;
   atom_bb = node.getKind() == kind::NOT? utils::mkNode(kind::NOT, atom_bb) : atom_bb;
   d_cnfStream->convertAndAssert(atom_bb, false, false, RULE_INVALID, TNode::null());
-
 }
 
 void EncodingBitblaster::assumeLiteral(TNode lit) {
   TNode atom;
+  Debug("encoding-detailed") << "EncodingBitblaster::assumeLiteral<" << getName() <<"> "
+		    << lit << std::endl;
+
   if (lit.getKind() == kind::NOT) {
     atom = lit[0];
   } else {
@@ -203,7 +208,7 @@ bool EncodingBitblaster::solve() {
   Debug("bitvector") << "EncodingBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
   d_satSolverFullModel.set(true);
   CVC4::prop::SatValue res = d_satSolver->solve();
-  std::cout << "Solve returns "<< ((res == CVC4::prop::SAT_VALUE_UNKNOWN) ? "unknown" : (res == CVC4::prop::SAT_VALUE_FALSE? "false" : "true"))  << std::endl;
+  Assert (res != CVC4::prop::SAT_VALUE_UNKNOWN); 
   return CVC4::prop::SAT_VALUE_TRUE == res;
 }
 

@@ -180,13 +180,14 @@ SatLiteral CnfStream::newLiteral(TNode node, bool isTheoryAtom, bool preRegister
   }
 
   // If it's a theory literal, need to store it for back queries
-  if ( isTheoryAtom || d_fullLitToNodeMap ||
-       ( CVC4_USE_REPLAY && options::replayLog() != NULL ) ||
-       (Dump.isOn("clauses")) ) {
+  // if ( isTheoryAtom || d_fullLitToNodeMap ||
+  //      ( CVC4_USE_REPLAY && options::replayLog() != NULL ) ||
+  //      (Dump.isOn("clauses")) ) {
 
-    d_literalToNodeMap.insert_safe(lit, node);
-    d_literalToNodeMap.insert_safe(~lit, node.notNode());
-  }
+  // FIXME: encoding hack!!!!
+  d_literalToNodeMap.insert_safe(lit, node);
+  d_literalToNodeMap.insert_safe(~lit, node.notNode());
+    //  }
 
   // If a theory literal, we pre-register it
   if (preRegister) {
