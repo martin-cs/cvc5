@@ -14,6 +14,9 @@
  **
  **/
 
+#include <math.h>
+
+#include "util/cvc4_assert.h"
 #include "util/floatingpoint.h"
 
 #include "base/cvc4_assert.h"
@@ -37,6 +40,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   PrettyCheckArgument(validSignificandSize(s),s,"Invalid significand size : %d",s);
 }
 
+#if 0
   /* symfpu requires that all types that it manages are correctly
    * constructed.  This means that structures that contain them have
    * to initialise them via constructor which is rather limited.  So
@@ -44,7 +48,20 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
    */
 
   static FloatingPointLiteral constructorHelperLiteral (unsigned e, unsigned s, double d) {
+
+    switch (fpclassify(d)) {
+    case FP_NAN : return symfpuLiteral::uf::makeNaN(symfpuLiteral::fpt(e,s));
+      break;
+    case FP_INFINITE : return symfpuLiteral::uf::makeInf(symfpuLiteral::fpt(e,s), signbit(d));
+      break;
+    case FP_ZERO : return symfpuLiteral::uf::makeZero(symfpuLiteral::fpt(e,s), signbit(d));
+      break;
+    case FP_SUBNORMAL :
+    case FP_NORMAL :
+      // Only used for special values so ...
+    default :
     Unimplemented("Not done yet!");
+    }
   }
 
   FloatingPoint::FloatingPoint (unsigned e, unsigned s, double d) : fpl(constructorHelperLiteral(e,s,d)), t(e,s) {}
@@ -54,7 +71,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   }
 
   FloatingPoint::FloatingPoint (unsigned e, unsigned s, const std::string &bitString) : fpl(constructorHelperString(e,s,bitString)), t(e,s) {}
-
+#endif
 
   /* Operations implemented using symfpu */
   FloatingPoint FloatingPoint::absolute (void) const {

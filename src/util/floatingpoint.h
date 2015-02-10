@@ -136,10 +136,17 @@ namespace CVC4 {
   public :
     FloatingPointSize t;
 
+    #if 0
     FloatingPoint (unsigned e, unsigned s, double d);
     FloatingPoint (unsigned e, unsigned s, const std::string &bitString);
+    #endif
     FloatingPoint (const FloatingPointSize &oldt, const FloatingPointLiteral &oldfpl) : fpl(oldfpl), t(oldt) {}
     FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
+
+    static FloatingPoint makeNaN (const FloatingPointSize &t);
+    static FloatingPoint makeInf (const FloatingPointSize &t, bool sign);
+    static FloatingPoint makeZero (const FloatingPointSize &t, bool sign);
+
 
     bool operator ==(const FloatingPoint& fp) const {
       return ( (t == fp.t) && symfpu::smtlibEqual<symfpuLiteral::traits>(t,fpl,fp.fpl) );
