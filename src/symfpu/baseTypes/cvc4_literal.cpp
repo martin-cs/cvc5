@@ -43,5 +43,13 @@ namespace symfpu {
     roundingMode traits::RTN (void) { return ::CVC4::roundTowardNegative; };
     roundingMode traits::RTZ (void) { return ::CVC4::roundTowardZero; };
 
+
+    // This is a literal back-end so props are actually bools
+    // so these can be handled in the same way as the internal assertions above
+
+    void traits::precondition(const prop &p) { Assert(p); return; }
+    void traits::postcondition(const prop &p) { Assert(p); return; }
+    void traits::invariant(const prop &p) { Assert(p); return; }
+
   };
 };

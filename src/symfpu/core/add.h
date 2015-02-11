@@ -173,6 +173,8 @@ template <class t>
    prop noOverflow(topBit.isAllZeros()); // Only correct if effectiveAdd is set
    prop noCancel(centerBit.isAllOnes());
 
+   // TODO : Add invariants
+
    ubv alignedSum(ITE(effectiveAdd,
 		      ITE(noOverflow,
 			  sum,
