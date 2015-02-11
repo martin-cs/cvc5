@@ -120,6 +120,49 @@ public:
 };/* class BVSatSolverInterface */
 
 
+ class EncodingSatSolverInterface: public SatSolver {
+public:
+
+  /** Interface for notifications */
+  class Notify {
+  public:
+
+    virtual ~Notify() {};
+
+    /**
+     * If the notify returns false, the solver will break out of whatever it's currently doing
+     * with an "unknown" answer.
+     */
+    virtual bool notify(SatLiteral lit) = 0;
+
+    /**
+     * Notify about a learnt clause.
+     */
+    virtual void notify(SatClause& clause) = 0;
+    virtual void spendResource() = 0;
+    virtual void safePoint() = 0;
+    
+  };/* class EncodingSatSolverInterface::Notify */
+
+  virtual void setNotify(Notify* notify) = 0;
+
+  virtual void markUnremovable(SatLiteral lit) = 0;
+
+  virtual void getUnsatCore(SatClause& unsatCore) = 0;
+
+  virtual void addMarkerLiteral(SatLiteral lit) = 0;
+
+  virtual SatValue propagate() = 0;
+
+  virtual void explain(SatLiteral lit, std::vector<SatLiteral>& explanation) = 0;
+
+  virtual SatValue assertAssumption(SatLiteral lit, bool propagate = false) = 0;
+
+  virtual void popAssumption() = 0;
+
+};/* class EncodingSatSolverInterface */
+
+ 
 class DPLLSatSolverInterface: public SatSolver {
 public:
   virtual void initialize(context::Context* context, prop::TheoryProxy* theoryProxy) = 0;

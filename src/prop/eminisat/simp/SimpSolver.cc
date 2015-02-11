@@ -23,7 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "utils/System.h"
 #include "theory/bv/options.h"
 #include "smt/options.h"
-using namespace BVMinisat;
+using namespace EMinisat;
 
 //=================================================================================================
 // Options:
@@ -59,7 +59,7 @@ SimpSolver::SimpSolver(CVC4::context::Context* c) :
   , asymm_lits         (0)
   , eliminated_vars    (0)
   , elimorder          (1)
-  , use_simplification (true && CVC4::options::bvMinisatUseSimp())
+  , use_simplification (true)
   , occurs             (ClauseDeleted(ca))
   , elim_heap          (ElimLt(n_occ))
   , bwdsub_assigns     (0)

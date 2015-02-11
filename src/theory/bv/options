@@ -65,5 +65,11 @@ expert-option bitvectorQuickXplain --bv-quick-xplain bool :default false
  
 expert-option bvIntroducePow2 --bv-intro-pow2 bool :default false
  introduce bitvector powers of two as a preprocessing pass
+
+expert-option bvMinisatUseSimp --bv-minisat-use-simp bool :default true
+ enable simplification in bit-vector minisat
+
+expert-option bvOptimalAdder --bv-optimal-add bool :default false
+ bit-blast using the optimally propagating adder
  
 endmodule

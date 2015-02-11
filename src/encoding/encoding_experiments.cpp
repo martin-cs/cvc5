@@ -132,7 +132,7 @@ void CVC4::runEncodingExperiment(Options& opts) {
     // bool res2 = bb2.solve();
     Debug("encoding") << "  Propagating " << bb1.getName() << std::endl;
     bool res1 = bb1.propagate();
-    Debug("encoding") << "       res = "<< res1 << std::endl;
+    Debug("encoding") << "      res = "<< res1 << std::endl;
 
     Debug("encoding") << "  Propagating " << bb2.getName() << std::endl;
     bool res2 = bb2.propagate();
@@ -166,9 +166,9 @@ void CVC4::runEncodingExperiment(Options& opts) {
 
     // call solve to ensure that the encodings are correct
     res1 = res1 ? bb1.solve() : res1;
-    std::cout << "   " << bb1.getName() <<" full solve result " << res1 << std::endl;
+    std::cout << "  " << bb1.getName() <<" full solve result " << res1 << std::endl;
     res2 = res2 ? bb2.solve() : res2;
-    std::cout << "   " << bb2.getName() <<" full solve result " << res2 << std::endl;
+    std::cout << "  " << bb2.getName() <<" full solve result " << res2 << std::endl;
     
     // Node a_model = bb1.getModelFromSatSolver(a, false);
     // Node b_model = bb1.getModelFromSatSolver(b, false);

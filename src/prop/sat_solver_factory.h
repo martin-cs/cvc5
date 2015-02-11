@@ -27,7 +27,7 @@ namespace prop {
 
 class SatSolverFactory {
 public:
-
+  static EncodingSatSolverInterface* createEMinisat(context::Context* mainSatContext, const std::string& name = "");
   static BVSatSolverInterface* createMinisat(context::Context* mainSatContext, const std::string& name = "");
   static DPLLSatSolverInterface* createDPLLMinisat();
 

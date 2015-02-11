@@ -17,6 +17,7 @@
 #include "prop/sat_solver_factory.h"
 #include "prop/minisat/minisat.h"
 #include "prop/bvminisat/bvminisat.h"
+#include "prop/eminisat/eminisat.h"
 
 namespace CVC4 {
 namespace prop {
@@ -25,6 +26,11 @@ BVSatSolverInterface* SatSolverFactory::createMinisat(context::Context* mainSatC
   return new BVMinisatSatSolver(mainSatContext, name);
 }
 
+EncodingSatSolverInterface* SatSolverFactory::createEMinisat(context::Context* mainSatContext, const std::string& name) {
+  return new EMinisatSatSolver(mainSatContext, name);
+}
+ 
+  
 DPLLSatSolverInterface* SatSolverFactory::createDPLLMinisat() {
   return new MinisatSatSolver();
 }

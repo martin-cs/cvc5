@@ -19,7 +19,7 @@ AM_CPPFLAGS = \
 	-I@builddir@ -I@srcdir@/include -I@srcdir@ -I@top_srcdir@/proofs/lfsc_checker
 AM_CXXFLAGS = -Wall -Wno-unknown-pragmas -Wno-parentheses $(FLAG_VISIBILITY_HIDDEN)
 
-SUBDIRS = lib options expr util prop/minisat prop/bvminisat . parser compat bindings main
+SUBDIRS = lib options expr util prop/minisat prop/bvminisat prop/eminisat . parser compat bindings main
 THEORIES = builtin booleans uf arith bv fp arrays datatypes sets strings quantifiers idl
 
 lib_LTLIBRARIES = libcvc4.la
@@ -428,7 +428,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/util/libutil.la \
 	@builddir@/expr/libexpr.la \
 	@builddir@/prop/minisat/libminisat.la \
-	@builddir@/prop/bvminisat/libbvminisat.la
+	@builddir@/prop/bvminisat/libbvminisat.la \
+	@builddir@/prop/eminisat/libeminisat.la
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
 	@top_builddir@/proofs/lfsc_checker/liblfsc_checker.la \

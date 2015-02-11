@@ -30,18 +30,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "util/exception.h"
 #include "theory/bv/options.h"
 #include "theory/interrupted.h"
-using namespace BVMinisat;
+using namespace EMinisat;
 
-namespace BVMinisat {
+namespace EMinisat {
 
 #define OUTPUT_TAG "bvminisat: [a=" << assumptions.size() << ",l=" << decisionLevel() << "] "
 
-std::ostream& operator << (std::ostream& out, const BVMinisat::Lit& l) {
+std::ostream& operator << (std::ostream& out, const EMinisat::Lit& l) {
   out << (sign(l) ? "-" : "") << var(l) + 1;
   return out;
 }
 
-std::ostream& operator << (std::ostream& out, const BVMinisat::Clause& c) {
+std::ostream& operator << (std::ostream& out, const EMinisat::Clause& c) {
   for (int i = 0; i < c.size(); i++) {
     if (i > 0) {
       out << " ";
@@ -567,8 +567,15 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     assigns[var(p)] = lbool(!sign(p));
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
-    if (decisionLevel() <= assumptions.size() && marker[var(p)] == 1) {
+    // HACK FOR ENCODING
+    // if (decisionLevel() <= assumptions.size() && marker[var(p)] == 1) {
+    if (decisionLevel() <= assumptions.size()) {
       if (notify) {
+	// variables marked with 2 are "decided" assumptions
+	if (marker[var(p)] == 2) {
+	  // Debug("encoding-detailed")<< "Skip assumption " << p << std::endl;
+	  return;
+	}
         Debug("bvminisat::explain") << OUTPUT_TAG << "propagating " << p << std::endl;
         notify->notify(p);
       }
@@ -584,6 +591,7 @@ void Solver::popAssumption() {
 lbool Solver::propagateAssumptions() {
   only_bcp = true;
   ccmin_mode = 0;
+  std::cout << "number of learned clauses " << learnts.size() << std::endl;
   return search(-1);
 }
 
@@ -995,8 +1003,8 @@ static double luby(double y, int x){
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve_()
 {
-    Debug("bvminisat") <<"BVMinisat::Solving learned clauses " << learnts.size() <<"\n";
-    Debug("bvminisat") <<"BVMinisat::Solving assumptions " << assumptions.size() <<"\n";
+    Debug("bvminisat") <<"EMinisat::Solving learned clauses " << learnts.size() <<"\n";
+    Debug("bvminisat") <<"EMinisat::Solving assumptions " << assumptions.size() <<"\n";
 
     model.clear();
     conflict.clear();
@@ -1202,7 +1210,7 @@ void Solver::garbageCollect()
     // Initialize the next region to a size corresponding to the estimated utilization degree. This
     // is not precise but should avoid some unnecessary reallocations for the new region:
     ClauseAllocator to(ca.size() - ca.wasted()); 
-    Debug("bvminisat") << " BVMinisat::Garbage collection \n"; 
+    Debug("bvminisat") << " EMinisat::Garbage collection \n"; 
     relocAll(to);
     if (verbosity >= 2)
         printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
