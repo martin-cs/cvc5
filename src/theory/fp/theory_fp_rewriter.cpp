@@ -143,7 +143,7 @@ namespace rewrite {
 
   RewriteResponse convertFromRealLiteral (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
-
+#if 0
     // \todo Honour the rounding mode and work for something other than doubles!
 
     if (node[1].getKind() == kind::CONST_RATIONAL) {
@@ -158,23 +158,22 @@ namespace rewrite {
     } else {
       return RewriteResponse(REWRITE_DONE, node);
     }
+#endif
+    return RewriteResponse(REWRITE_DONE, node);
   }
 
   RewriteResponse convertFromIEEEBitVectorLiteral (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
 
-    // \todo Handle arbitrary length bit vectors without using strings!
-
     if (node[0].getKind() == kind::CONST_BITVECTOR) {
       TNode op = node.getOperator();
       const FloatingPointToFPIEEEBitVector &param = op.getConst<FloatingPointToFPIEEEBitVector>();
       const BitVector &bv = node[0].getConst<BitVector>();
-      std::string bitString(bv.toString());
 
       Node lit =
 	NodeManager::currentNM()->mkConst(FloatingPoint(param.t.exponent(),
 							param.t.significand(),
-							bitString));
+							bv));
 
       return RewriteResponse(REWRITE_DONE, lit);
     } else {
@@ -185,8 +184,6 @@ namespace rewrite {
   RewriteResponse convertFromLiteral (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_FP);
 
-    // \todo Handle arbitrary length bit vectors without using strings!
-
     if ((node[0].getKind() == kind::CONST_BITVECTOR) &&
 	(node[1].getKind() == kind::CONST_BITVECTOR) &&
 	(node[2].getKind() == kind::CONST_BITVECTOR)) {
@@ -195,14 +192,11 @@ namespace rewrite {
       bv = bv.concat(node[1].getConst<BitVector>());
       bv = bv.concat(node[2].getConst<BitVector>());
 
-      std::string bitString(bv.toString());
-      std::reverse(bitString.begin(), bitString.end());
-
       // +1 to support the hidden bit
       Node lit =
 	NodeManager::currentNM()->mkConst(FloatingPoint(node[1].getConst<BitVector>().getSize(),
 							node[2].getConst<BitVector>().getSize() + 1,
-							bitString));
+							bv));
 
       return RewriteResponse(REWRITE_DONE, lit);
     } else {
