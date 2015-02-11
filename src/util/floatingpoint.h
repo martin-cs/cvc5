@@ -140,6 +140,7 @@ namespace CVC4 {
     FloatingPoint (unsigned e, unsigned s, double d);
     FloatingPoint (unsigned e, unsigned s, const std::string &bitString);
     #endif
+    FloatingPoint (unsigned e, unsigned s, const BitVector &bv);
     FloatingPoint (const FloatingPointSize &oldt, const FloatingPointLiteral &oldfpl) : fpl(oldfpl), t(oldt) {}
     FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
 

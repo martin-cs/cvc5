@@ -73,6 +73,24 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   FloatingPoint::FloatingPoint (unsigned e, unsigned s, const std::string &bitString) : fpl(constructorHelperString(e,s,bitString)), t(e,s) {}
 #endif
 
+
+  FloatingPoint::FloatingPoint (unsigned e, unsigned s, const BitVector &bv) :
+    fpl(symfpu::unpack<symfpuLiteral::traits>(symfpuLiteral::fpt(e,s), bv)),
+    t(e,s) {}
+
+  FloatingPoint FloatingPoint::makeNaN (const FloatingPointSize &t) {
+    return FloatingPoint(t, symfpu::unpackedFloat<symfpuLiteral::traits>::makeNaN(t));
+  }
+
+  FloatingPoint FloatingPoint::makeInf (const FloatingPointSize &t, bool sign) {
+    return FloatingPoint(t, symfpu::unpackedFloat<symfpuLiteral::traits>::makeInf(t, sign));
+  }
+
+  FloatingPoint FloatingPoint::makeZero (const FloatingPointSize &t, bool sign) {
+    return FloatingPoint(t, symfpu::unpackedFloat<symfpuLiteral::traits>::makeZero(t, sign));
+  }
+
+
   /* Operations implemented using symfpu */
   FloatingPoint FloatingPoint::absolute (void) const {
     return FloatingPoint(t, symfpu::absolute<symfpuLiteral::traits>(t, fpl));
