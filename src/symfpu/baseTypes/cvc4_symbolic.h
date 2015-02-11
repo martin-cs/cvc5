@@ -510,9 +510,9 @@ namespace symfpu {
       static roundingMode RTN (void);
       static roundingMode RTZ (void);
 
-      static void precondition(const prop &p) { Unimplemented("symfpu precondition"); return; }
-      static void postcondition(const prop &p) { Unimplemented("symfpu postcondition"); return; }
-      static void invariant(const prop &p) { Unimplemented("symfpu invariant"); return; }
+      static void precondition(const prop &p);
+      static void postcondition(const prop &p);
+      static void invariant(const prop &p);
     };
 
 

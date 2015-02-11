@@ -42,5 +42,20 @@ namespace symfpu {
     roundingMode traits::RTN (void) { return roundingMode(0x08); };
     roundingMode traits::RTZ (void) { return roundingMode(0x10); };
 
+
+    // TODO : These need to check a flag for the use of redundant constraints
+    // and then make their way into additionalAssertions.
+
+    void precondition(const prop &p) { 
+      return;
+    }
+    void postcondition(const prop &p) {
+      return;
+    }
+    void invariant(const prop &p) {
+      return;
+    }
+
+
   };
 };
