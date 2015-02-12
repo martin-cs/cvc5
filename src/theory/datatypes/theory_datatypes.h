@@ -22,8 +22,8 @@
 #include "theory/theory.h"
 #include "util/datatype.h"
 #include "util/hash.h"
-#include "util/trans_closure.h"
 #include "theory/uf/equality_engine.h"
+#include "theory/datatypes/datatypes_sygus.h"
 
 #include <ext/hash_set>
 #include <iostream>
@@ -34,10 +34,7 @@ namespace CVC4 {
 namespace theory {
 namespace datatypes {
 
-class EqualityQueryTheory;
-
 class TheoryDatatypes : public Theory {
-  friend class EqualityQueryTheory;
 private:
   typedef context::CDChunkList<Node> NodeList;
   typedef context::CDHashMap<Node, NodeList*, NodeHashFunction> NodeListMap;
@@ -133,6 +130,8 @@ private:
   bool hasTester( Node n );
   /** get the possible constructors for n */
   void getPossibleCons( EqcInfo* eqc, Node n, std::vector< bool >& cons );
+  /** mkExpDefSkolem */
+  void mkExpDefSkolem( Node sel, TypeNode dt, TypeNode rt );
 private:
   /** The notify class */
   NotifyClass d_notify;
@@ -178,6 +177,9 @@ private:
   unsigned d_dtfCounter;
   /** expand definition skolem functions */
   std::map< Node, Node > d_exp_def_skolem;
+  /** sygus utilities */
+  SygusSplit * d_sygus_split;
+  SygusSymBreak * d_sygus_sym_break;
 private:
   /** assert fact */
   void assertFact( Node fact, Node exp );
@@ -226,6 +228,7 @@ public:
 
   void check(Effort e);
   void preRegisterTerm(TNode n);
+  void finishInit();
   Node expandDefinition(LogicRequest &logicRequest, Node n);
   Node ppRewrite(TNode n);
   void presolve();

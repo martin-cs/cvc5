@@ -62,6 +62,9 @@ private:
   std::pair<Expr, std::string> d_lastNamedTerm;
   // this is a user-context stack
   std::stack< std::map<Expr, std::string> > d_unsatCoreNames;
+  std::vector<Expr> d_sygusVars, d_sygusConstraints, d_sygusFunSymbols;
+  std::vector< std::pair<std::string, Expr> > d_sygusFuns;
+  size_t d_nextSygusFun;
 
 protected:
   Smt2(ExprManager* exprManager, Input* input, bool strictMode = false, bool parseOnly = false);
@@ -94,7 +97,7 @@ public:
    *
    * @param name the name of the logic (e.g., QF_UF, AUFLIA)
    */
-  void setLogic(const std::string& name);
+  void setLogic(std::string name);
 
   /**
    * Get the logic.
@@ -106,6 +109,9 @@ public:
   }
   bool v2_5() const {
     return getInput()->getLanguage() == language::input::LANG_SMTLIB_V2_5;
+  }
+  bool sygus() const {
+    return getInput()->getLanguage() == language::input::LANG_SYGUS;
   }
 
   void setLanguage(InputLanguage lang) {
@@ -164,6 +170,47 @@ public:
   Expr mkAbstractValue(const std::string& name) {
     assert(isAbstractValue(name));
     return getExprManager()->mkConst(AbstractValue(Integer(name.substr(1))));
+  }
+
+  Expr mkSygusVar(const std::string& name, const Type& type) {
+    Expr e = mkBoundVar(name, type);
+    d_sygusVars.push_back(e);
+    return e;
+  }
+
+  void addSygusFun(const std::string& fun, Expr eval) {
+    d_sygusFuns.push_back(std::make_pair(fun, eval));
+  }
+
+  void defineSygusFuns();
+
+  void mkSygusDatatype( CVC4::Datatype& dt, std::vector<CVC4::Expr>& ops,
+                        std::vector<std::string>& cnames, std::vector< std::vector< CVC4::Type > >& cargs );
+
+  // i is index in datatypes/ops
+  // j is index is datatype
+  Expr getSygusAssertion( std::vector<DatatypeType>& datatypeTypes, std::vector< std::vector<Expr> >& ops,
+                          std::map<DatatypeType, Expr>& evals, std::vector<Expr>& terms,
+                          Expr eval, const Datatype& dt, size_t i, size_t j );
+
+  void addSygusConstraint(Expr constraint) {
+    d_sygusConstraints.push_back(constraint);
+  }
+
+  Expr getSygusConstraints() {
+    switch(d_sygusConstraints.size()) {
+    case 0: return getExprManager()->mkConst(bool(true));
+    case 1: return d_sygusConstraints[0];
+    default: return getExprManager()->mkExpr(kind::AND, d_sygusConstraints);
+    }
+  }
+
+  const std::vector<Expr>& getSygusVars() {
+    return d_sygusVars;
+  }
+
+  const std::vector<Expr>& getSygusFunSymbols() {
+    return d_sygusFunSymbols;
   }
 
   /**

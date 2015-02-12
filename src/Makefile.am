@@ -238,6 +238,8 @@ libcvc4_la_SOURCES = \
 	theory/datatypes/theory_datatypes.h \
 	theory/datatypes/datatypes_rewriter.h \
 	theory/datatypes/theory_datatypes.cpp \
+	theory/datatypes/datatypes_sygus.h \
+	theory/datatypes/datatypes_sygus.cpp \
 	theory/sets/expr_patterns.h \
 	theory/sets/normal_form.h \
 	theory/sets/options_handlers.h \
@@ -328,6 +330,12 @@ libcvc4_la_SOURCES = \
 	theory/quantifiers/conjecture_generator.cpp \
 	theory/quantifiers/ce_guided_instantiation.h \
 	theory/quantifiers/ce_guided_instantiation.cpp \
+	theory/quantifiers/ce_guided_single_inv.h \
+	theory/quantifiers/ce_guided_single_inv.cpp \
+	theory/quantifiers/ce_guided_single_inv_sol.h \
+	theory/quantifiers/ce_guided_single_inv_sol.cpp \
+	theory/quantifiers/local_theory_ext.h \
+	theory/quantifiers/local_theory_ext.cpp \
 	theory/quantifiers/fun_def_process.h \
 	theory/quantifiers/fun_def_process.cpp \
 	theory/quantifiers/options_handlers.h \

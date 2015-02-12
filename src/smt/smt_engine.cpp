@@ -303,6 +303,7 @@ struct SmtEngineStatistics {
  */
 class SmtEnginePrivate : public NodeManagerListener {
   SmtEngine& d_smt;
+
   /**
    * Manager for limiting time and abstract resource usage.
    */
@@ -1279,7 +1280,7 @@ void SmtEngine::setDefaults() {
     options::decisionMode.set(decMode);
     options::decisionStopOnly.set(stoponly);
   }
-  //local theory extensions 
+  //local theory extensions
   if( options::localTheoryExt() ){
     //no E-matching?
     if( !options::instMaxLevel.wasSetByUser() ){
@@ -1305,6 +1306,9 @@ void SmtEngine::setDefaults() {
       //if bounded integers are set, use no MBQI by default
       options::mbqiMode.set( quantifiers::MBQI_NONE );
     }
+    if( ! options::prenexQuant.wasSetByUser() ){
+      options::prenexQuant.set( quantifiers::PRENEX_NONE );
+    }
   }
   if( options::ufssSymBreak() ){
     options::sortInference.set( true );
@@ -1314,7 +1318,7 @@ void SmtEngine::setDefaults() {
       options::finiteModelFind.set( true );
     }
   }
-  
+
   //now, have determined whether finite model find is on/off
   //apply finite model finding options
   if( options::finiteModelFind() ){
@@ -1341,6 +1345,27 @@ void SmtEngine::setDefaults() {
     }
   }
   
+  //apply counterexample guided instantiation options
+  if( options::cegqiSingleInv() ){
+    options::ceGuidedInst.set( true );
+  }
+  if( options::ceGuidedInst() ){
+    if( !options::quantConflictFind.wasSetByUser() ){
+      options::quantConflictFind.set( false );
+    }
+    //do not allow partial functions
+    if( !options::bitvectorDivByZeroConst.wasSetByUser() ){
+      options::bitvectorDivByZeroConst.set( true );
+    }
+    //do not miniscope
+    if( !options::miniscopeQuant.wasSetByUser() ){
+      options::miniscopeQuant.set( false );
+    }
+    if( !options::miniscopeQuantFreeVar.wasSetByUser() ){
+      options::miniscopeQuantFreeVar.set( false );
+    }
+  }
+
   //implied options...
   if( options::recurseCbqi() ){
     options::cbqi.set( true );
@@ -4137,6 +4162,13 @@ void SmtEngine::printInstantiations( std::ostream& out ) {
   }
   if( options::instFormatMode()==INST_FORMAT_MODE_SZS ){
     out << "% SZS output end Proof for " << d_filename.c_str() << std::endl;
+  }
+}
+
+void SmtEngine::printSynthSolution( std::ostream& out ) {
+  SmtScope smts(this);
+  if( d_theoryEngine ){
+    d_theoryEngine->printSynthSolution( out );
   }
 }
 

@@ -34,7 +34,7 @@ TheoryModel::TheoryModel(context::Context* c, std::string name, bool enableFuncM
   d_false = NodeManager::currentNM()->mkConst( false );
 
   d_eeContext = new context::Context();
-  d_equalityEngine = new eq::EqualityEngine(d_eeContext, name);
+  d_equalityEngine = new eq::EqualityEngine(d_eeContext, name, false);
 
   // The kinds we are treating as function application in congruence
   d_equalityEngine->addFunctionKind(kind::APPLY_UF);
@@ -198,9 +198,13 @@ Node TheoryModel::getModelValue(TNode n, bool hasBoundVars) const
     }
 
     if (!d_equalityEngine->hasTerm(n)) {
-      // Unknown term - return first enumerated value for this type
-      TypeEnumerator te(n.getType());
-      ret = *te;
+      if(n.getType().isRegExp()) { 
+        ret = Rewriter::rewrite(ret);
+      } else {
+        // Unknown term - return first enumerated value for this type
+        TypeEnumerator te(n.getType());
+        ret = *te;
+      }
       d_modelCache[n] = ret;
       return ret;
     }
@@ -848,11 +852,11 @@ Node TheoryEngineModelBuilder::normalize(TheoryModel* m, TNode r, std::map< Node
           itMap = constantReps.find(m->d_equalityEngine->getRepresentative(ri));
           if (itMap != constantReps.end()) {
             ri = (*itMap).second;
-	    recurse = false;
+            recurse = false;
           }
           else if (!evalOnly) {
-	    recurse = false;
-	  }
+            recurse = false;
+          }
         }
         if (recurse) {
           ri = normalize(m, ri, constantReps, evalOnly);
@@ -866,7 +870,7 @@ Node TheoryEngineModelBuilder::normalize(TheoryModel* m, TNode r, std::map< Node
     retNode = NodeManager::currentNM()->mkNode( r.getKind(), children );
     if (childrenConst) {
       retNode = Rewriter::rewrite(retNode);
-      Assert(retNode.getKind() == kind::APPLY_UF || retNode.isConst());
+      Assert(retNode.getKind()==kind::APPLY_UF || retNode.getKind()==kind::REGEXP_RANGE || retNode.isConst());
     }
   }
   d_normalizedCache[r] = retNode;

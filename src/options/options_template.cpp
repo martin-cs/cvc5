@@ -238,18 +238,18 @@ options::OptionsHolder::OptionsHolder() : ${all_modules_defaults}
 {
 }
 
-#line 241 "${template}"
+#line 242 "${template}"
 
 static const std::string mostCommonOptionsDescription = "\
 Most commonly-used CVC4 options:${common_documentation}";
 
-#line 246 "${template}"
+#line 247 "${template}"
 
 static const std::string optionsDescription = mostCommonOptionsDescription + "\n\
 \n\
 Additional CVC4 options:${remaining_documentation}";
 
-#line 252 "${template}"
+#line 253 "${template}"
 
 static const std::string optionsFootnote = "\n\
 [*] Each of these options has a --no-OPTIONNAME variant, which reverses the\n\
@@ -265,6 +265,7 @@ Languages currently supported as arguments to the -L / --lang option:\n\
     smt2.0 | smtlib2 | smtlib2.0 SMT-LIB format 2.0\n\
   smt2.5 | smtlib2.5             SMT-LIB format 2.5\n\
   tptp                           TPTP format (cnf and fof)\n\
+  sygus                          SyGuS format\n\
 \n\
 Languages currently supported as arguments to the --output-lang option:\n\
   auto                           match output language to input language\n\
@@ -274,8 +275,8 @@ Languages currently supported as arguments to the --output-lang option:\n\
   smt | smtlib | smt2 |\n\
     smt2.0 | smtlib2.0 | smtlib2   SMT-LIB format 2.0\n\
   smt2.5 | smtlib2.5             SMT-LIB format 2.5\n\
-  z3str                          SMT-LIB 2.0 with Z3-str string constraints\n\
   tptp                           TPTP format\n\
+  z3str                          SMT-LIB 2.0 with Z3-str string constraints\n\
   ast                            internal format (simple syntax trees)\n\
 ";
 
@@ -326,7 +327,7 @@ static struct option cmdlineOptions[] = {${all_modules_long_options}
   { NULL, no_argument, NULL, '\0' }
 };/* cmdlineOptions */
 
-#line 329 "${template}"
+#line 330 "${template}"
 
 static void preemptGetopt(int& argc, char**& argv, const char* opt) {
   const size_t maxoptlen = 128;
@@ -519,7 +520,7 @@ std::vector<std::string> Options::parseOptions(int argc, char* main_argv[]) thro
     switch(c) {
 ${all_modules_option_handlers}
 
-#line 522 "${template}"
+#line 523 "${template}"
 
     case ':':
       // This can be a long or short option, and the way to get at the
@@ -588,7 +589,7 @@ std::string Options::suggestCommandLineOptions(const std::string& optionName) th
 
 static const char* smtOptions[] = {
   ${all_modules_smt_options},
-#line 591 "${template}"
+#line 592 "${template}"
   NULL
 };/* smtOptions[] */
 
@@ -610,7 +611,7 @@ SExpr Options::getOptions() const throw() {
 
   ${all_modules_get_options}
 
-#line 613 "${template}"
+#line 614 "${template}"
 
   return SExpr(opts);
 }

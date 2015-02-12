@@ -131,6 +131,9 @@ void TheoryQuantifiers::check(Effort e) {
       break;
     case kind::INST_CLOSURE:
       getQuantifiersEngine()->addTermToDatabase( assertion[0], false, true );
+      if( !options::lteRestrictInstClosure() ){
+        getQuantifiersEngine()->getMasterEqualityEngine()->addTerm( assertion[0] );
+      }
       break;
     case kind::EQUAL:
       //do nothing
@@ -144,7 +147,7 @@ void TheoryQuantifiers::check(Effort e) {
         case kind::EQUAL:
           //do nothing
           break;
-        case kind::INST_CLOSURE: //cannot negate inst closure
+        case kind::INST_CLOSURE:
         default:
           Unhandled(assertion[0].getKind());
           break;

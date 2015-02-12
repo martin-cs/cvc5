@@ -33,7 +33,7 @@ typedef expr::Attribute< AxiomAttributeId, bool > AxiomAttribute;
 /** Attribute true for quantifiers that are conjecture */
 struct ConjectureAttributeId {};
 typedef expr::Attribute< ConjectureAttributeId, bool > ConjectureAttribute;
-  
+
 /** Attribute true for function definition quantifiers */
 struct FunDefAttributeId {};
 typedef expr::Attribute< FunDefAttributeId, bool > FunDefAttribute;
@@ -84,15 +84,15 @@ typedef expr::Attribute<QuantInstLevelAttributeId, uint64_t> QuantInstLevelAttri
 struct RrPriorityAttributeId {};
 typedef expr::Attribute<RrPriorityAttributeId, uint64_t> RrPriorityAttribute;
 
+/** Attribute true for quantifiers that do not need to be partially instantiated */
+struct LtePartialInstAttributeId {};
+typedef expr::Attribute< LtePartialInstAttributeId, bool > LtePartialInstAttribute;
+
 class QuantifiersEngine;
 
 namespace inst{
   class Trigger;
 }
-namespace rrinst{
-  class Trigger;
-}
-
 
 namespace quantifiers {
 
@@ -112,10 +112,11 @@ namespace fmcheck {
   class FullModelChecker;
 }
 
+class TermDbSygus;
+
 class TermDb {
   friend class ::CVC4::theory::QuantifiersEngine;
   friend class ::CVC4::theory::inst::Trigger;
-  friend class ::CVC4::theory::rrinst::Trigger;
   friend class ::CVC4::theory::quantifiers::fmcheck::FullModelChecker;
   typedef context::CDHashMap<Node, int, NodeHashFunction> NodeIntMap;
 private:
@@ -147,7 +148,7 @@ public:
   /** has map */
   std::map< Node, bool > d_has_map;
   /** map from reps to a term in eqc in d_has_map */
-  std::map< Node, Node > d_has_eqc;
+  std::map< Node, Node > d_term_elig_eqc;
   /** map from APPLY_UF functions to trie */
   std::map< Node, TermArgTrie > d_func_map_trie;
   std::map< Node, TermArgTrie > d_func_map_eqc_trie;
@@ -179,10 +180,13 @@ public:
   /** is entailed (incomplete check) */
   bool isEntailed( TNode n, std::map< TNode, TNode >& subs, bool subsRep, bool pol );
   /** has term */
-  bool hasTermCurrent( Node n );
+  bool hasTermCurrent( Node n, bool useMode = true );
+  /** is term eligble for instantiation? */
+  bool isTermEligibleForInstantiation( TNode n, TNode f, bool print = false );
   /** get has term eqc */
-  Node getHasTermEqc( Node r );
-  
+  Node getEligibleTermInEqc( TNode r );
+  /** is inst closure */
+  bool isInstClosure( Node r );
 //for model basis
 private:
   //map from types to model basis terms
@@ -248,8 +252,8 @@ public:
 public:
   //get bound variables in n
   static void getBoundVars( Node n, std::vector< Node >& bvs);
-  
-  
+
+
 //for skolem
 private:
   /** map from universal quantifiers to their skolemized body */
@@ -264,9 +268,9 @@ public:
   Node getSkolemizedBody( Node f);
   /** is induction variable */
   static bool isInductionTerm( Node n );
-  
+
 //for ground term enumeration
-private:  
+private:
   /** ground terms enumerated for types */
   std::map< TypeNode, std::vector< Node > > d_enum_terms;
   //type enumerators
@@ -274,8 +278,8 @@ private:
   std::vector< TypeEnumerator > d_typ_enum;
 public:
   //get nth term for type
-  Node getEnumerateTerm( TypeNode tn, unsigned index );  
-  
+  Node getEnumerateTerm( TypeNode tn, unsigned index );
+
 //miscellaneous
 public:
   /** map from universal quantifiers to the list of variables */
@@ -314,6 +318,19 @@ public:
   /** filter all nodes that have instances */
   void filterInstances( std::vector< Node >& nodes );
 
+//general utilities
+public:
+  /** simple check for contains term */
+  static bool containsTerm( Node n, Node t );
+  /** simple negate */
+  static Node simpleNegate( Node n );
+
+//for sygus
+private:
+  TermDbSygus * d_sygus_tdb;
+public:
+  TermDbSygus * getTermDatabaseSygus() { return d_sygus_tdb; }
+
 private:
   std::map< Node, bool > d_fun_defs;
 public: //general queries concerning quantified formulas wrt modules
@@ -349,8 +366,92 @@ public:
   int getQAttrQuantInstLevel( Node q );
   /** get rewrite rule priority */
   int getQAttrRewriteRulePriority( Node q );
-  
+
 };/* class TermDb */
+
+class TermDbSygus {
+private:
+  std::map< TypeNode, std::vector< Node > > d_fv;
+  std::map< Node, TypeNode > d_fv_stype;
+  std::map< Node, int > d_fv_num;
+public:
+  TNode getVar( TypeNode tn, int i );
+  TNode getVarInc( TypeNode tn, std::map< TypeNode, int >& var_count );
+  bool isVar( Node n ) { return d_fv_stype.find( n )!=d_fv_stype.end(); }
+  int getVarNum( Node n ) { return d_fv_num[n]; }
+private:
+  std::map< TypeNode, std::map< int, Node > > d_generic_base;
+  std::map< TypeNode, std::vector< Node > > d_generic_templ;
+  Node getGenericBase( TypeNode tn, const Datatype& dt, int c );
+  bool getMatch( Node p, Node n, std::map< int, Node >& s );
+  bool getMatch2( Node p, Node n, std::map< int, Node >& s, std::vector< int >& new_s );
+public:
+  bool getMatch( Node n, TypeNode st, int& index_found, std::vector< Node >& args, int index_exc = -1, int index_start = 0 );
+private:
+  //information for sygus types
+  std::map< TypeNode, TypeNode > d_register;  //stores sygus type
+  std::map< TypeNode, std::map< int, Kind > > d_arg_kind;
+  std::map< TypeNode, std::map< Kind, int > > d_kinds;
+  std::map< TypeNode, std::map< int, Node > > d_arg_const;
+  std::map< TypeNode, std::map< Node, int > > d_consts;
+  std::map< TypeNode, std::map< Node, int > > d_ops;
+  std::map< TypeNode, std::map< int, Node > > d_arg_ops;
+  //information for builtin types
+  std::map< TypeNode, std::map< int, Node > > d_type_value;
+  std::map< TypeNode, Node > d_type_max_value;
+  std::map< TypeNode, std::map< Node, std::map< int, Node > > > d_type_value_offset;
+  std::map< TypeNode, std::map< Node, std::map< int, int > > > d_type_value_offset_status;
+  //normalized map
+  std::map< TypeNode, std::map< Node, Node > > d_normalized;
+  std::map< TypeNode, std::map< Node, Node > > d_sygus_to_builtin;
+  std::map< TypeNode, std::map< Node, Node > > d_builtin_const_to_sygus;
+public:
+  TermDbSygus(){}
+  bool isRegistered( TypeNode tn );
+  int getKindArg( TypeNode tn, Kind k );
+  int getConstArg( TypeNode tn, Node n );
+  int getOpArg( TypeNode tn, Node n );
+  bool hasKind( TypeNode tn, Kind k );
+  bool hasConst( TypeNode tn, Node n );
+  bool hasOp( TypeNode tn, Node n );
+  Node getArgConst( TypeNode tn, int i );
+  Node getArgOp( TypeNode tn, int i );
+  Kind getArgKind( TypeNode tn, int i );
+  bool isKindArg( TypeNode tn, int i );
+  bool isConstArg( TypeNode tn, int i );
+  void registerSygusType( TypeNode tn );
+  /** get arg type */
+  TypeNode getArgType( const DatatypeConstructor& c, int i );
+  /** is assoc */
+  bool isAssoc( Kind k );
+  /** is comm */
+  bool isComm( Kind k );
+  /** isAntisymmetric */
+  bool isAntisymmetric( Kind k, Kind& dk );
+  /** is idempotent arg */
+  bool isIdempotentArg( Node n, Kind ik, int arg );
+  /** is singular arg */
+  bool isSingularArg( Node n, Kind ik, int arg );
+  /** get offset arg */
+  bool hasOffsetArg( Kind ik, int arg, int& offset, Kind& ok );
+  /** get value */
+  Node getTypeValue( TypeNode tn, int val );
+  /** get value */
+  Node getTypeValueOffset( TypeNode tn, Node val, int offset, int& status );
+  /** get value */
+  Node getTypeMaxValue( TypeNode tn );
+  TypeNode getSygusType( Node v );
+  Node mkGeneric( const Datatype& dt, int c, std::map< TypeNode, int >& var_count, std::map< int, Node >& pre );
+  Node sygusToBuiltin( Node n, TypeNode tn );
+  Node builtinToSygusConst( Node c, TypeNode tn );
+  Node getSygusNormalized( Node n, std::map< TypeNode, int >& var_count, std::map< Node, Node >& subs );
+  Node getNormalized( TypeNode t, Node prog, bool do_pre_norm = false, bool do_post_norm = true );
+  int getTermSize( Node n );
+  /** given a term, construct an equivalent smaller one that respects syntax */
+  Node minimizeBuiltinTerm( Node n );
+  /** given a term, expand it into more basic components */
+  Node expandBuiltinTerm( Node n );
+};
 
 }/* CVC4::theory::quantifiers namespace */
 }/* CVC4::theory namespace */

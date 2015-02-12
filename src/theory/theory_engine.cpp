@@ -74,7 +74,7 @@ void TheoryEngine::finishInit() {
   if (d_logicInfo.isQuantified()) {
     d_quantEngine->finishInit();
     Assert(d_masterEqualityEngine == 0);
-    d_masterEqualityEngine = new eq::EqualityEngine(d_masterEENotify,getSatContext(), "theory::master");
+    d_masterEqualityEngine = new eq::EqualityEngine(d_masterEENotify,getSatContext(), "theory::master", false);
 
     for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST; ++ theoryId) {
       if (d_theoryTable[theoryId]) {
@@ -1201,7 +1201,7 @@ theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b) {
 }
 
 Node TheoryEngine::getModelValue(TNode var) {
-  if(var.isConst()) return var;  // FIXME: HACK!!!
+  if (var.isConst()) return var;  // FIXME: HACK!!!
   Assert(d_sharedTerms.isShared(var));
   return theoryOf(Theory::theoryOf(var.getType()))->getModelValue(var);
 }
@@ -1221,6 +1221,14 @@ Node TheoryEngine::ensureLiteral(TNode n) {
 void TheoryEngine::printInstantiations( std::ostream& out ) {
   if( d_quantEngine ){
     d_quantEngine->printInstantiations( out );
+  }
+}
+
+void TheoryEngine::printSynthSolution( std::ostream& out ) {
+  if( d_quantEngine ){
+    d_quantEngine->printSynthSolution( out );
+  }else{
+    out << "Internal error : synth solution not available when quantifiers are not present." << std::endl;
   }
 }
 

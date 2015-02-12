@@ -125,7 +125,6 @@ struct QuantifierInstPatternListTypeRule {
   }
 };/* struct QuantifierInstPatternListTypeRule */
 
-
 struct QuantifierInstClosureTypeRule {
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
     throw(TypeCheckingExceptionPrivate) {
@@ -139,6 +138,7 @@ struct QuantifierInstClosureTypeRule {
     return nodeManager->booleanType();
   }
 };/* struct QuantifierInstClosureTypeRule */
+
 
 class RewriteRuleTypeRule {
 public:
