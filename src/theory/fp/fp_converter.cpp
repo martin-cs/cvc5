@@ -23,6 +23,7 @@
 #include "symfpu/core/multiply.h"
 #include "symfpu/core/compare.h"
 #include "symfpu/core/classify.h"
+#include "symfpu/core/convert.h"
 
 #if 0
 // \todo Fix this ugly hack
@@ -374,9 +375,29 @@ namespace fp {
 	    break;
 	      
 	    /******** Conversions ********/
+	  case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT :
+	    {
+	      rmMap::const_iterator mode(r.find(current[0]));
+	      fpMap::const_iterator arg1(f.find(current[1]));
+	      bool recurseNeeded = (mode == r.end()) || (arg1 == f.end());
+	      
+	      if (recurseNeeded) {
+		workStack.push(current);
+		if (mode == r.end()) { workStack.push(current[0]); }
+		if (arg1 == f.end()) { workStack.push(current[1]); }
+		continue;    // i.e. recurse!
+	      }
+		
+	      f.insert(current, symfpu::convert<traits>(fpt(current[1].getType()),
+							fpt(current.getType()),
+							(*mode).second,
+							(*arg1).second));
+	    }
+	    break;
+
+
 	  case kind::FLOATINGPOINT_FP :
 	  case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR :
-	  case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT :
 	  case kind::FLOATINGPOINT_TO_FP_REAL :
 	  case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR :
 	  case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR :

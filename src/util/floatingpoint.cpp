@@ -22,6 +22,7 @@
 #include "symfpu/core/classify.h"
 #include "symfpu/core/add.h"
 #include "symfpu/core/multiply.h"
+#include "symfpu/core/convert.h"
 
 
 namespace CVC4 {
@@ -151,6 +152,9 @@ namespace CVC4 {
     return symfpu::isPositive<symfpuLiteral::traits>(t, fpl);
   }
 
+  FloatingPoint FloatingPoint::convert (const FloatingPointSize &target, const RoundingMode &rm) const {
+    return FloatingPoint(t, symfpu::convert<symfpuLiteral::traits>(t, target, rm, fpl));
+  }
 
 }/* CVC4 namespace */
 

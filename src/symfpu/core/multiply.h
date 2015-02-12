@@ -42,7 +42,7 @@ template <class t>
 					    const unpackedFloat<t> &multiplyResult) {
   typedef typename t::prop prop;
 
-  prop eitherArgumentNan(left.getNan() || right.getNan());
+  prop eitherArgumentNan(left.getNaN() || right.getNaN());
   prop generateNan((left.getInf() && right.getZero()) ||
 		   (left.getZero() && right.getInf()));
   prop isNan(eitherArgumentNan || generateNan);

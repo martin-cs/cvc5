@@ -156,7 +156,7 @@ namespace symfpu {
       return unpackedFloat<t>(FPCLASS_NAN, false, defaultExponent(fmt), defaultSignificand(fmt));
     }
 
-    inline const prop & getNan(void) const { return this->nan; }
+    inline const prop & getNaN(void) const { return this->nan; }
     inline const prop & getInf(void) const { return this->inf; }
     inline const prop & getZero(void) const { return this->zero; }
     inline const prop & getSign(void) const { return this->sign; }
@@ -265,6 +265,16 @@ namespace symfpu {
       return ubv::one(sigWidth) << (sigWidth - 1); // For a qNaN, change for sNaN
     }
 
+
+
+    unpackedFloat<t> extend (const bwt expExtension, const bwt sigExtension) const {
+      return unpackedFloat<t>(this->nan, 
+			      this->inf,
+			      this->zero,
+			      this->sign,
+			      this->exponent.extend(expExtension),
+			      this->significand.extend(sigExtension) << sigExtension);
+    }
 
 
     // Moves the leading 1 up to the correct position, adjusting the

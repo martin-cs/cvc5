@@ -44,7 +44,7 @@ namespace symfpu {
     // Relies on a number of properties of the unpacked format
     // particularly the use of default exponents, significands and signs
 
-    return (left.getNan() == right.getNan()) &&
+    return (left.getNaN() == right.getNaN()) &&
       (left.getInf() == right.getInf()) &&
       (left.getZero() == right.getZero()) &&
       (left.getSign() == right.getSign()) &&
@@ -63,7 +63,7 @@ namespace symfpu {
     PRECONDITION(left.valid(format));
     PRECONDITION(right.valid(format));
 
-    prop neitherNan(!left.getNan() && !right.getNan());   // All comparison with NaN are false
+    prop neitherNan(!left.getNaN() && !right.getNaN());   // All comparison with NaN are false
     prop bothZero(left.getZero() && right.getZero());  // Both zeros are equal
     prop neitherZero(!left.getZero() && !right.getZero());
 
@@ -92,7 +92,7 @@ namespace symfpu {
 
 
     // All comparison with NaN are false
-    prop neitherNan(!left.getNan() && !right.getNan());
+    prop neitherNan(!left.getNaN() && !right.getNaN());
 
     // Infinities are bigger than everything but themself
     prop eitherInf(left.getInf() || right.getInf());
@@ -143,7 +143,7 @@ namespace symfpu {
 
 
     // All comparison with NaN are false
-    prop neitherNan(!left.getNan() && !right.getNan());
+    prop neitherNan(!left.getNaN() && !right.getNaN());
 
     // Infinities are bigger than everything but themself
     prop eitherInf(left.getInf() || right.getInf());
