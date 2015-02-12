@@ -29,6 +29,7 @@
 #include "theory/valuation.h"
 #include "theory/theory_registrar.h"
 #include "util/resource_manager.h"
+#include "theory/bv/options.h"
 
 class Abc_Obj_t_;
 typedef Abc_Obj_t_ Abc_Obj_t;
@@ -500,7 +501,7 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_NOR ]          = DefaultNorBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_COMP ]         = DefaultCompBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_MULT ]         = DefaultMultBB<T>;
-  d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = OptimalPlusBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = options::bvOptimalAdder()? OptimalPlusBB<T> : DefaultPlusBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_SUB ]          = DefaultSubBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NEG ]          = DefaultNegBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_UDIV ]         = UndefinedTermBBStrategy<T>;
