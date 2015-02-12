@@ -162,8 +162,10 @@ namespace CVC4 {
     FloatingPoint plus (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint sub (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint mult (const RoundingMode &rm, const FloatingPoint &arg) const;
+
     bool operator <= (const FloatingPoint &arg) const;
     bool operator < (const FloatingPoint &arg) const;
+
     bool isNormal (void) const;
     bool isSubnormal (void) const;
     bool isZero (void) const;
@@ -172,6 +174,7 @@ namespace CVC4 {
     bool isNegative (void) const;
     bool isPositive (void) const;
 
+    FloatingPoint convert (const FloatingPointSize &target, const RoundingMode &rm) const;
 
   }; /* class FloatingPoint */
 

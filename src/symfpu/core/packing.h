@@ -139,7 +139,7 @@ namespace symfpu {
     ubv packedNormal(packedBiasedSig.append(dropLeadingOne));
     ubv packedSubnormal(minSig.append(correctedSubnormal));
 
-    ubv result(packedSign.append(ITE(uf.getNan(),
+    ubv result(packedSign.append(ITE(uf.getNaN(),
 				     packedNaN,
 				     ITE(uf.getInf(),
 					 packedInf,

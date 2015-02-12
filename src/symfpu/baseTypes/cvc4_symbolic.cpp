@@ -46,13 +46,13 @@ namespace symfpu {
     // TODO : These need to check a flag for the use of redundant constraints
     // and then make their way into additionalAssertions.
 
-    void precondition(const prop &p) { 
+    void traits::precondition(const prop &p) { 
       return;
     }
-    void postcondition(const prop &p) {
+    void traits::postcondition(const prop &p) {
       return;
     }
-    void invariant(const prop &p) {
+    void traits::invariant(const prop &p) {
       return;
     }
 

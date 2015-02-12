@@ -46,7 +46,7 @@ template <class t>
   typedef typename t::prop prop;
 
   // NaN
-  prop eitherArgumentNan(left.getNan() || right.getNan());
+  prop eitherArgumentNan(left.getNaN() || right.getNaN());
   prop bothInfinity(left.getInf() && right.getInf());
   prop signsMatch(left.getSign() == right.getSign());
   //prop compatableSigns(ITE(isAdd, signsMatch, !signsMatch));

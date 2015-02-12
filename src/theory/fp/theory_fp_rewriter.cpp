@@ -23,6 +23,10 @@
  **          (fp.isNegative (fp.neg x)) --> (fp.isPositive x)
  **          (fp.isPositive (fp.abs x)) --> (not (isNaN x))
  **          (fp.isNegative (fp.abs x)) --> false
+ **          A -> castA --> A
+ **          A -> castB -> castC  -->  A -> castC if A <= B <= C
+ **          A -> castB -> castA  -->  A if A <= B
+ **          promotion converts can ignore rounding mode
  **       ]]
  **/
 
@@ -279,8 +283,6 @@ namespace rewrite {
   // \todo We will need an option to disable constant folding
   bool constantFoldEnabled = true;
 
-  // \todo Move the eval code into util/floatingpoint.h
-
   RewriteResponse constantFoldAbs (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_ABS);
     Assert(node.getNumChildren() == 1);
@@ -474,6 +476,25 @@ namespace rewrite {
     return RewriteResponse(REWRITE_DONE, node);
   }
 
+  RewriteResponse constantConvert (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT);
+    Assert(node.getNumChildren() == 2);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_ROUNDINGMODE &&
+	node[1].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      RoundingMode rm(node[0].getConst<RoundingMode>());
+      FloatingPoint arg1(node[1].getConst<FloatingPoint>());
+      FloatingPointToFPFloatingPoint info = node.getOperator().getConst<FloatingPointToFPFloatingPoint>();
+
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.convert(info.t,rm)));
+    }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
 }; /* CVC4::theory::fp::rewrite */
 
 RewriteFunction TheoryFpRewriter::preRewriteTable[kind::LAST_KIND]; 
@@ -599,7 +620,7 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
 
     /******** Conversions ********/
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = rewrite::convertFromIEEEBitVectorLiteral;
-    postRewriteTable[kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT] = rewrite::constantConvert;
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_REAL] = rewrite::convertFromRealLiteral;
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR] = rewrite::identity;

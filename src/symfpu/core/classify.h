@@ -39,7 +39,7 @@ template <class t>
 
   PRECONDITION(uf.valid(format));
 
-  return !uf.getNan() && !uf.getInf() && !uf.getZero() && uf.inNormalRange(format);
+  return !uf.getNaN() && !uf.getInf() && !uf.getZero() && uf.inNormalRange(format);
  }
 
 
@@ -49,7 +49,7 @@ template <class t>
 
   PRECONDITION(uf.valid(format));
 
-  return !uf.getNan() && !uf.getInf() && !uf.getZero() && uf.inSubnormalRange(format);
+  return !uf.getNaN() && !uf.getInf() && !uf.getZero() && uf.inSubnormalRange(format);
  }
 
 
@@ -79,7 +79,7 @@ template <class t>
 
   PRECONDITION(uf.valid(format));
 
-  return uf.getNan();
+  return uf.getNaN();
  }
 
 
@@ -91,7 +91,7 @@ template <class t>
 
   PRECONDITION(uf.valid(format));
 
-  return !uf.getNan() && !uf.getSign();
+  return !uf.getNaN() && !uf.getSign();
  }
 
 template <class t>
@@ -100,7 +100,7 @@ template <class t>
 
   PRECONDITION(uf.valid(format));
 
-  return !uf.getNan() && uf.getSign();
+  return !uf.getNaN() && uf.getSign();
  }
 
 
