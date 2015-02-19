@@ -26,6 +26,7 @@
 #include "context/cdhashmap.h"
 #include "bitblast_strategies_template.h"
 #include "prop/sat_solver.h"
+#include "prop/eminisat/eminisat.h"
 #include "theory/valuation.h"
 #include "theory/theory_registrar.h"
 #include "util/resource_manager.h"
@@ -74,7 +75,7 @@ class AbstractionModule;
 
 template <class T>
 class TBitblaster {
-protected:
+ public:
   typedef std::vector<T> Bits;
   typedef __gnu_cxx::hash_map <Node, Bits, NodeHashFunction>  TermDefMap;
   typedef __gnu_cxx::hash_set<TNode, TNodeHashFunction>       TNodeSet;
@@ -82,7 +83,7 @@ protected:
 
   typedef void  (*TermBBStrategy) (TNode, Bits&, TBitblaster<T>*);
   typedef T     (*AtomBBStrategy) (TNode, TBitblaster<T>*);
-
+ protected:
   // caches and mappings
   TermDefMap d_termCache;
   ModelCache d_modelCache;
@@ -252,8 +253,8 @@ private:
   CVC4::prop::NullRegistrar* d_nullRegistrar;
   context::Context* d_nullContext;
   // sat solver used for bitblasting and associated CnfStream
-  CVC4::prop::BVSatSolverInterface*         d_satSolver;
-  CVC4::prop::BVSatSolverInterface::Notify* d_satSolverNotify;
+  CVC4::prop::EMinisatSatSolver*         d_satSolver;
+  CVC4::prop::EMinisatSatSolver::Notify* d_satSolverNotify;
   CVC4::prop::CnfStream*                    d_cnfStream;
 
   AssertionList* d_assertedAtoms; /**< context dependent list storing the atoms
@@ -268,12 +269,11 @@ private:
  public:
   Node getModelFromSatSolver(TNode a, bool fullModel);  
   /** This class gets callbacks from minisat on propagations */
-  class EncodingNotify : public CVC4::prop::BVSatSolverInterface::Notify {
+  class EncodingNotify : public CVC4::prop::EMinisatSatSolver::Notify {
     CVC4::prop::CnfStream* d_cnf_this;
     CVC4::prop::CnfStream* d_cnf_other;
     EncodingBitblaster* d_lazyBB; 
     TNodeSet d_propagated; // shared literals that have been propagated
-    TNodeSet d_assumptions; // literals that are assumptions to the current query (not counted towards propagations)
  public:
 
     EncodingNotify(CVC4::prop::CnfStream* cnf, EncodingBitblaster* lbv)
@@ -281,7 +281,6 @@ private:
       , d_cnf_other(cnf)
       , d_lazyBB(lbv)
       , d_propagated()
-      , d_assumptions()
       , d_numTotalPropagations(0)
       , d_numSharedPropagations(0)
     {}
@@ -289,18 +288,14 @@ private:
     void notify(CVC4::prop::SatClause& clause);
     unsigned d_numTotalPropagations; // total number of literals propagated
     unsigned d_numSharedPropagations;// number of literals propagated that existed in the other encoding as well
-     void spendResource() {}
-     void safePoint() {}
      virtual ~EncodingNotify() {};
      bool isPropagated(TNode node) { return d_propagated.find(node) != d_propagated.end(); }
      TNodeSet::const_iterator begin() { return d_propagated.begin(); }
      TNodeSet::const_iterator end() { return d_propagated.end(); }
-     void addAssumption(TNode node) { d_assumptions.insert(node); }
      void clear() {
        d_propagated.clear();
        d_numTotalPropagations = 0;
        d_numSharedPropagations = 0;
-       d_assumptions.clear();
      }
  };
 
@@ -340,6 +335,11 @@ private:
    * Assumes the literal in the current context.
    */
   void assumeLiteral (TNode literal);
+  void printLearned();
+  void printProblemClauses();
+  void clearLearnedClauses();
+  int getNumLearnedClauses();
+  int getNumProblemClauses();
 private:
 
   class Statistics {
@@ -500,7 +500,7 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_NAND ]         = DefaultNandBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NOR ]          = DefaultNorBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_COMP ]         = DefaultCompBB<T>;
-  d_termBBStrategies [ kind::BITVECTOR_MULT ]         = DefaultMultBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_MULT ]         = options::bvOptimalAddMult()? OptimalAddMultBB<T> : DefaultMultBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = options::bvOptimalAdder()? OptimalPlusBB<T> : DefaultPlusBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_SUB ]          = DefaultSubBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NEG ]          = DefaultNegBB<T>;

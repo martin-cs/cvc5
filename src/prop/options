@@ -27,5 +27,8 @@ option minisatUseElim --minisat-elimination bool :default true :read-write
 
 option minisatDumpDimacs --minisat-dump-dimacs bool :default false
  instead of solving minisat dumps the asserted clauses in Dimacs format
+
+expert-option optimalIte --optimal-ite bool :default true
+ optimally propagating encoding of ite
  
 endmodule

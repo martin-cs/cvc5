@@ -588,10 +588,36 @@ void Solver::popAssumption() {
     cancelUntil(assumptions.size());
 }
 
+int Solver::getNumLearned() {
+  return learnts.size();
+}
+
+void Solver::getLearnedClause(int i, vec<Lit>& clause) {
+  Assert (i < learnts.size());
+  CRef ref = learnts[i];
+  Clause& c = ca[ref];
+  for (int i = 0; i < c.size(); ++i) {
+    clause.push(c[i]);
+  }
+}
+
+int Solver::getNumClauses() {
+  return clauses.size();
+}
+
+void Solver::getProblemClause(int i, vec<Lit>& clause) {
+  Assert (i < clauses.size());
+  CRef ref = clauses[i];
+  Clause& c = ca[ref];
+  for (int i = 0; i < c.size(); ++i) {
+    clause.push(c[i]);
+  }
+}
+
+
 lbool Solver::propagateAssumptions() {
   only_bcp = true;
   ccmin_mode = 0;
-  std::cout << "number of learned clauses " << learnts.size() << std::endl;
   return search(-1);
 }
 
@@ -730,6 +756,15 @@ void Solver::reduceDB()
     }
     learnts.shrink(i - j);
     checkGarbage();
+}
+
+void Solver::clearLearned()
+{
+  for (int i = 0; i < learnts.size(); i++){
+    removeClause(learnts[i]);
+  }
+  learnts.shrink(learnts.size());
+  checkGarbage();
 }
 
 

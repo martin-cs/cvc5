@@ -40,12 +40,12 @@ EncodingBitblaster::EncodingBitblaster(context::Context* c, const std::string na
   , d_satSolverFullModel(c, false)
   , d_name(name)
   , d_statistics(name) {
-  d_satSolver = CVC4::prop::SatSolverFactory::createMinisat(c, name);
+  d_satSolver = new CVC4::prop::EMinisatSatSolver(c, name);
   d_nullRegistrar = new CVC4::prop::NullRegistrar();
   d_nullContext = new context::Context();
   d_cnfStream = new CVC4::prop::TseitinCnfStream(d_satSolver,
-                                           d_nullRegistrar,
-                                           d_nullContext);
+						 d_nullRegistrar,
+						 d_nullContext, true);
   
   d_satSolverNotify = NULL;
 }
@@ -57,7 +57,7 @@ bool EncodingBitblaster::EncodingNotify::notify(CVC4::prop::SatLiteral lit) {
   ++d_numTotalPropagations;
   // mark literals that the other solver also had internally
   if (d_cnf_other->hasLiteral(theory_lit)) {
-    Debug("encoding") << "EncodingNotify::notify<" << d_lazyBB->getName()
+    Debug("encoding-detailed") << "EncodingNotify::notify<" << d_lazyBB->getName()
 		      <<"> shared " << theory_lit << std::endl;
     d_propagated.insert(theory_lit);
     ++d_numSharedPropagations;
@@ -69,6 +69,50 @@ void EncodingBitblaster::EncodingNotify::notify(CVC4::prop::SatClause& clause) {
   // TODO
   // maybe check if we learn the same clauses?
 }
+
+void EncodingBitblaster::clearLearnedClauses() {
+  d_satSolver->clearLearned();
+}
+
+int EncodingBitblaster::getNumLearnedClauses() {
+  return d_satSolver->getNumLearned();
+}
+int EncodingBitblaster::getNumProblemClauses() {
+  return d_satSolver->getNumClauses();
+}
+
+
+void EncodingBitblaster::printLearned() {
+  int n = d_satSolver->getNumLearned();
+  for (int i = 0; i < n; ++i) {
+    CVC4::prop::SatClause cl;
+    d_satSolver->getLearnedClause(i, cl);
+    
+    for (unsigned i = 0; i < cl.size(); ++i) {
+      std::cout << cl[i].toString() << " ";
+    }
+    std::cout << std::endl;
+    for (unsigned i = 0; i < cl.size(); ++i) {
+        std::cout << d_cnfStream->getNode(cl[i]) << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+void EncodingBitblaster::printProblemClauses() {
+  int n = d_satSolver->getNumClauses();
+  for (int i = 0; i < n; ++i) {
+    CVC4::prop::SatClause cl;
+    d_satSolver->getProblemClause(i, cl);
+    
+    for (unsigned i = 0; i < cl.size(); ++i) {
+      std::cout << cl[i].toString() << " ";
+    //   std::cout << d_cnfStream->getNode(cl[i]) << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
 
 void EncodingBitblaster::assertFact(TNode node) {
   node = node.getKind() == kind::NOT?  node[0] : node;
@@ -108,7 +152,7 @@ void EncodingBitblaster::assumeLiteral(TNode lit) {
 
 void EncodingBitblaster::setNotify(EncodingBitblaster::EncodingNotify* en) {
   AlwaysAssert (d_satSolverNotify == NULL);
-  d_satSolverNotify = (CVC4::prop::BVSatSolverInterface::Notify*) en;
+  d_satSolverNotify = (CVC4::prop::EncodingSatSolverInterface::Notify*) en;
   d_satSolver->setNotify(d_satSolverNotify);  
 }
 
@@ -129,7 +173,24 @@ EncodingBitblaster::~EncodingBitblaster() {
  *
  */
 void EncodingBitblaster::bbAtom(TNode node) {
-  Unreachable(); 
+  node = node.getKind() == kind::NOT?  node[0] : node;
+
+  if (hasBBAtom(node)) {
+    return;
+  }
+
+  Debug("bitvector-bitblast") << "Bitblasting node " << node <<"\n";
+  ++d_statistics.d_numAtoms;
+
+  // the bitblasted definition of the atom
+  Node normalized = Rewriter::rewrite(node);
+  Node atom_bb = normalized.getKind() != kind::CONST_BOOLEAN ?
+    Rewriter::rewrite(d_atomBBStrategies[normalized.getKind()](normalized, this)) :
+    normalized;
+  // asserting that the atom is true iff the definition holds
+  Node atom_definition = utils::mkNode(kind::IFF, node, atom_bb);
+  storeBBAtom(node, atom_bb);
+  d_cnfStream->convertAndAssert(atom_definition, false, false, RULE_INVALID, TNode::null());
 }
 
 void EncodingBitblaster::storeBBAtom(TNode atom, Node atom_bb) {

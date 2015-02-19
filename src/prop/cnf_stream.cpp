@@ -27,6 +27,7 @@
 #include "expr/expr.h"
 #include "prop/theory_proxy.h"
 #include "theory/bv/options.h"
+#include "prop/options.h"
 #include "proof/proof_manager.h"
 #include "proof/sat_proof.h"
 #include "prop/minisat/minisat.h"
@@ -423,26 +424,32 @@ SatLiteral TseitinCnfStream::handleIte(TNode iteNode) {
 
   SatLiteral iteLit = newLiteral(iteNode);
 
-  // If ITE is true then one of the branches is true and the condition
-  // implies which one
-  // lit -> (ite b t e)
-  // lit -> (t | e) & (b -> t) & (!b -> e)
-  // lit -> (t | e) & (!b | t) & (b | e)
-  // (!lit | t | e) & (!lit | !b | t) & (!lit | b | e)
-  assertClause(iteNode, ~iteLit, thenLit, elseLit);
-  assertClause(iteNode, ~iteLit, ~condLit, thenLit);
-  assertClause(iteNode, ~iteLit, condLit, elseLit);
+  if (options::optimalIte()) {
+    // If ITE is true then one of the branches is true and the condition
+    // implies which one
+    // lit -> (ite b t e)
+    // lit -> (t | e) & (b -> t) & (!b -> e)
+    // lit -> (t | e) & (!b | t) & (b | e)
+    // (!lit | t | e) & (!lit | !b | t) & (!lit | b | e)
+    assertClause(iteNode, ~iteLit, thenLit, elseLit);
+    assertClause(iteNode, ~iteLit, ~condLit, thenLit);
+    assertClause(iteNode, ~iteLit, condLit, elseLit);
 
-  // If ITE is false then one of the branches is false and the condition
-  // implies which one
-  // !lit -> !(ite b t e)
-  // !lit -> (!t | !e) & (b -> !t) & (!b -> !e)
-  // !lit -> (!t | !e) & (!b | !t) & (b | !e)
-  // (lit | !t | !e) & (lit | !b | !t) & (lit | b | !e)
-  assertClause(iteNode, iteLit, ~thenLit, ~elseLit);
-  assertClause(iteNode, iteLit, ~condLit, ~thenLit);
-  assertClause(iteNode, iteLit, condLit, ~elseLit);
-
+    // If ITE is false then one of the branches is false and the condition
+    // implies which one
+    // !lit -> !(ite b t e)
+    // !lit -> (!t | !e) & (b -> !t) & (!b -> !e)
+    // !lit -> (!t | !e) & (!b | !t) & (b | !e)
+    // (lit | !t | !e) & (lit | !b | !t) & (lit | b | !e)
+    assertClause(iteNode, iteLit, ~thenLit, ~elseLit);
+    assertClause(iteNode, iteLit, ~condLit, ~thenLit);
+    assertClause(iteNode, iteLit, condLit, ~elseLit);
+  } else {
+    assertClause(iteNode, ~condLit, ~thenLit, iteLit);
+    assertClause(iteNode, ~condLit, thenLit, ~iteLit);
+    assertClause(iteNode, condLit, ~elseLit, iteLit);
+    assertClause(iteNode, condLit, elseLit, ~iteLit);
+  }
   return iteLit;
 }
 

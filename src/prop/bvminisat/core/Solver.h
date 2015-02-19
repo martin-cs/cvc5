@@ -183,7 +183,9 @@ public:
     //
     uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;
-
+    uint64_t num_calls_propagate;
+    uint64_t num_learnts, total_num_learnts, total_learnts_literals;
+    uint64_t num_clauses, total_num_clauses, total_clauses_literals;
     // Bitvector Propagations
     //
 

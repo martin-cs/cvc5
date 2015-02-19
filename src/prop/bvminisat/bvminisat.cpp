@@ -209,18 +209,30 @@ void BVMinisatSatSolver::toSatClause(BVMinisat::vec<BVMinisat::Lit>& clause,
 // Satistics for BVMinisatSatSolver
 
 BVMinisatSatSolver::Statistics::Statistics(const std::string& prefix) :
-  d_statStarts("theory::bv::"+prefix+"bvminisat::starts"),
-  d_statDecisions("theory::bv::"+prefix+"bvminisat::decisions"),
-  d_statRndDecisions("theory::bv::"+prefix+"bvminisat::rnd_decisions"),
-  d_statPropagations("theory::bv::"+prefix+"bvminisat::propagations"),
-  d_statConflicts("theory::bv::"+prefix+"bvminisat::conflicts"),
-  d_statClausesLiterals("theory::bv::"+prefix+"bvminisat::clauses_literals"),
-  d_statLearntsLiterals("theory::bv::"+prefix+"bvminisat::learnts_literals"),
-  d_statMaxLiterals("theory::bv::"+prefix+"bvminisat::max_literals"),
-  d_statTotLiterals("theory::bv::"+prefix+"bvminisat::tot_literals"),
-  d_statEliminatedVars("theory::bv::"+prefix+"bvminisat::eliminated_vars"),
-  d_statCallsToSolve("theory::bv::"+prefix+"bvminisat::calls_to_solve", 0),
-  d_statSolveTime("theory::bv::"+prefix+"bvminisat::solve_time", 0),
+  d_statStarts("theory::bv::"+prefix+"::bvminisat::starts"),
+  d_statDecisions("theory::bv::"+prefix+"::bvminisat::decisions"),
+  d_statRndDecisions("theory::bv::"+prefix+"::bvminisat::rnd_decisions"),
+  d_statPropagations("theory::bv::"+prefix+"::bvminisat::propagations"),
+  d_statConflicts("theory::bv::"+prefix+"::bvminisat::conflicts"),
+  d_statClausesLiterals("theory::bv::"+prefix+"::bvminisat::clauses_literals"),
+  d_statLearntsLiterals("theory::bv::"+prefix+"::bvminisat::learnts_literals"),
+  d_statMaxLiterals("theory::bv::"+prefix+"::bvminisat::max_literals"),
+  d_statTotLiterals("theory::bv::"+prefix+"::bvminisat::tot_literals"),
+  d_statEliminatedVars("theory::bv::"+prefix+"::bvminisat::eliminated_vars"),
+  d_statCallsToSolve("theory::bv::"+prefix+"::bvminisat::calls_to_solve", 0),
+  d_statSolveTime("theory::bv::"+prefix+"::bvminisat::solve_time", 0),
+
+  d_problemClauses("theory::bv::"+prefix+"::bvminisat::problemClauses"),
+  d_totalProblemClauses("theory::bv::"+prefix+"::bvminisat::totalProblemClauses"),
+  d_problemLiterals("theory::bv::"+prefix+"::bvminisat::problemLiterals"),
+  d_totalProblemLiterals("theory::bv::"+prefix+"::bvminisat::totalProblemLiterals"),
+  d_learnedClauses("theory::bv::"+prefix+"::bvminisat::learnedClauses"),
+  d_totalLearnedClauses("theory::bv::"+prefix+"::bvminisat::totalLearnedClauses"),
+  d_learnedLiterals("theory::bv::"+prefix+"::bvminisat::learnedLiterals"),
+  d_totalLearnedLiterals("theory::bv::"+prefix+"::bvminisat::totalLearnedLiterals"),
+  d_callsToPropagate("theory::bv::"+prefix+"::bvminisat::callsToPropagate"),
+  d_numPropagations("theory::bv::"+prefix+"::bvminisat::numPropagations"),
+
   d_registerStats(!prefix.empty())
 {
   if (!d_registerStats)
@@ -238,6 +250,18 @@ BVMinisatSatSolver::Statistics::Statistics(const std::string& prefix) :
   StatisticsRegistry::registerStat(&d_statEliminatedVars);
   StatisticsRegistry::registerStat(&d_statCallsToSolve);
   StatisticsRegistry::registerStat(&d_statSolveTime);
+
+  StatisticsRegistry::registerStat(&d_problemClauses);
+  StatisticsRegistry::registerStat(&d_totalProblemClauses);
+  StatisticsRegistry::registerStat(&d_problemLiterals);
+  StatisticsRegistry::registerStat(&d_totalProblemLiterals);
+  StatisticsRegistry::registerStat(&d_learnedClauses);
+  StatisticsRegistry::registerStat(&d_totalLearnedClauses);
+  StatisticsRegistry::registerStat(&d_learnedLiterals);
+  StatisticsRegistry::registerStat(&d_totalLearnedLiterals);
+  StatisticsRegistry::registerStat(&d_callsToPropagate);
+  StatisticsRegistry::registerStat(&d_numPropagations);
+
 }
 
 BVMinisatSatSolver::Statistics::~Statistics() {
@@ -255,6 +279,17 @@ BVMinisatSatSolver::Statistics::~Statistics() {
   StatisticsRegistry::unregisterStat(&d_statEliminatedVars);
   StatisticsRegistry::unregisterStat(&d_statCallsToSolve);
   StatisticsRegistry::unregisterStat(&d_statSolveTime);
+
+  StatisticsRegistry::unregisterStat(&d_problemClauses);
+  StatisticsRegistry::unregisterStat(&d_totalProblemClauses);
+  StatisticsRegistry::unregisterStat(&d_problemLiterals);
+  StatisticsRegistry::unregisterStat(&d_totalProblemLiterals);
+  StatisticsRegistry::unregisterStat(&d_learnedClauses);
+  StatisticsRegistry::unregisterStat(&d_totalLearnedClauses);
+  StatisticsRegistry::unregisterStat(&d_learnedLiterals);
+  StatisticsRegistry::unregisterStat(&d_totalLearnedLiterals);
+  StatisticsRegistry::unregisterStat(&d_callsToPropagate);
+  StatisticsRegistry::unregisterStat(&d_numPropagations);
 }
 
 void BVMinisatSatSolver::Statistics::init(BVMinisat::SimpSolver* minisat){
@@ -271,4 +306,18 @@ void BVMinisatSatSolver::Statistics::init(BVMinisat::SimpSolver* minisat){
   d_statMaxLiterals.setData(minisat->max_literals);
   d_statTotLiterals.setData(minisat->tot_literals);
   d_statEliminatedVars.setData(minisat->eliminated_vars);
+
+  d_problemClauses.setData(minisat->num_clauses);
+  d_totalProblemClauses.setData(minisat->total_num_clauses);
+  d_problemLiterals.setData(minisat->clauses_literals);
+  d_totalProblemLiterals.setData(minisat->total_clauses_literals);
+  
+  d_learnedClauses.setData(minisat->num_learnts);
+  d_totalLearnedClauses.setData(minisat->total_num_learnts);
+  d_learnedLiterals.setData(minisat->learnts_literals);
+  d_totalLearnedLiterals.setData(minisat->total_learnts_literals);
+
+  d_callsToPropagate.setData(minisat->num_calls_propagate);
+  d_numPropagations.setData(minisat->propagations);
+			   
 }

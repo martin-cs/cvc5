@@ -205,6 +205,27 @@ void EMinisatSatSolver::toSatClause(EMinisat::vec<EMinisat::Lit>& clause,
   Assert((unsigned)clause.size() == sat_clause.size());
 }
 
+void EMinisatSatSolver::clearLearned() {
+  d_minisat->clearLearned();
+}
+int EMinisatSatSolver::getNumLearned() {
+  return d_minisat->getNumLearned();
+}
+void EMinisatSatSolver::getLearnedClause(unsigned i, SatClause& clause) {
+  EMinisat::vec<EMinisat::Lit> mclause;
+  d_minisat->getLearnedClause(i, mclause);
+  toSatClause(mclause, clause);
+}
+
+int EMinisatSatSolver::getNumClauses() {
+  return d_minisat->getNumClauses();
+}
+void EMinisatSatSolver::getProblemClause(unsigned i, SatClause& clause) {
+  EMinisat::vec<EMinisat::Lit> mclause;
+  d_minisat->getProblemClause(i, mclause);
+  toSatClause(mclause, clause);
+}
+
 
 // Satistics for EMinisatSatSolver
 

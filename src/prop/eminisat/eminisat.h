@@ -46,12 +46,6 @@ private:
       d_notify->notify(satClause);
     }
 
-    void spendResource() {
-      d_notify->spendResource();
-    }
-    void safePoint() {
-      d_notify->safePoint();
-    }
   };
 
   EMinisat::SimpSolver* d_minisat;
@@ -120,6 +114,14 @@ public:
   
   void popAssumption();
 
+  void clearLearned();
+  int getNumLearned();
+  void getLearnedClause(unsigned i, SatClause& clause);
+
+  int getNumClauses();
+  void getProblemClause(unsigned i, SatClause& clause);
+
+  
   class Statistics {
   public:
     ReferenceStat<uint64_t> d_statStarts, d_statDecisions;

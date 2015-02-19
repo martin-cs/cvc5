@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file model.h
+/*! \file encoding_experiments.h
  ** \verbatim
  ** Original author: Liana Hadarean
  ** Major contributors: none

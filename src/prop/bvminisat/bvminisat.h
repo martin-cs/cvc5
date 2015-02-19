@@ -128,8 +128,21 @@ public:
     ReferenceStat<uint64_t> d_statLearntsLiterals,  d_statMaxLiterals;
     ReferenceStat<uint64_t> d_statTotLiterals;
     ReferenceStat<int> d_statEliminatedVars;
+
     IntStat d_statCallsToSolve;
     BackedStat<double> d_statSolveTime;
+
+    ReferenceStat<uint64_t> d_problemClauses;
+    ReferenceStat<uint64_t> d_totalProblemClauses;
+    ReferenceStat<uint64_t> d_problemLiterals;
+    ReferenceStat<uint64_t> d_totalProblemLiterals;
+    ReferenceStat<uint64_t> d_learnedClauses;
+    ReferenceStat<uint64_t> d_totalLearnedClauses;
+    ReferenceStat<uint64_t> d_learnedLiterals;
+    ReferenceStat<uint64_t> d_totalLearnedLiterals;
+    ReferenceStat<uint64_t> d_callsToPropagate;
+    ReferenceStat<uint64_t> d_numPropagations;
+
     bool d_registerStats;
     Statistics(const std::string& prefix);
     ~Statistics();

@@ -71,5 +71,8 @@ expert-option bvMinisatUseSimp --bv-minisat-use-simp bool :default true
 
 expert-option bvOptimalAdder --bv-optimal-add bool :default false
  bit-blast using the optimally propagating adder
- 
+
+expert-option bvOptimalAddMult --bv-optimal-add-mult bool :default false
+ bit-blast using the optimally propagating adder in the multiplier
+
 endmodule
