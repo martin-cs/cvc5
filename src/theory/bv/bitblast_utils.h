@@ -276,6 +276,31 @@ T inline sLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqu
   return res;
 }
 
+/*
+  In the cnf encoding file we can specify whether aEQb should be an input/output bit
+ */
+template <class T>
+std::pair<T, T> inline LTGadget (const T &answerFound, const T &answer,
+const T &a, const T &b) {
+
+  // If answerFound, then propagate it
+  // If a = 0, b = 1 then have found the answer true
+  // If a = 1, b = 0 then have found the answer false
+  // If a == b then haven't found an answer
+
+  T aLTb = mkAnd(mkNot(a), b);
+
+  T aEQb = mkIff(a,b);
+  T aNEQb = mkNot(aEQb);
+  
+  T outputAnswerFound = mkOr(answerFound, aNEQb);
+  T outputAnswer = mkIte(mkOr(answerFound, aEQb),
+                         answer,
+                         aLTb);
+  return std::make_pair(outputAnswerFound, outputAnswer);
+}
+
+
 
 }
 }
@@ -284,6 +309,8 @@ T inline sLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqu
 /*
 ** For the encoding experiments
 */
+
+
 
 
 /* typedef enum _fullAdderEncoding {  */

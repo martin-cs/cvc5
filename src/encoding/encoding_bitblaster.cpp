@@ -109,7 +109,7 @@ void EncodingBitblaster::printCnfMapping() {
     if (num_lits% 2 == 0) {
       CVC4::prop::SatLiteral lit = it->first;
       TNode node = it->second;
-      std::cout << "c " << lit.toString() <<" => " << node << std::endl;
+      std::cout << "c " << lit.toString() <<" : " << node << std::endl;
     }
     ++num_lits;
   }

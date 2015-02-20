@@ -467,6 +467,31 @@ void printAtomEncoding(Kind k, TBitblaster<Node>::AtomBBStrategy e, std::string 
 }
 
 
+void makeLTGadget() {
+  EncodingBitblaster eb(new context::Context(), "LTGadget1");
+  NodeManager* nm = NodeManager::currentNM();
+  Node a = nm->mkSkolem("a", nm->booleanType());
+  Node b = nm->mkSkolem("b", nm->booleanType());
+  Node ans_found = nm->mkSkolem("ans_found", nm->booleanType());
+  Node answer = nm->mkSkolem("answer", nm->booleanType());
+
+  // Node ans_found_out = utils::mkSkolem("ans_found_out", nm->booleanType());
+  // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
+  
+  std::pair<Node, Node> pair;
+  pair = theory::bv::LTGadget(ans_found, answer, a, b);
+
+  eb.getCnfStream()->ensureLiteral(pair.first);
+  eb.getCnfStream()->ensureLiteral(pair.second);
+  CVC4::prop::SatLiteral ans_found_out = eb.getCnfStream()->getLiteral(pair.first);
+  CVC4::prop::SatLiteral answer_out = eb.getCnfStream()->getLiteral(pair.second);
+  std::cout << "c ans_found_out : " << ans_found_out << std::endl;
+  std::cout << "c answer_out : " << answer_out << std::endl;
+  eb.printCnfMapping();
+  eb.printProblemClauses();
+  
+}
+
 void CVC4::runEncodingExperiment(Options& opts) {
   ExprManager em;
   SmtEngine smt(&em);
@@ -476,16 +501,20 @@ void CVC4::runEncodingExperiment(Options& opts) {
   unsigned num_fixed = opts[options::encodingNumFixed];
   unsigned width = opts[options::encodingBitwidth];
 
-  printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
-  printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult4", 4);
+  
+  /**** Geneerating CNF encoding files for operations ****/
+  
+  // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
+  // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult4", 4);
 
-  printTermEncoding(kind::BITVECTOR_SHL, DefaultShlBB<Node>, "shl3", 3);
-  printTermEncoding(kind::BITVECTOR_SHL, DefaultShlBB<Node>, "shl4", 4);
+  // printTermEncoding(kind::BITVECTOR_SHL, DefaultShlBB<Node>, "shl3", 3);
+  // printTermEncoding(kind::BITVECTOR_SHL, DefaultShlBB<Node>, "shl4", 4);
 
-  printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult3", 3);
-  printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult4", 4);
+  // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult3", 3);
+  // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult4", 4);
 
   
+  makeLTGadget();
   
   // EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
   // 			     DefaultPlusBB<Node>, "default-plus",
