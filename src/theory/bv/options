@@ -75,4 +75,13 @@ expert-option bvOptimalAdder --bv-optimal-add bool :default false
 expert-option bvOptimalAddMult --bv-optimal-add-mult bool :default false
  bit-blast using the optimally propagating adder in the multiplier
 
+expert-option bvOptMult3 --bv-optimal-mult3 bool :default false
+ bit-blast multiplication of size 3 optimally
+
+expert-option bvOptMult4 --bv-optimal-mult4 bool :default false
+ bit-blast multiplication of size 4 optimally
+
+expert-option bvOptMult4Bottom --bv-optimal-mult4-bottom bool :default false
+ bit-blast the bottom 4 bits of multiplication optimally
+  
 endmodule

@@ -143,6 +143,7 @@ void EncodingBitblaster::assertFact(TNode node) {
   Node atom_bb = normalized.getKind() != kind::CONST_BOOLEAN ?
     d_atomBBStrategies[normalized.getKind()](normalized, this) :
     normalized;
+  atom_bb = Rewriter::rewrite(atom_bb);
   atom_bb = node.getKind() == kind::NOT? utils::mkNode(kind::NOT, atom_bb) : atom_bb;
   d_cnfStream->convertAndAssert(atom_bb, false, false, RULE_INVALID, TNode::null());
 }

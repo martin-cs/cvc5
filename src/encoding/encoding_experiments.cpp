@@ -346,6 +346,115 @@ public:
   }
 };
 
+class BruteForceOptChecker : public Runner {
+  Kind d_kind;
+  context::Context* d_ctx;
+  unsigned d_bitwidth;
+
+  std::string d_name1;
+  std::string d_name2;
+  EncodingBitblaster d_encodingBB1;
+  EncodingBitblaster d_encodingBB2;
+  EncodingBitblaster::EncodingNotify* d_encodingNotify1;
+  EncodingBitblaster::EncodingNotify* d_encodingNotify2;
+ 
+  Node d_assertion;
+  vector<Node> d_all_bits1;
+  vector<Node> d_all_bits2;
+public:
+  BruteForceOptChecker(unsigned bitwidth, Kind k,  
+		     TBitblaster<Node>::TermBBStrategy e1, std::string name1,
+		     TBitblaster<Node>::TermBBStrategy e2, std::string name2)
+    : d_kind(k)
+    , d_ctx(new context::Context())
+    , d_bitwidth(bitwidth)
+    , d_name1(name1)
+    , d_name2(name2)
+    , d_encodingBB1(d_ctx, d_name1)
+    , d_encodingBB2(d_ctx, d_name2)
+    , d_assertion()
+  {
+    d_encodingBB1.setTermBBStrategy(k, e1);
+    
+    d_encodingBB2.setTermBBStrategy(k, e2);
+
+    Node a = utils::mkVar(d_bitwidth);
+    Node b = utils::mkVar(d_bitwidth);
+    Node c = utils::mkVar(d_bitwidth);
+
+    Node a_op_b = utils::mkNode(d_kind, a, b);
+    d_assertion = utils::mkNode(kind::EQUAL, a_op_b, c);
+
+    d_encodingBB1.assertFact(d_assertion);
+    d_encodingBB2.assertFact(d_assertion);
+
+    EncodingBitblaster::Bits a1_bits, b1_bits, c1_bits;
+    d_encodingBB1.getBBTerm(a, a1_bits);
+    d_encodingBB1.getBBTerm(b, b1_bits);
+    d_encodingBB1.getBBTerm(c, c1_bits);
+
+    EncodingBitblaster::Bits a2_bits, b2_bits, c2_bits;
+    d_encodingBB2.getBBTerm(a, a2_bits);
+    d_encodingBB2.getBBTerm(b, b2_bits);
+    d_encodingBB2.getBBTerm(c, c2_bits);
+
+    d_all_bits1.insert(d_all_bits1.begin(), a1_bits.begin(), a1_bits.end());
+    d_all_bits1.insert(d_all_bits1.begin(), b1_bits.begin(), b1_bits.end());
+    d_all_bits1.insert(d_all_bits1.begin(), c1_bits.begin(), c1_bits.end());
+
+    d_all_bits2.insert(d_all_bits2.begin(), a2_bits.begin(), a2_bits.end());
+    d_all_bits2.insert(d_all_bits2.begin(), b2_bits.begin(), b2_bits.end());
+    d_all_bits2.insert(d_all_bits2.begin(), c2_bits.begin(), c2_bits.end());
+  }
+
+  virtual ~BruteForceOptChecker() {
+    delete d_ctx;
+  }
+  
+  void run(const vector<int>& assump_index) {
+    d_ctx->push();
+    
+    bool res1 = true;
+    bool res2 = true;
+
+    Debug("encoding") << "Fixed bits "<< std::endl;
+    for (unsigned i = 0; i < assump_index.size(); ++i) {
+      //d_encodingBB1.clearLearnedClauses();
+
+      TNode bit1, bit2;
+      if(assump_index[i] < 0) {
+	bit1 = utils::mkNot(d_all_bits1[-assump_index[i]]);
+	bit2 = utils::mkNot(d_all_bits2[-assump_index[i]]);
+      } else {
+	bit1 = d_all_bits1[assump_index[i]];
+	bit2 = d_all_bits2[assump_index[i]];
+      }
+
+      Debug("encoding") << bit1 << "/ "<<  bit2 <<" " <<std::endl;
+      d_encodingBB1.assumeLiteral(bit1);
+      res1 = d_encodingBB1.solve();
+      d_encodingBB2.assumeLiteral(bit2);
+      res2 = d_encodingBB2.solve();
+      
+      Assert (res1 == res2);
+
+      std::cout << "result "<< res1<< std::endl;
+      std::cout << d_encodingBB1.getName() << " learned clauses "
+		<< d_encodingBB1.getNumLearnedClauses() << std::endl;
+
+      std::cout << d_encodingBB2.getName() << " learned clauses "
+		<< d_encodingBB2.getNumLearnedClauses() << std::endl;
+    }
+
+    d_ctx->pop();
+  }
+
+  void printResults() {
+    d_encodingBB1.printLearned();
+    d_encodingBB2.printLearned();
+  }
+};
+
 
 class EncodingContradiction : public Runner {
   Kind d_kind;
@@ -466,6 +575,24 @@ void printAtomEncoding(Kind k, TBitblaster<Node>::AtomBBStrategy e, std::string 
   eb.printProblemClauses();
 }
 
+void printMult4x4x8(Kind k, TBitblaster<Node>::TermBBStrategy e) {
+  EncodingBitblaster eb(new context::Context(), "Mult4x4x8");
+  unsigned bitwidth = 4;
+  eb.setTermBBStrategy(k, e);
+  Node a = utils::mkVar(bitwidth);
+  Node b = utils::mkVar(bitwidth);
+  Node c = utils::mkVar(2*bitwidth);
+
+  Node a_op_b = utils::mkNode(k, utils::mkConcat(utils::mkConst(4, 0u), a),
+			         utils::mkConcat(utils::mkConst(4, 0u), b));
+  Node assertion = utils::mkNode(kind::EQUAL, a_op_b, c);
+  
+  eb.assertFact(assertion);
+
+  eb.printCnfMapping();
+  eb.printProblemClauses();
+}
+
 
 void makeLTGadget() {
   EncodingBitblaster eb(new context::Context(), "LTGadget1");
@@ -492,6 +619,23 @@ void makeLTGadget() {
   
 }
 
+void makeSignedGadget() {
+  EncodingBitblaster eb(new context::Context(), "LTGadget1");
+  NodeManager* nm = NodeManager::currentNM();
+  Node a = nm->mkSkolem("a", nm->booleanType());
+  Node b = nm->mkSkolem("b", nm->booleanType());
+  Node aLTb = nm->mkSkolem("aLTb", nm->booleanType());
+
+  Node res = theory::bv::SignedGadget(a, b, aLTb);
+
+  eb.getCnfStream()->ensureLiteral(res);
+  CVC4::prop::SatLiteral aSLTb = eb.getCnfStream()->getLiteral(res);
+  std::cout << "c aSLTb : " << aSLTb << std::endl;
+  eb.printCnfMapping();
+  eb.printProblemClauses();
+}
+
+
 void CVC4::runEncodingExperiment(Options& opts) {
   ExprManager em;
   SmtEngine smt(&em);
@@ -512,9 +656,26 @@ void CVC4::runEncodingExperiment(Options& opts) {
 
   // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult3", 3);
   // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult4", 4);
-
   
-  makeLTGadget();
+  // makeLTGadget();
+  // makeSignedGadget();
+  // printMult4x4x8(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>);
+
+  // EncodingComparator ec_plus(3, kind::BITVECTOR_MULT, true,
+  // 			     DefaultMultBB<Node>, "default-mult",
+  // 			     OptimalAddMultBB<Node>, "optimal-add-mult");
+
+  // sampleAssignments(num_fixed, 3*3, &ec_plus, true);
+  // ec_plus.printResults(std::cout);
+
+  BruteForceOptChecker opt(3, kind::BITVECTOR_MULT,
+			   DefaultMultBB<Node>, "default-mult",
+			   OptimalAddMultBB<Node>, "optimal-add-mult");
+
+  sampleAssignments(9, 3*3, &opt, false);
+  
+
+  opt.printResults();
   
   // EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
   // 			     DefaultPlusBB<Node>, "default-plus",

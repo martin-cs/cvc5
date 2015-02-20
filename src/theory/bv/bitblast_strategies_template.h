@@ -22,117 +22,15 @@
 #include "theory/bv/bitblast_utils.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "prop/cnf_stream.h"
+#include "theory/bv/options.h"
+#include "theory/bv/generated_encodings.h"
+
 #include <ostream>
 #include <cmath>
 namespace CVC4 {
 
 namespace theory {
 namespace bv {
-
-
-  
-  
-template <class T>
-T optimalRippleCarryAdder(const std::vector<T>&a, const std::vector<T>& b, std::vector<T>& res, T carry, prop::CnfStream* cnf) {
-  Unreachable();
-  return carry;
-}
-
-Node inline optimalRippleCarryAdder(const std::vector<Node>&av,
-                                    const std::vector<Node>& bv,
-                                    std::vector<Node>& res, Node carry, prop::CnfStream* cnf) {
-
-  Assert (av.size() >= bv.size());
-  unsigned offset = av.size() - bv.size();
-  for (unsigned i = 0; i < offset; ++i) {
-    res[i] = av[i];
-  }
-  std::vector<Node> carryv(bv.size() + 1);
-  NodeManager* nm = NodeManager::currentNM();
-  carryv[0] = carry;
-  for (unsigned i = 0; i < carryv.size() - 1; ++i) {
-    carryv[i+1] = nm->mkSkolem("carry", carry.getType());
-  }
-  for(unsigned i = offset; i < res.size(); ++i) {
-    res[i] = nm->mkSkolem("s", carry.getType());
-  }
-
-  for (unsigned i = offset ; i < av.size(); ++i) {
-    // get CNF stream and add new clauses
-    Node a = av[i];
-    Node b = bv[i-offset];
-    Node cin = carryv[i-offset];
-    Node cout = carryv[i+1-offset];
-    Node s = res[i];
-    
-    Node na = nm->mkNode(kind::NOT, a);
-    Node nb = nm->mkNode(kind::NOT, b);
-    Node ncin = nm->mkNode(kind::NOT, cin);
-    Node ncout = nm->mkNode(kind::NOT, cout);
-    Node ns = nm->mkNode(kind::NOT, s);
-    
-    cnf->convertAndAssert(nm->mkNode(kind::OR, na, nb, cout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, na, ncin, cout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, nb, ncin, cout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, na, s, cout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, nb, s, cout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, ncin, s, cout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, na, nb, ncin, s),
-                          false, false, RULE_INVALID, TNode::null());
-
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, b, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, cin, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, b, cin, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a, ns, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, b, ns, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, cin, ns, ncout),
-                          false, false, RULE_INVALID, TNode::null());
-    cnf->convertAndAssert(nm->mkNode(kind::OR, a,b, cin,ns),
-                          false, false, RULE_INVALID, TNode::null());
-
-  }
-
-  return carryv.back();
-}
-
-template <class T>
-void shiftOptimalAddMultiplier(const std::vector<T>&a, const std::vector<T>& b,
-			    std::vector<T>& res, CVC4::prop::CnfStream* cnf) {
-  Unreachable();
-}
- 
-inline void shiftOptimalAddMultiplier(const std::vector<Node>&a, const std::vector<Node>&b,
-				      std::vector<Node>& res, CVC4::prop::CnfStream* cnf) {
-  
-  for (unsigned i = 0; i < a.size(); ++i) {
-    res.push_back(mkAnd(b[0], a[i])); 
-  }
-
-  Node carry_in, carry_out;
-  for(unsigned k = 1; k < res.size(); ++k) {
-    carry_in = mkFalse<Node>();
-    std::vector<Node> curr;
-    std::vector<Node> curr_sum(res.size());
-    for(unsigned j = 0; j < res.size() -k; ++j) {
-      Node aj = mkAnd(a[j], b[k]);
-      curr.push_back(aj);
-    }
-    carry_out = optimalRippleCarryAdder(res, curr, curr_sum, carry_in, cnf);
-    carry_in = carry_out;
-    std::swap(res, curr_sum);
-  }
-}
 
 /** 
  * Default Atom Bitblasting strategies: 
@@ -141,17 +39,17 @@ inline void shiftOptimalAddMultiplier(const std::vector<Node>&a, const std::vect
  * @param bb the bitblaster
  */
 
-template <class T>
-T UndefinedAtomBBStrategy(TNode node, TBitblaster<T>* bb) {
-  Debug("bitvector") << "TheoryBV::Bitblaster Undefined bitblasting strategy for kind: "
-                     << node.getKind() << "\n";
-  Unreachable(); 
-}
+ template <class T>
+   T UndefinedAtomBBStrategy(TNode node, TBitblaster<T>* bb) {
+   Debug("bitvector") << "TheoryBV::Bitblaster Undefined bitblasting strategy for kind: "
+		      << node.getKind() << "\n";
+   Unreachable(); 
+ }
 
 
-template <class T>
-T DefaultEqBB(TNode node, TBitblaster<T>* bb) {
-  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+ template <class T>
+   T DefaultEqBB(TNode node, TBitblaster<T>* bb) {
+   Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
   
   Assert(node.getKind() == kind::EQUAL);
   std::vector<T> lhs, rhs; 
@@ -467,25 +365,28 @@ void DefaultMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   Assert(res.size() == 0 &&
          node.getKind() == kind::BITVECTOR_MULT);
 
-  // if (node.getNumChildren() == 2) {
-  //   std::vector<T> a;
-  //   std::vector<T> b;
-  //   bb->bbTerm(node[0], a);
-  //   bb->bbTerm(node[1], b);
-  //   unsigned bw = utils::getSize(node);
-  //   unsigned thresh = bw % 2 ? bw/2 : bw/2 - 1;
-  //   bool no_overflow = true; 
-  //   for (unsigned i = thresh; i < bw; ++i) {
-  //     if (a[i] != mkFalse<T> || b[i] != mkFalse<T> ) {
-  //       no_overflow = false; 
-  //     }
-  //   }
-  //   if (no_overflow) {
-  //     shiftAddMultiplier(); 
-  //     return; 
-  //   }
-    
-  // }
+  if (options::bvOptMult3() && utils::getSize(node) == 3) {
+    std::vector<T> newres; 
+    bb->bbTerm(node[0], res); 
+    for(unsigned i = 1; i < node.getNumChildren(); ++i) {
+      std::vector<T> current;
+      bb->bbTerm(node[i], current);
+      newres.clear(); 
+      optimalMult3(res, current, newres, bb->getCnfStream());
+      res = newres;
+    }
+    return;
+  }
+
+  if (options::bvOptMult4() && utils::getSize(node) == 4) {
+    Unreachable();
+    return;
+  }
+
+  if (options::bvOptMult4Bottom() && utils::getSize(node) == 4) {
+    Unreachable();
+    return;
+  }
   
   std::vector<T> newres; 
   bb->bbTerm(node[0], res); 
@@ -601,7 +502,11 @@ void DefaultSubBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   // bvsub a b = adder(a, ~b, 1)
   std::vector<T> not_b;
   negateBits(b, not_b);
-  rippleCarryAdder(a, not_b, bits, mkTrue<T>());
+  if (options::bvOptimalAdder()) {
+    optimalRippleCarryAdder(a, not_b, bits, mkTrue<T>(), bb->getCnfStream());
+  } else {
+    rippleCarryAdder(a, not_b, bits, mkTrue<T>());
+  }
 }
 
  
@@ -619,8 +524,11 @@ void DefaultNegBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   negateBits(a, not_a);
   std::vector<T> zero;
   makeZero(zero, utils::getSize(node)); 
-  
-  rippleCarryAdder(not_a, zero, bits, mkTrue<T>()); 
+  if (options::bvOptimalAdder()) {
+    optimalRippleCarryAdder(not_a, zero, bits, mkTrue<T>(), bb->getCnfStream());
+  } else {
+    rippleCarryAdder(not_a, zero, bits, mkTrue<T>());
+  }
 }
 
 template <class T>

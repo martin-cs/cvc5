@@ -300,6 +300,20 @@ const T &a, const T &b) {
   return std::make_pair(outputAnswerFound, outputAnswer);
 }
 
+template <class T>
+T inline SignedGadget (const T& a, const T& b, const T &aLTbRec) {
+  // an and bn are the most significant bits
+  // aLTb is the variable representing ULT(a[n-2:0], b[n-2:0])
+
+  T aLTb = mkAnd(mkNot(a), b);
+  T aGTb = mkAnd(a, mkNot(b));
+  T aEQb = mkIff(a,b);
+  T res = mkAnd(mkNot(aGTb),
+		mkOr(aLTb,
+		     (mkAnd(mkIff(a, b),
+			    aLTbRec))));
+  return res;
+}
 
 
 }
