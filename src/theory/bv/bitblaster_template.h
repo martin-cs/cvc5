@@ -340,6 +340,7 @@ private:
   void clearLearnedClauses();
   int getNumLearnedClauses();
   int getNumProblemClauses();
+  void printCnfMapping();
 private:
 
   class Statistics {

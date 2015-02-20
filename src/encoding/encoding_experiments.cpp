@@ -433,6 +433,40 @@ public:
   }
 };
 
+
+void printTermEncoding(Kind k, TBitblaster<Node>::TermBBStrategy e, std::string name, unsigned bitwidth) {
+  EncodingBitblaster eb(new context::Context(), name);
+  eb.setTermBBStrategy(k, e);
+  Node a = utils::mkVar(bitwidth);
+  Node b = utils::mkVar(bitwidth);
+  Node c = utils::mkVar(bitwidth);
+
+  Node a_op_b = utils::mkNode(k, a, b);
+  Node assertion = utils::mkNode(kind::EQUAL, a_op_b, c);
+  
+  eb.assertFact(assertion);
+
+  eb.printCnfMapping();
+  eb.printProblemClauses();
+}
+
+void printAtomEncoding(Kind k, TBitblaster<Node>::AtomBBStrategy e, std::string name, unsigned bitwidth) {
+  EncodingBitblaster eb(new context::Context(), name);
+  eb.setAtomBBStrategy(k, e);
+  Node a = utils::mkVar(bitwidth);
+  Node b = utils::mkVar(bitwidth);
+  //NodeManager* nm = NodeManager::currentNM();
+  //Node out = nm->mkSkolem("out", nm->booleanType());
+  Node a_op_b = utils::mkNode(k, a, b);
+  //Node assertion = utils::mkNode(kind::IFF, a_op_b, out);
+  
+  eb.bbAtom(a_op_b);
+
+  eb.printCnfMapping();
+  eb.printProblemClauses();
+}
+
+
 void CVC4::runEncodingExperiment(Options& opts) {
   ExprManager em;
   SmtEngine smt(&em);
@@ -442,6 +476,16 @@ void CVC4::runEncodingExperiment(Options& opts) {
   unsigned num_fixed = opts[options::encodingNumFixed];
   unsigned width = opts[options::encodingBitwidth];
 
+  printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
+  printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult4", 4);
+
+  printTermEncoding(kind::BITVECTOR_SHL, DefaultShlBB<Node>, "shl3", 3);
+  printTermEncoding(kind::BITVECTOR_SHL, DefaultShlBB<Node>, "shl4", 4);
+
+  printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult3", 3);
+  printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult4", 4);
+
+  
   
   // EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
   // 			     DefaultPlusBB<Node>, "default-plus",
@@ -450,12 +494,12 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // sampleAssignments(num_fixed, width*3, &ec_plus, true);
   // ec_plus.printResults(std::cout);
 
-  EncodingComparator ec_mult(width, kind::BITVECTOR_MULT, false,
-  			     DefaultMultBB<Node>, "default-mult",
-  			     OptimalAddMultBB<Node>, "optimal-add-mult");
+  // EncodingComparator ec_mult(width, kind::BITVECTOR_MULT, false,
+  // 			     DefaultMultBB<Node>, "default-mult",
+  // 			     OptimalAddMultBB<Node>, "optimal-add-mult");
 
-  sampleAssignments(num_fixed, width*3, &ec_mult, true);
-  ec_mult.printResults(std::cout);
+  // sampleAssignments(num_fixed, width*3, &ec_mult, true);
+  // ec_mult.printResults(std::cout);
 
   
   // EncodingContradiction ec_default(width, kind::BITVECTOR_PLUS, DefaultPlusBB<Node>, "default-plus");

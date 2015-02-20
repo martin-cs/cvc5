@@ -99,8 +99,27 @@ void EncodingBitblaster::printLearned() {
   }
 }
 
+void EncodingBitblaster::printCnfMapping() {
+  std::cout << "c "<< getName() << std::endl;
+  const CVC4::prop::CnfStream::LiteralToNodeMap& map = d_cnfStream->getNodeCache();
+  CVC4::prop::CnfStream::LiteralToNodeMap::const_iterator it = map.begin();
+  unsigned num_lits = 0 ;
+  for (; it != map.end(); ++it) {
+    // we only want to print the variables really
+    if (num_lits% 2 == 0) {
+      CVC4::prop::SatLiteral lit = it->first;
+      TNode node = it->second;
+      std::cout << "c " << lit.toString() <<" => " << node << std::endl;
+    }
+    ++num_lits;
+  }
+  Assert (num_lits%2 == 0);
+  std::cout << "p cnf " << num_lits/2 <<" ";
+}
+
 void EncodingBitblaster::printProblemClauses() {
   int n = d_satSolver->getNumClauses();
+  std::cout << n << std::endl;
   for (int i = 0; i < n; ++i) {
     CVC4::prop::SatClause cl;
     d_satSolver->getProblemClause(i, cl);
@@ -109,7 +128,7 @@ void EncodingBitblaster::printProblemClauses() {
       std::cout << cl[i].toString() << " ";
     //   std::cout << d_cnfStream->getNode(cl[i]) << " ";
     }
-    std::cout << std::endl;
+    std::cout << "0" << std::endl;
   }
 }
 
