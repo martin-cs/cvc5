@@ -606,7 +606,7 @@ void makeLTGadget() {
   // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
   
   std::pair<Node, Node> pair;
-  pair = theory::bv::LTGadget(ans_found, answer, a, b);
+  pair = theory::bv::optimalUltGadget(ans_found, answer, a, b);
 
   eb.getCnfStream()->ensureLiteral(pair.first);
   eb.getCnfStream()->ensureLiteral(pair.second);
@@ -626,7 +626,7 @@ void makeSignedGadget() {
   Node b = nm->mkSkolem("b", nm->booleanType());
   Node aLTb = nm->mkSkolem("aLTb", nm->booleanType());
 
-  Node res = theory::bv::SignedGadget(a, b, aLTb);
+  Node res = theory::bv::optimalSignGadget(a, b, aLTb);
 
   eb.getCnfStream()->ensureLiteral(res);
   CVC4::prop::SatLiteral aSLTb = eb.getCnfStream()->getLiteral(res);

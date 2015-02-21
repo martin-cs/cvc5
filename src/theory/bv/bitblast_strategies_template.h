@@ -365,87 +365,36 @@ void DefaultMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   Assert(res.size() == 0 &&
          node.getKind() == kind::BITVECTOR_MULT);
 
-  if (options::bvOptMult3() && utils::getSize(node) == 3) {
-    std::vector<T> newres; 
-    bb->bbTerm(node[0], res); 
-    for(unsigned i = 1; i < node.getNumChildren(); ++i) {
-      std::vector<T> current;
-      bb->bbTerm(node[i], current);
-      newres.clear(); 
+ 
+  std::vector<T> newres; 
+  bb->bbTerm(node[0], res); 
+  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
+    std::vector<T> current;
+    bb->bbTerm(node[i], current);
+    newres.clear(); 
+    // constructs a simple shift and add multiplier building the result
+    // in res
+    if (options::bvOptMult3() && utils::getSize(node) == 3) {
       optimalMult3(res, current, newres, bb->getCnfStream());
-      res = newres;
+    } else if (options::bvOptMult4() && utils::getSize(node) == 4) {
+      optimalMult4(res, current, newres, bb->getCnfStream());
+    } else if (options::bvOptMult4Bottom()) {
+      optimalMultKBottom(res, current, newres, 4, bb->getCnfStream());
+    } else if (options::bvOptimalAddMult()) {
+      shiftOptimalAddMultiplier(res, current, newres,bb->getCnfStream());
+    } else {
+      shiftAddMultiplier(res, current, newres);
     }
-    return;
-  }
-
-  if (options::bvOptMult4() && utils::getSize(node) == 4) {
-    Unreachable();
-    return;
-  }
-
-  if (options::bvOptMult4Bottom() && utils::getSize(node) == 4) {
-    Unreachable();
-    return;
-  }
-  
-  std::vector<T> newres; 
-  bb->bbTerm(node[0], res); 
-  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
-    std::vector<T> current;
-    bb->bbTerm(node[i], current);
-    newres.clear(); 
-    // constructs a simple shift and add multiplier building the result
-    // in res
-    shiftAddMultiplier(res, current, newres);
+    
+    Assert (newres.size()); 
     res = newres;
   }
+  
   if(Debug.isOn("bitvector-bb")) {
     Debug("bitvector-bb") << "with bits: " << toString(res)  << "\n";
   }
 }
  
-template <class T>
-void OptimalAddMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
-  Debug("bitvector") << "theory::bv::OptimalAddMultBB bitblasting "<< node << "\n";
-  Assert(res.size() == 0 &&
-         node.getKind() == kind::BITVECTOR_MULT);
-  
-  std::vector<T> newres; 
-  bb->bbTerm(node[0], res); 
-  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
-    std::vector<T> current;
-    bb->bbTerm(node[i], current);
-    newres.clear(); 
-    // constructs a simple shift and add multiplier building the result
-    // in res
-    shiftOptimalAddMultiplier(res, current, newres,bb->getCnfStream());
-    res = newres;
-  }
-  if(Debug.isOn("bitvector-bb")) {
-    Debug("bitvector-bb") << "with bits: " << toString(res)  << "\n";
-  }
-}
- 
- 
-template <class T>
-void OptimalPlusBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
-  Debug("bitvector-bb") << "theory::bv::OptimalPlusBB bitblasting " << node << "\n";
-  Assert(node.getKind() == kind::BITVECTOR_PLUS &&
-         res.size() == 0);
-  
-  bb->bbTerm(node[0], res);
-
-  std::vector<T> newres(utils::getSize(node));
-
-  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
-    std::vector<T> current;
-    bb->bbTerm(node[i], current);
-    optimalRippleCarryAdder(res, current, newres, mkFalse<T>(), bb->getCnfStream());
-    res = newres; 
-  }
-  
-  Assert(res.size() == utils::getSize(node));
-}
 
 template <class T>
 void OptimalSubBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
@@ -479,8 +428,12 @@ void DefaultPlusBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   for(unsigned i = 1; i < node.getNumChildren(); ++i) {
     std::vector<T> current;
     bb->bbTerm(node[i], current);
-    newres.clear(); 
-    rippleCarryAdder(res, current, newres, mkFalse<T>());
+    newres.clear();
+    if (options::bvOptimalAdder()) {
+      optimalRippleCarryAdder(res, current, newres, mkFalse<T>(), bb->getCnfStream());
+    } else {
+      rippleCarryAdder(res, current, newres, mkFalse<T>());
+    }
     res = newres; 
   }
   
@@ -897,6 +850,117 @@ void DefaultRotateLeftBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) 
   Unimplemented(); 
 }
 
+
+/***** Encoding experiments circuits *****/
+
+template <class T>
+T OptimalUltBB(TNode node, TBitblaster<T>* bb) {
+  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+  Assert(node.getKind() == kind::BITVECTOR_ULT);
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+  Assert(a.size() == b.size());
+  
+  // construct bitwise comparison 
+  T res = optimalULTBB(a, b, a.size(), false);
+  return res; 
+}
+ 
+template <class T>
+T OptimalUleBB(TNode node, TBitblaster<T>* bb){
+  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+  Assert(node.getKind() == kind::BITVECTOR_ULE);
+  std::vector<T> a, b;
+  
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+  Assert(a.size() == b.size());
+  // construct bitwise comparison 
+  T res = optimalUltBB(a, b, a.size(), true);
+  return res; 
+}
+
+
+template <class T>
+T OptimalSltBB(TNode node, TBitblaster<T>* bb){
+  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+  Assert(a.size() == b.size());
+  unsigned width = a.size(); 
+  // check if the n-1 least significant bits respect the ordering
+  T ult = optimalUltBB(a, b, width - 1, false);
+  T res = optimalSignGadget(a[width-2], b[width-2], ult);
+  return res;
+}
+
+template <class T>
+T OptimalSleBB(TNode node, TBitblaster<T>* bb){
+  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+  Assert(a.size() == b.size());
+  unsigned width = a.size(); 
+
+  // check if the n-1 least significant bits respect the ordering
+  T ult = optimalUltBB(a, b, width - 1, true);
+  T res = optimalSignGadget(a[width-2], b[width-2], ult);
+  return res;
+}
+
+/***********************
+* Strategies corresponding to optimal encodings
+* (for comparison)
+************************/
+template <class T>
+void OptimalPlusBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
+  Debug("bitvector-bb") << "theory::bv::DefaultPlusBB bitblasting " << node << "\n";
+  Assert(node.getKind() == kind::BITVECTOR_PLUS &&
+         res.size() == 0);
+
+  bb->bbTerm(node[0], res);
+
+  std::vector<T> newres;
+
+  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
+    std::vector<T> current;
+    bb->bbTerm(node[i], current);
+    newres.clear();
+    optimalRippleCarryAdder(res, current, newres, mkFalse<T>(), bb->getCnfStream());
+    res = newres; 
+  }
+  
+  Assert(res.size() == utils::getSize(node));
+}
+
+template <class T>
+void OptimalAddMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::OptimalAddMultBB bitblasting "<< node << "\n";
+  Assert(res.size() == 0 &&
+         node.getKind() == kind::BITVECTOR_MULT);
+
+ 
+  std::vector<T> newres; 
+  bb->bbTerm(node[0], res); 
+  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
+    std::vector<T> current;
+    bb->bbTerm(node[i], current);
+    newres.clear(); 
+    shiftOptimalAddMultiplier(res, current, newres,bb->getCnfStream());
+    Assert (newres.size()); 
+    res = newres;
+  }
+  
+  if(Debug.isOn("bitvector-bb")) {
+    Debug("bitvector-bb") << "with bits: " << toString(res)  << "\n";
+  }
+}
+ 
 
 }
 }

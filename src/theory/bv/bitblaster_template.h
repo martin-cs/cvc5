@@ -491,6 +491,7 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
     d_termBBStrategies[i] = DefaultVarBB<T>;
   }
   /// setting default bb strategies for terms:
+  /// for encoding experiments options set in strategy code
   d_termBBStrategies [ kind::CONST_BITVECTOR ]        = DefaultConstBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NOT ]          = DefaultNotBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_CONCAT ]       = DefaultConcatBB<T>;
@@ -501,8 +502,8 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_NAND ]         = DefaultNandBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NOR ]          = DefaultNorBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_COMP ]         = DefaultCompBB<T>;
-  d_termBBStrategies [ kind::BITVECTOR_MULT ]         = options::bvOptimalAddMult()? OptimalAddMultBB<T> : DefaultMultBB<T>;
-  d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = options::bvOptimalAdder()? OptimalPlusBB<T> : DefaultPlusBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_MULT ]         = DefaultMultBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_PLUS ]         = DefaultPlusBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_SUB ]          = DefaultSubBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_NEG ]          = DefaultNegBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_UDIV ]         = UndefinedTermBBStrategy<T>;

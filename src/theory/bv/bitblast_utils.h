@@ -22,9 +22,11 @@
 
 #include <ostream>
 #include "expr/node.h"
+
 #ifdef CVC4_USE_ABC
 #include "base/main/main.h"
 #include "base/abc/abc.h"
+
 
 extern "C" {
 #include "sat/cnf/cnf.h"
@@ -154,7 +156,7 @@ bool inline isZero(const std::vector<T>& bits) {
   }
   return true; 
 }
-
+ 
 template <class T>
 void inline rshift(std::vector<T>& bits, unsigned amount) {
   for (unsigned i = 0; i < bits.size() - amount; ++i) {
@@ -183,7 +185,16 @@ void inline makeZero(std::vector<T>& bits, unsigned width) {
   }
 }
 
+template <class T>
+std::pair<T,T> inline fullAdder(const T a, const T b, const T cin) {
+  T cout = mkOr(mkAnd(a, b),
+		mkAnd(mkXor(a, b),
+		      cin));;
+  T sum = mkXor(mkXor(a, b), cin);
+  return std::make_pair(sum, cout);
+}
 
+ 
 /** 
  * Constructs a simple ripple carry adder
  * 
@@ -195,21 +206,24 @@ void inline makeZero(std::vector<T>& bits, unsigned width) {
  * @return the carry-out
  */
 template <class T>
-T inline rippleCarryAdder(const std::vector<T>&a, const std::vector<T>& b, std::vector<T>& res, T carry) {
+T inline rippleCarryAdder(const std::vector<T>&a, const std::vector<T>& b,
+			  std::vector<T>& res, T cin) {
   Assert(a.size() == b.size() && res.size() == 0);
-  
+
+  T sum;
+  T carry = cin;
+  std::pair<T, T> fa_res;
   for (unsigned i = 0 ; i < a.size(); ++i) {
-    T sum = mkXor(mkXor(a[i], b[i]), carry);
-    carry = mkOr( mkAnd(a[i], b[i]),
-                  mkAnd( mkXor(a[i], b[i]),
-                         carry));
+    fa_res = fullAdder(a[i], b[i], carry);
+    sum = fa_res.first;
+    carry = fa_res.second;
     res.push_back(sum); 
   }
 
   return carry;
 }
 
-
+ 
 template <class T>
 inline void shiftAddMultiplier(const std::vector<T>&a, const std::vector<T>&b, std::vector<T>& res) {
   
@@ -218,18 +232,17 @@ inline void shiftAddMultiplier(const std::vector<T>&a, const std::vector<T>&b, s
   }
   
   for(unsigned k = 1; k < res.size(); ++k) {
-  T carry_in = mkFalse<T>();
-  T carry_out;
+    T carry_in = mkFalse<T>();
+    std::pair<T, T> fa_res;
     for(unsigned j = 0; j < res.size() -k; ++j) {
       T aj = mkAnd(a[j], b[k]);
-      carry_out = mkOr(mkAnd(res[j+k], aj),
-                       mkAnd( mkXor(res[j+k], aj), carry_in));
-      res[j+k] = mkXor(mkXor(res[j+k], aj), carry_in);
-      carry_in = carry_out; 
+      fa_res = fullAdder(res[j+k], aj, carry_in);
+      res[j+k] = fa_res.first;
+      carry_in = fa_res.second;
     }
   }
 }
-
+ 
 
 template <class T>
 T inline uLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqual) {
@@ -276,53 +289,10 @@ T inline sLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqu
   return res;
 }
 
-/*
-  In the cnf encoding file we can specify whether aEQb should be an input/output bit
- */
-template <class T>
-std::pair<T, T> inline LTGadget (const T &answerFound, const T &answer,
-const T &a, const T &b) {
-
-  // If answerFound, then propagate it
-  // If a = 0, b = 1 then have found the answer true
-  // If a = 1, b = 0 then have found the answer false
-  // If a == b then haven't found an answer
-
-  T aLTb = mkAnd(mkNot(a), b);
-
-  T aEQb = mkIff(a,b);
-  T aNEQb = mkNot(aEQb);
-  
-  T outputAnswerFound = mkOr(answerFound, aNEQb);
-  T outputAnswer = mkIte(mkOr(answerFound, aEQb),
-                         answer,
-                         aLTb);
-  return std::make_pair(outputAnswerFound, outputAnswer);
-}
-
-template <class T>
-T inline SignedGadget (const T& a, const T& b, const T &aLTbRec) {
-  // an and bn are the most significant bits
-  // aLTb is the variable representing ULT(a[n-2:0], b[n-2:0])
-
-  T aLTb = mkAnd(mkNot(a), b);
-  T aGTb = mkAnd(a, mkNot(b));
-  T aEQb = mkIff(a,b);
-  T res = mkAnd(mkNot(aGTb),
-		mkOr(aLTb,
-		     (mkAnd(mkIff(a, b),
-			    aLTbRec))));
-  return res;
-}
-
-
+ 
 }
 }
 }
-
-/*
-** For the encoding experiments
-*/
 
 
 
