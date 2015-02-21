@@ -647,6 +647,8 @@ void CVC4::runEncodingExperiment(Options& opts) {
 
   
   /**** Geneerating CNF encoding files for operations ****/
+
+  printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
   
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult4", 4);

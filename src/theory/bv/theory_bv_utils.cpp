@@ -100,3 +100,19 @@ uint64_t CVC4::theory::bv::utils::numNodes(TNode node, NodeSet& seen) {
   seen.insert(node);
   return size;
 }
+
+void CVC4::theory::bv::utils::collectBoolVariables(TNode node, TNodeSet& vars, TNodeSet& seen) {
+  if (seen.find(node) != seen.end())
+    return;
+
+  if (node.getNumChildren() == 0 && utils::isVar(node) &&
+      node.getType().isBoolean()) {
+    vars.insert(node);
+    seen.insert(node);
+    return;
+  }
+  for (unsigned i = 0; i < node.getNumChildren(); ++i) {
+    collectBoolVariables(node[i], vars, seen);
+  }
+  seen.insert(node);
+}

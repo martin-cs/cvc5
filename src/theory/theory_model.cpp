@@ -301,7 +301,11 @@ void TheoryModel::assertEquality(TNode a, TNode b, bool polarity ){
     return;
   }
   Trace("model-builder-assertions") << "(assert " << (polarity ? "(= " : "(not (= ") << a << " " << b << (polarity ? "));" : ")));") << endl;
-  d_equalityEngine->assertEquality( a.eqNode(b), polarity, Node::null() );
+  if (a.getType().isBoolean()) {
+    d_equalityEngine->assertEquality( a.iffNode(b), polarity, Node::null() );
+  } else {
+    d_equalityEngine->assertEquality( a.eqNode(b), polarity, Node::null() );
+  }
   Assert(d_equalityEngine->consistent());
 }
 

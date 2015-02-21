@@ -158,6 +158,19 @@ bool EagerBitblaster::solve() {
  * @return
  */
 Node EagerBitblaster::getModelFromSatSolver(TNode a, bool fullModel) {
+  CVC4::prop::SatValue bit_value;
+  
+  if (utils::isVar(a) && a.getType().isBoolean()) {
+    CVC4::prop::SatLiteral bit = d_cnfStream->getLiteral(a);
+    bit_value = d_satSolver->value(bit);
+    if (bit_value == CVC4::prop::SAT_VALUE_TRUE) {
+      return utils::mkTrue();
+    } else if (bit_value == CVC4::prop::SAT_VALUE_FALSE) {
+      return utils::mkFalse();
+    }
+    return fullModel? utils::mkFalse() : Node();
+  }
+  
   if (!hasBBTerm(a)) {
     return fullModel? utils::mkConst(utils::getSize(a), 0u) : Node();
   }
@@ -166,7 +179,6 @@ Node EagerBitblaster::getModelFromSatSolver(TNode a, bool fullModel) {
   getBBTerm(a, bits);
   Integer value(0);
   for (int i = bits.size() -1; i >= 0; --i) {
-    CVC4::prop::SatValue bit_value;
     if (d_cnfStream->hasLiteral(bits[i])) {
       CVC4::prop::SatLiteral bit = d_cnfStream->getLiteral(bits[i]);
       bit_value = d_satSolver->value(bit);
@@ -184,7 +196,26 @@ Node EagerBitblaster::getModelFromSatSolver(TNode a, bool fullModel) {
 
 
 void EagerBitblaster::collectModelInfo(TheoryModel* m, bool fullModel) {
-  TNodeSet::iterator it = d_variables.begin();
+  TNodeSet boolVariables;
+  TNodeSet seen;
+  
+  Theory::assertions_iterator facts_it = d_bv->facts_begin();
+  while (facts_it != d_bv->facts_end()) {
+    TNode fact = (*facts_it).assertion;
+    utils::collectBoolVariables(fact, boolVariables, seen);
+    ++facts_it;
+  }
+
+  TNodeSet::const_iterator it = boolVariables.begin();
+  while (it != boolVariables.end()) {
+    TNode var = *it;
+    Node const_val = getModelFromSatSolver(var, fullModel);
+    m->assertEquality(var, const_val, true);
+    ++it;
+  }
+  
+  
+  it = d_variables.begin();
   for (; it!= d_variables.end(); ++it) {
     TNode var = *it;
     if (d_bv->isLeaf(var) || isSharedTerm(var))  {

@@ -375,6 +375,12 @@ inline bool isBVGroundTerm(TNode node) {
   return true;
 }
 
+inline bool isVar(TNode node) {
+  return node.getMetaKind() == kind::metakind::VARIABLE;
+}
+
+void collectBoolVariables(TNode node, TNodeSet& vars, TNodeSet& seen); 
+ 
 inline bool isBVPredicate(TNode node) {
   if (node.getKind() == kind::EQUAL ||
       node.getKind() == kind::BITVECTOR_ULT ||
