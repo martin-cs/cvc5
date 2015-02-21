@@ -83,5 +83,8 @@ expert-option bvOptMult4 --bv-optimal-mult4 bool :default false
 
 expert-option bvOptMult4Bottom --bv-optimal-mult4-bottom bool :default false
  bit-blast the bottom 4 bits of multiplication optimally
-  
+
+expert-option bvOptimalLess --bv-optimal-less bool :default false
+ bit-blast comparison operators optimally
+ 
 endmodule

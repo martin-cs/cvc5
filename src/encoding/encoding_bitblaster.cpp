@@ -48,6 +48,9 @@ EncodingBitblaster::EncodingBitblaster(context::Context* c, const std::string na
 						 d_nullContext, true);
   
   d_satSolverNotify = NULL;
+  // FIXME: encoding hack for debugging 
+  d_atomBBStrategies [ kind::IFF ] = DefaultIffBB<Node>;
+  d_atomBBStrategies [ kind::SKOLEM ] = DefaultSkolemBB<Node>;
 }
 
 bool EncodingBitblaster::EncodingNotify::notify(CVC4::prop::SatLiteral lit) {
@@ -134,12 +137,12 @@ void EncodingBitblaster::printProblemClauses() {
 
 
 void EncodingBitblaster::assertFact(TNode node) {
-  node = node.getKind() == kind::NOT?  node[0] : node;
+  TNode atom = node.getKind() == kind::NOT?  node[0] : node;
 
   Debug("bitvector-bitblast") << "Bitblasting node " << node <<"\n";
   /// if we are using bit-vector abstraction bit-blast the original interpretation
   // the bitblasted definition of the atom
-  Node normalized = Rewriter::rewrite(node);
+  Node normalized = Rewriter::rewrite(atom);
   Node atom_bb = normalized.getKind() != kind::CONST_BOOLEAN ?
     d_atomBBStrategies[normalized.getKind()](normalized, this) :
     normalized;
@@ -382,6 +385,17 @@ bool EncodingBitblaster::hasValue(TNode a) {
  * @return
  */
 Node EncodingBitblaster::getModelFromSatSolver(TNode a, bool fullModel) {
+  if (utils::isVar(a) && a.getType().isBoolean()) {
+    CVC4::prop::SatLiteral bit = d_cnfStream->getLiteral(a);
+    CVC4::prop::SatValue bit_value = d_satSolver->value(bit);
+    if (bit_value == CVC4::prop::SAT_VALUE_TRUE) {
+      return utils::mkTrue();
+    } else if (bit_value == CVC4::prop::SAT_VALUE_FALSE) {
+      return utils::mkFalse();
+    }
+    return fullModel? utils::mkFalse() : Node();
+  }
+  
   if (!hasBBTerm(a)) {
     return fullModel? utils::mkConst(utils::getSize(a), 0u) : Node();
   }

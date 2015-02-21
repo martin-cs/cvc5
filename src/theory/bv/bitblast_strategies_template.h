@@ -100,8 +100,11 @@ T DefaultUltBB(TNode node, TBitblaster<T>* bb) {
   Assert(a.size() == b.size());
   
   // construct bitwise comparison 
-  T res = uLessThanBB(a, b, false);
-  return res; 
+
+  if (options::bvOptimalLess())
+    return optimalUltBB(a, b, a.size(), false);
+  
+  return uLessThanBB(a, b, false);
 }
 
 template <class T>
@@ -113,9 +116,11 @@ T DefaultUleBB(TNode node, TBitblaster<T>* bb){
   bb->bbTerm(node[0], a);
   bb->bbTerm(node[1], b);
   Assert(a.size() == b.size());
-  // construct bitwise comparison 
-  T res = uLessThanBB(a, b, true);
-  return res; 
+
+  if (options::bvOptimalLess())
+    return optimalUltBB(a, b, a.size(), true);
+  
+  return uLessThanBB(a, b, true);
 }
 
 template <class T>
@@ -139,6 +144,13 @@ T DefaultSltBB(TNode node, TBitblaster<T>* bb){
   bb->bbTerm(node[0], a);
   bb->bbTerm(node[1], b);
   Assert(a.size() == b.size());
+
+  if (options::bvOptimalLess()) {
+    unsigned width = a.size();
+    T ult = optimalUltBB(a, b, width - 1, false);
+    T res = optimalSignGadget(a[width-2], b[width-2], ult);
+    return res;
+  }
   
   T res = sLessThanBB(a, b, false); 
   return res;
@@ -152,6 +164,13 @@ T DefaultSleBB(TNode node, TBitblaster<T>* bb){
   bb->bbTerm(node[0], a);
   bb->bbTerm(node[1], b);
   Assert(a.size() == b.size());
+
+  if (options::bvOptimalLess()) {
+    unsigned width = a.size();
+    T ult = optimalUltBB(a, b, width - 1, true);
+    T res = optimalSignGadget(a[width-2], b[width-2], ult);
+    return res;
+  }
   
   T res = sLessThanBB(a, b, true); 
   return res;
@@ -396,25 +415,6 @@ void DefaultMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
 }
  
 
-template <class T>
-void OptimalSubBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
-  Debug("bitvector-bb") << "theory::bv::OptimalSubBB bitblasting " << node << "\n";
-  Assert(node.getKind() == kind::BITVECTOR_SUB &&
-         node.getNumChildren() == 2 &&
-         bits.size() == 0);
-    
-  std::vector<T> a, b;
-  bb->bbTerm(node[0], a);
-  bb->bbTerm(node[1], b); 
-  Assert(a.size() == b.size() && utils::getSize(node) == a.size());
-
-  // bvsub a b = adder(a, ~b, 1)
-  std::vector<T> not_b;
-  negateBits(b, not_b);
-  optimalRippleCarryAdder(a, not_b, bits, mkTrue<T>(), bb->getCnfStream());
-}
-
- 
 template <class T>
 void DefaultPlusBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   Debug("bitvector-bb") << "theory::bv::DefaultPlusBB bitblasting " << node << "\n";
@@ -863,7 +863,7 @@ T OptimalUltBB(TNode node, TBitblaster<T>* bb) {
   Assert(a.size() == b.size());
   
   // construct bitwise comparison 
-  T res = optimalULTBB(a, b, a.size(), false);
+  T res = optimalUltBB(a, b, a.size(), false);
   return res; 
 }
  
@@ -890,10 +890,13 @@ T OptimalSltBB(TNode node, TBitblaster<T>* bb){
   bb->bbTerm(node[0], a);
   bb->bbTerm(node[1], b);
   Assert(a.size() == b.size());
-  unsigned width = a.size(); 
+  unsigned width = a.size();
+  if (width == 1) {
+    return mkAnd((a[0]), mkNot(b[0]));
+  }
   // check if the n-1 least significant bits respect the ordering
   T ult = optimalUltBB(a, b, width - 1, false);
-  T res = optimalSignGadget(a[width-2], b[width-2], ult);
+  T res = optimalSignGadget(a[width-1], b[width-1], ult);
   return res;
 }
 
@@ -907,9 +910,13 @@ T OptimalSleBB(TNode node, TBitblaster<T>* bb){
   Assert(a.size() == b.size());
   unsigned width = a.size(); 
 
+  if (width == 1) {
+    return mkOr(mkNot(a[0]),b[0]);
+  }
+
   // check if the n-1 least significant bits respect the ordering
   T ult = optimalUltBB(a, b, width - 1, true);
-  T res = optimalSignGadget(a[width-2], b[width-2], ult);
+  T res = optimalSignGadget(a[width-1], b[width-1], ult);
   return res;
 }
 
@@ -939,6 +946,25 @@ void OptimalPlusBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
 }
 
 template <class T>
+void OptimalSubBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector-bb") << "theory::bv::OptimalSubBB bitblasting " << node << "\n";
+  Assert(node.getKind() == kind::BITVECTOR_SUB &&
+         node.getNumChildren() == 2 &&
+         bits.size() == 0);
+    
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b); 
+  Assert(a.size() == b.size() && utils::getSize(node) == a.size());
+
+  // bvsub a b = adder(a, ~b, 1)
+  std::vector<T> not_b;
+  negateBits(b, not_b);
+  optimalRippleCarryAdder(a, not_b, bits, mkTrue<T>(), bb->getCnfStream());
+}
+ 
+ 
+template <class T>
 void OptimalAddMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::OptimalAddMultBB bitblasting "<< node << "\n";
   Assert(res.size() == 0 &&
@@ -960,6 +986,83 @@ void OptimalAddMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
     Debug("bitvector-bb") << "with bits: " << toString(res)  << "\n";
   }
 }
+
+template <class T>
+T DefaultIffBB(TNode node, TBitblaster<T>* bb) {
+  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+  Assert(node.getKind() == kind::IFF);
+  bb->bbAtom(node[0]);
+  bb->bbAtom(node[1]);
+  T res = mkIff<Node>(node[0], node[1]);
+  return res;
+ }
+
+template <class T>
+T DefaultSkolemBB(TNode node, TBitblaster<T>* bb) {
+  Unreachable();
+}
+ 
+template<> 
+Node inline DefaultSkolemBB(TNode node, TBitblaster<Node>* bb) {
+  Debug("bitvector-bb") << "Bitblasting node " << node  << "\n";
+  Assert(node.getKind() == kind::SKOLEM);
+  return node;
+}
+ 
+ 
+/* template <class T> */
+/* T OptimalUltBB(TNode node, TBitblaster<T>* bb) { */
+/*   Debug("bitvector-bb") << "Bitblasting node " << node  << "\n"; */
+/*   Assert(node.getKind() == kind::BITVECTOR_ULT); */
+/*   std::vector<T> a, b; */
+/*   bb->bbTerm(node[0], a); */
+/*   bb->bbTerm(node[1], b); */
+/*   Assert(a.size() == b.size()); */
+  
+/*   // construct bitwise comparison  */
+/*   T res = uLessThanBB(a, b, false); */
+/*   return res;  */
+/* } */
+
+/* template <class T> */
+/* T OptimalUleBB(TNode node, TBitblaster<T>* bb){ */
+/*   Debug("bitvector-bb") << "Bitblasting node " << node  << "\n"; */
+/*   Assert(node.getKind() == kind::BITVECTOR_ULE); */
+/*   std::vector<T> a, b; */
+  
+/*   bb->bbTerm(node[0], a); */
+/*   bb->bbTerm(node[1], b); */
+/*   Assert(a.size() == b.size()); */
+/*   // construct bitwise comparison  */
+/*   T res = uLessThanBB(a, b, true); */
+/*   return res;  */
+/* } */
+
+/* template <class T> */
+/* T OptimalSltBB(TNode node, TBitblaster<T>* bb){ */
+/*   Debug("bitvector-bb") << "Bitblasting node " << node  << "\n"; */
+
+/*   std::vector<T> a, b; */
+/*   bb->bbTerm(node[0], a); */
+/*   bb->bbTerm(node[1], b); */
+/*   Assert(a.size() == b.size()); */
+  
+/*   T res = sLessThanBB(a, b, false);  */
+/*   return res; */
+/* } */
+
+/* template <class T> */
+/* T OptimalSleBB(TNode node, TBitblaster<T>* bb){ */
+/*   Debug("bitvector-bb") << "Bitblasting node " << node  << "\n"; */
+
+/*   std::vector<T> a, b; */
+/*   bb->bbTerm(node[0], a); */
+/*   bb->bbTerm(node[1], b); */
+/*   Assert(a.size() == b.size()); */
+  
+/*   T res = sLessThanBB(a, b, true);  */
+/*   return res; */
+/* } */
  
 
 }

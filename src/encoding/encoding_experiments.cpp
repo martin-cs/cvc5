@@ -635,6 +635,92 @@ void makeSignedGadget() {
   eb.printProblemClauses();
 }
 
+void equivalenceCheckerTerm(TBitblaster<Node>::TermBBStrategy e1, std::string name1, 
+			    TBitblaster<Node>::TermBBStrategy e2, std::string name2,
+			    Kind k, unsigned bitwidth) {
+
+  context::Context ctx;
+
+  EncodingBitblaster eb(&ctx, name1+"_vs_"+name2);
+
+  eb.setTermBBStrategy(k, e1);
+  Node a1 = utils::mkVar(bitwidth);
+  Node b1 = utils::mkVar(bitwidth);
+  Node c1 = utils::mkVar(bitwidth);
+  Node a1_op_b1 = utils::mkNode(k, a1, b1);
+  Node eq1 = utils::mkNode(kind::EQUAL, c1, a1_op_b1);
+  eb.assertFact(eq1);
+  
+  eb.setTermBBStrategy(k, e2);
+  Node a2 = utils::mkVar(bitwidth);
+  Node b2 = utils::mkVar(bitwidth);
+  Node c2 = utils::mkVar(bitwidth);
+  Node a2_op_b2 = utils::mkNode(k, a2, b2);
+  Node eq2 = utils::mkNode(kind::EQUAL, c2, a2_op_b2);
+  eb.assertFact(eq2);
+
+  
+  eb.assertFact(utils::mkNode(kind::EQUAL, a1, a2));
+  eb.assertFact(utils::mkNode(kind::EQUAL, b1, b2));
+  eb.assertFact(utils::mkNode(kind::NOT, utils::mkNode(kind::EQUAL, c1, c2)));
+
+  bool res = eb.solve();
+  if (res) {
+    std::cout << "NOT EQUIVALENT " << name1 << "  " << name2 << std::endl;
+    std::cout << a1 <<": " << eb.getModelFromSatSolver(a1, false) << std::endl;
+    std::cout << a2 <<": " << eb.getModelFromSatSolver(a2, false) << std::endl;
+    std::cout << b1 <<": " << eb.getModelFromSatSolver(b1, false) << std::endl;
+    std::cout << b2 <<": " << eb.getModelFromSatSolver(b2, false) << std::endl;
+    std::cout << c1 <<": " << eb.getModelFromSatSolver(c1, false) << std::endl;
+    std::cout << c2 <<": " << eb.getModelFromSatSolver(c2, false) << std::endl;
+  } else {
+    std::cout << "EQUIVALENT bw"<<bitwidth<< " " << name1 << "  " << name2 << std::endl;
+  }
+}
+
+void equivalenceCheckerAtom(TBitblaster<Node>::AtomBBStrategy e1, std::string name1, 
+			    TBitblaster<Node>::AtomBBStrategy e2, std::string name2,
+			    Kind k, unsigned bitwidth) {
+
+  context::Context ctx;
+
+  EncodingBitblaster eb(&ctx, name1+"_vs_"+name2);
+  NodeManager* nm = NodeManager::currentNM();
+  
+  eb.setAtomBBStrategy(k, e1);
+  Node a1 = utils::mkVar(bitwidth);
+  Node b1 = utils::mkVar(bitwidth);
+  Node a1_op_b1 = utils::mkNode(k, a1, b1);
+  Node c1 = nm->mkSkolem("c", nm->booleanType());
+  Node eq1 = utils::mkNode(kind::IFF, c1, a1_op_b1);
+  eb.assertFact(eq1);
+  
+  eb.setAtomBBStrategy(k, e2);
+  Node a2 = utils::mkVar(bitwidth);
+  Node b2 = utils::mkVar(bitwidth);
+  Node a2_op_b2 = utils::mkNode(k, a2, b2);
+  Node c2 = nm->mkSkolem("c", nm->booleanType());
+  Node eq2 = utils::mkNode(kind::IFF, c2, a2_op_b2);
+  eb.assertFact(eq2);
+
+  eb.assertFact(utils::mkNode(kind::EQUAL, a1, a2));
+  eb.assertFact(utils::mkNode(kind::EQUAL, b1, b2));
+  eb.assertFact(utils::mkNode(kind::NOT, utils::mkNode(kind::IFF, c1, c2)));
+
+  bool res = eb.solve();
+  if (res) {
+    std::cout << "NOT EQUIVALENT " << name1 << "  " << name2 << std::endl;
+    std::cout << a1 <<": " << eb.getModelFromSatSolver(a1, false) << std::endl;
+    std::cout << a2 <<": " << eb.getModelFromSatSolver(a2, false) << std::endl;
+    std::cout << b1 <<": " << eb.getModelFromSatSolver(b1, false) << std::endl;
+    std::cout << b2 <<": " << eb.getModelFromSatSolver(b2, false) << std::endl;
+    std::cout << c1 <<": " << eb.getModelFromSatSolver(c1, false) << std::endl;
+    std::cout << c2 <<": " << eb.getModelFromSatSolver(c2, false) << std::endl;
+  } else {
+    std::cout << "EQUIVALENT bw"<<bitwidth<< " " << name1 << "  " << name2 << std::endl;
+  }
+}
+
 
 void CVC4::runEncodingExperiment(Options& opts) {
   ExprManager em;
@@ -648,8 +734,7 @@ void CVC4::runEncodingExperiment(Options& opts) {
   
   /**** Geneerating CNF encoding files for operations ****/
 
-  printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
-  
+  // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult4", 4);
 
@@ -670,14 +755,29 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // sampleAssignments(num_fixed, 3*3, &ec_plus, true);
   // ec_plus.printResults(std::cout);
 
-  BruteForceOptChecker opt(3, kind::BITVECTOR_MULT,
-			   DefaultMultBB<Node>, "default-mult",
-			   OptimalAddMultBB<Node>, "optimal-add-mult");
+  equivalenceCheckerAtom(OptimalUltBB<Node>, "optimal-ult",
+			 DefaultUltBB<Node>, "default-ult",
+			 kind::BITVECTOR_ULT, width);
 
-  sampleAssignments(9, 3*3, &opt, false);
+  equivalenceCheckerAtom(OptimalUleBB<Node>, "optimal-ule",
+			 DefaultUleBB<Node>, "default-ule",
+			 kind::BITVECTOR_ULE, width);
+
+  equivalenceCheckerAtom(OptimalSleBB<Node>, "optimal-sle",
+			 DefaultSleBB<Node>, "default-sle",
+			 kind::BITVECTOR_SLE, width);
   
+  equivalenceCheckerAtom(OptimalSltBB<Node>, "optimal-slt",
+			 DefaultSltBB<Node>, "default-slt",
+			 kind::BITVECTOR_SLT, width);
 
-  opt.printResults();
+  
+  // BruteForceOptChecker opt(3, kind::BITVECTOR_MULT,
+  // 			   DefaultMultBB<Node>, "default-mult",
+  // 			   OptimalAddMultBB<Node>, "optimal-add-mult");
+
+  // sampleAssignments(9, 3*3, &opt, false);
+  // opt.printResults();
   
   // EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
   // 			     DefaultPlusBB<Node>, "default-plus",
