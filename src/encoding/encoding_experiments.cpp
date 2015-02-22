@@ -836,17 +836,17 @@ void equivalenceCheckerTerm(TBitblaster<Node>::TermBBStrategy e1, std::string na
   EncodingBitblaster eb(&ctx, name1+"_vs_"+name2);
 
   eb.setTermBBStrategy(k, e1);
-  Node a1 = utils::mkVar(bitwidth);
-  Node b1 = utils::mkVar(bitwidth);
-  Node c1 = utils::mkVar(bitwidth);
+  Node a1 = utils::mkVar("a1", bitwidth);
+  Node b1 = utils::mkVar("b1", bitwidth);
+  Node c1 = utils::mkVar("c1", bitwidth);
   Node a1_op_b1 = utils::mkNode(k, a1, b1);
   Node eq1 = utils::mkNode(kind::EQUAL, c1, a1_op_b1);
   eb.assertFact(eq1);
   
   eb.setTermBBStrategy(k, e2);
-  Node a2 = utils::mkVar(bitwidth);
-  Node b2 = utils::mkVar(bitwidth);
-  Node c2 = utils::mkVar(bitwidth);
+  Node a2 = utils::mkVar("a2", bitwidth);
+  Node b2 = utils::mkVar("b2", bitwidth);
+  Node c2 = utils::mkVar("c2", bitwidth);
   Node a2_op_b2 = utils::mkNode(k, a2, b2);
   Node eq2 = utils::mkNode(kind::EQUAL, c2, a2_op_b2);
   eb.assertFact(eq2);
@@ -859,12 +859,14 @@ void equivalenceCheckerTerm(TBitblaster<Node>::TermBBStrategy e1, std::string na
   bool res = eb.solve();
   if (res) {
     std::cout << "NOT EQUIVALENT " << name1 << "  " << name2 << std::endl;
-    std::cout << a1 <<": " << eb.getModelFromSatSolver(a1, false) << std::endl;
-    std::cout << a2 <<": " << eb.getModelFromSatSolver(a2, false) << std::endl;
-    std::cout << b1 <<": " << eb.getModelFromSatSolver(b1, false) << std::endl;
-    std::cout << b2 <<": " << eb.getModelFromSatSolver(b2, false) << std::endl;
-    std::cout << c1 <<": " << eb.getModelFromSatSolver(c1, false) << std::endl;
-    std::cout << c2 <<": " << eb.getModelFromSatSolver(c2, false) << std::endl;
+    std::cout << "Model from "<< name1 <<":"<< std::endl;
+    std::cout <<"  "<< a1 <<": " << eb.getModelFromSatSolver(a1, false) << std::endl;
+    std::cout <<"  "<< b1 <<": " << eb.getModelFromSatSolver(b1, false) << std::endl;
+    std::cout <<"  "<< c1 <<": " << eb.getModelFromSatSolver(c1, false) << std::endl;
+    std::cout << "Model from "<< name2 <<":"<< std::endl;
+    std::cout <<"  "<< a2 <<": " << eb.getModelFromSatSolver(a2, false) << std::endl;
+    std::cout <<"  "<< b2 <<": " << eb.getModelFromSatSolver(b2, false) << std::endl;
+    std::cout <<"  "<< c2 <<": " << eb.getModelFromSatSolver(c2, false) << std::endl;
   } else {
     std::cout << "EQUIVALENT bw"<<bitwidth<< " " << name1 << "  " << name2 << std::endl;
   }
@@ -949,21 +951,21 @@ void CVC4::runEncodingExperiment(Options& opts) {
 
   /********* Equivalence Check Comparison ****************/
   
-  equivalenceCheckerAtom(OptimalUltBB<Node>, "optimal-ult",
-  			 DefaultUltBB<Node>, "default-ult",
-  			 kind::BITVECTOR_ULT, width);
+  // equivalenceCheckerAtom(OptimalUltBB<Node>, "optimal-ult",
+  // 			 DefaultUltBB<Node>, "default-ult",
+  // 			 kind::BITVECTOR_ULT, width);
 
-  equivalenceCheckerAtom(OptimalUleBB<Node>, "optimal-ule",
-  			 DefaultUleBB<Node>, "default-ule",
-  			 kind::BITVECTOR_ULE, width);
+  // equivalenceCheckerAtom(OptimalUleBB<Node>, "optimal-ule",
+  // 			 DefaultUleBB<Node>, "default-ule",
+  // 			 kind::BITVECTOR_ULE, width);
 
-  equivalenceCheckerAtom(OptimalSleBB<Node>, "optimal-sle",
-  			 DefaultSleBB<Node>, "default-sle",
-  			 kind::BITVECTOR_SLE, width);
+  // equivalenceCheckerAtom(OptimalSleBB<Node>, "optimal-sle",
+  // 			 DefaultSleBB<Node>, "default-sle",
+  // 			 kind::BITVECTOR_SLE, width);
   
-  equivalenceCheckerAtom(OptimalSltBB<Node>, "optimal-slt",
-  			 DefaultSltBB<Node>, "default-slt",
-  			 kind::BITVECTOR_SLT, width);
+  // equivalenceCheckerAtom(OptimalSltBB<Node>, "optimal-slt",
+  // 			 DefaultSltBB<Node>, "default-slt",
+  // 			 kind::BITVECTOR_SLT, width);
 
 
   /********* Equivalence Check Plus ****************/
@@ -980,12 +982,12 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // 			 kind::BITVECTOR_MULT, width);
 
   // equivalenceCheckerTerm(Mult4BottomBB<Node>, "optimal-mult4bot",
-  // 			 DefaultMultBB<Node>, "default-mult",
-  // 			 kind::BITVECTOR_MULT, width);
+  //  			 DefaultMultBB<Node>, "default-mult",
+  //  			 kind::BITVECTOR_MULT, width);
 
-  // equivalenceCheckerTerm(MultBlock2BB<Node>, "optimal-mult-block2",
-  // 			 DefaultMultBB<Node>, "default-mult",
-  // 			 kind::BITVECTOR_MULT, width);
+  equivalenceCheckerTerm(MultBlock2BB<Node>, "optimal-mult-block2",
+  			 DefaultMultBB<Node>, "default-mult",
+  			 kind::BITVECTOR_MULT, width);
   
   // equivalenceCheckerTerm(Mult3BB<Node>, "optimal-mult3",
   // 			 DefaultMultBB<Node>, "default-mult",

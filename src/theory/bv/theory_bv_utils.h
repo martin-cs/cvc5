@@ -72,6 +72,12 @@ inline Node mkVar(unsigned size) {
   return nm->mkSkolem("bv", nm->mkBitVectorType(size), "is a variable created by the theory of bitvectors"); 
 }
 
+inline Node mkVar(const std::string& name, unsigned size) {
+  NodeManager* nm =  NodeManager::currentNM();
+
+  return nm->mkSkolem(name, nm->mkBitVectorType(size), "is a variable created by the theory of bitvectors"); 
+}
+ 
 
 inline Node mkSortedNode(Kind kind, std::vector<Node>& children) {
   Assert (kind == kind::BITVECTOR_AND ||
