@@ -85,25 +85,25 @@ int EncodingBitblaster::getNumProblemClauses() {
 }
 
 
-void EncodingBitblaster::printLearned() {
+void EncodingBitblaster::printLearned(std::ostream& out) {
   int n = d_satSolver->getNumLearned();
   for (int i = 0; i < n; ++i) {
     CVC4::prop::SatClause cl;
     d_satSolver->getLearnedClause(i, cl);
     
     for (unsigned i = 0; i < cl.size(); ++i) {
-      std::cout << cl[i].toString() << " ";
+      out << cl[i].toString() << " ";
     }
-    std::cout << std::endl;
+    out << std::endl;
     for (unsigned i = 0; i < cl.size(); ++i) {
-        std::cout << d_cnfStream->getNode(cl[i]) << " ";
+        out << d_cnfStream->getNode(cl[i]) << " ";
     }
-    std::cout << std::endl;
+    out << std::endl;
   }
 }
 
-void EncodingBitblaster::printCnfMapping() {
-  std::cout << "c "<< getName() << std::endl;
+void EncodingBitblaster::printCnfMapping(std::ostream& out) {
+  // out << "c "<< getName() << std::endl;
   const CVC4::prop::CnfStream::LiteralToNodeMap& map = d_cnfStream->getNodeCache();
   CVC4::prop::CnfStream::LiteralToNodeMap::const_iterator it = map.begin();
   unsigned num_lits = 0 ;
@@ -112,26 +112,26 @@ void EncodingBitblaster::printCnfMapping() {
     if (num_lits% 2 == 0) {
       CVC4::prop::SatLiteral lit = it->first;
       TNode node = it->second;
-      std::cout << "c " << lit.toString() <<" : " << node << std::endl;
+      out << "c " << lit.toString() <<" : " << node << std::endl;
     }
     ++num_lits;
   }
   Assert (num_lits%2 == 0);
-  std::cout << "p cnf " << num_lits/2 <<" ";
+  out << "p cnf " << num_lits/2 <<" ";
 }
 
-void EncodingBitblaster::printProblemClauses() {
+void EncodingBitblaster::printProblemClauses(std::ostream& out) {
   int n = d_satSolver->getNumClauses();
-  std::cout << n << std::endl;
+  out << n << std::endl;
   for (int i = 0; i < n; ++i) {
     CVC4::prop::SatClause cl;
     d_satSolver->getProblemClause(i, cl);
     
     for (unsigned i = 0; i < cl.size(); ++i) {
-      std::cout << cl[i].toString() << " ";
-    //   std::cout << d_cnfStream->getNode(cl[i]) << " ";
+      out << cl[i].toString() << " ";
+    //   out << d_cnfStream->getNode(cl[i]) << " ";
     }
-    std::cout << "0" << std::endl;
+    out << "0" << std::endl;
   }
 }
 
@@ -142,7 +142,7 @@ void EncodingBitblaster::assertFact(TNode node) {
   Debug("bitvector-bitblast") << "Bitblasting node " << node <<"\n";
   /// if we are using bit-vector abstraction bit-blast the original interpretation
   // the bitblasted definition of the atom
-  Node normalized = Rewriter::rewrite(atom);
+  Node normalized = atom;
   Node atom_bb = normalized.getKind() != kind::CONST_BOOLEAN ?
     d_atomBBStrategies[normalized.getKind()](normalized, this) :
     normalized;
@@ -206,7 +206,7 @@ void EncodingBitblaster::bbAtom(TNode node) {
   ++d_statistics.d_numAtoms;
 
   // the bitblasted definition of the atom
-  Node normalized = Rewriter::rewrite(node);
+  Node normalized = node;
   Node atom_bb = normalized.getKind() != kind::CONST_BOOLEAN ?
     Rewriter::rewrite(d_atomBBStrategies[normalized.getKind()](normalized, this)) :
     normalized;

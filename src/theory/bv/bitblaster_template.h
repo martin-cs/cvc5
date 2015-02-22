@@ -336,12 +336,12 @@ private:
    * Assumes the literal in the current context.
    */
   void assumeLiteral (TNode literal);
-  void printLearned();
-  void printProblemClauses();
+  void printLearned(std::ostream&);
+  void printProblemClauses(std::ostream&);
   void clearLearnedClauses();
   int getNumLearnedClauses();
   int getNumProblemClauses();
-  void printCnfMapping();
+  void printCnfMapping(std::ostream&);
 private:
 
   class Statistics {

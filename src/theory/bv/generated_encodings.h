@@ -261,491 +261,130 @@ Node inline optimalSignGadget(const Node& a, const Node& b, const Node &aLTb,
   return aSLTb;
 }
 
-template <class T>
-inline void optimalMult4Gen(const std::vector<T>&a,
-			    const std::vector<T>& b,
-			    std::vector<T>& c, prop::CnfStream* cnf) {
-  Unreachable();
-}
-
-inline void optimalMult4Gen(const std::vector<Node>&a,
+//template<>
+inline void optimalMult2Gen(const std::vector<Node>&a,
 			    const std::vector<Node>& b,
 			    std::vector<Node>& c, prop::CnfStream* cnf) {
-  Unreachable();
-}
- 
-template <class T>
-inline void optimalMult3Gen(const std::vector<T>&a,
-			 const std::vector<T>& b,
-			 std::vector<T>& c, prop::CnfStream* cnf) {
-  Unreachable();
-}
-
-inline void optimalMult3Gen(const std::vector<Node>&a,
-			    const std::vector<Node>& b,
-			    std::vector<Node>& c, prop::CnfStream* cnf) {
+  
   NodeManager* nm = NodeManager::currentNM();
-  unsigned bitwidth = 3;
+  std::cout << "AAA";
+  unsigned bitwidth = 2;
   Assert(a.size() == b.size() && a.size() == bitwidth &&
 	 c.size() == 0);
 
-  for (unsigned i = 0; i < bitwidth; ++i) {
+  for (unsigned i = 0; i < 2*bitwidth; ++i) {
     c.push_back(nm->mkSkolem("c", nm->booleanType()));
   }
 
-  std::vector<Node> clause; 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[2])), b[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[2])), a[2]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[0])), c[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[0]), b[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(c[0])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[0]), utils::mkAnd(b[0], a[0])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[1])), b[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(utils::mkAnd(b[0], a[1]))), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(a[0], b[1])), a[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(utils::mkAnd(a[0], b[1]))), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(utils::mkAnd(a[1], b[1]))), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(utils::mkAnd(a[0], b[2]))), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(a[0], b[2])), b[2]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(utils::mkAnd(a[1], b[1]))), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[1]), utils::mkNot(b[1]), utils::mkAnd(a[1], b[1])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkAnd(b[0], a[2]), utils::mkNot(b[0]), utils::mkNot(a[2])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkAnd(b[0], a[1]), utils::mkNot(a[1]), utils::mkNot(b[0])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, c[1], utils::mkNot(utils::mkAnd(a[0], b[1])), utils::mkAnd(b[0], a[1])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkAnd(a[0], b[1]), utils::mkAnd(b[0], a[1]), utils::mkNot(c[1])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[1])), c[1], c[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkAnd(a[0], b[2]), utils::mkNot(a[0]), utils::mkNot(b[2])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[0]), utils::mkNot(b[0]), c[0]), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[1])), c[1], utils::mkAnd(a[1], b[1])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[1])), c[1], utils::mkAnd(a[0], b[1])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[2]), utils::mkNot(utils::mkAnd(b[0], a[2])), utils::mkNot(utils::mkAnd(a[0], b[2]))), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkAnd(a[0], b[1]), utils::mkNot(b[1]), utils::mkNot(a[0])), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(a[1], b[1])), utils::mkNot(c[0]), utils::mkNot(c[1])), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[0]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkNot(a[0])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[1])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[0]))); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(a[0], b[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkAnd(a[0], b[1])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[0]))); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(b[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[1])); 
-  clause.push_back(c[2]); 
-  clause.push_back(c[0]); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(c[0]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(a[0], b[1])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(utils::mkAnd(b[0], a[1])), utils::mkNot(utils::mkAnd(a[0], b[1])), utils::mkNot(c[1])), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkAnd(b[0], a[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[1]); 
-  clause.push_back(c[0]); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkAnd(a[0], b[1])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[0]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[0]); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[1]))); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[0]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(b[1]); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(a[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(a[2]); 
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(b[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(c[2]); 
-  clause.push_back(b[0]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[1]))); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[1]))); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(b[0]); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+  std::vector<Node> clause;
+
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[3]), a[1]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[3]), b[1]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[3]), c[0]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[3]), utils::mkNot(c[1])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(c[0])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[2]), a[1]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[2]), b[1]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[2]), utils::mkNot(c[0])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(c[0])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[2]), c[1], utils::mkNot(a[0])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, c[0], utils::mkNot(b[0]), utils::mkNot(a[0])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(c[2]), utils::mkNot(b[0]), c[1]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], b[1], utils::mkNot(c[1])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], a[0], utils::mkNot(c[1])),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(c[1]), a[1]),
+			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(c[1]), a[1]),
+			false, false, RULE_INVALID, TNode::null());
   clause.clear();
   clause.push_back(a[0]); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
   clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[1]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(b[0]); 
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(a[1]); 
   clause.push_back(c[1]); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(b[2]); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(a[0])); 
-  clause.push_back(c[1]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[1]))); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[1])); 
   clause.push_back(utils::mkNot(b[0])); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[1]))); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[1]))); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(a[1]); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
+			false, false, RULE_INVALID, TNode::null());
   clause.clear();
   clause.push_back(b[1]); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkAnd(a[0], b[1])); 
-  clause.push_back(utils::mkNot(a[0])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[1]))); 
   clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(a[1]); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  clause.push_back(b[1]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[2]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(c[2])); 
-  clause.push_back(utils::mkNot(utils::mkAnd(a[0], b[2]))); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
   clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkAnd(b[0], a[2])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(utils::mkAnd(a[1], b[1]))); 
-  clause.push_back(c[1]); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkAnd(a[0], b[2])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(a[2]); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(utils::mkAnd(b[0], a[1]))); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(a[1])); 
-  clause.push_back(b[2]); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkNot(a[0])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(a[2]); 
   clause.push_back(utils::mkNot(b[0])); 
-  clause.push_back(utils::mkNot(b[2])); 
-  clause.push_back(utils::mkNot(b[1])); 
-  clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(c[2]); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
+			false, false, RULE_INVALID, TNode::null());
   clause.clear();
-  clause.push_back(c[2]); 
-  clause.push_back(utils::mkNot(a[2])); 
-  clause.push_back(utils::mkAnd(a[1], b[1])); 
-  clause.push_back(utils::mkNot(b[2])); 
+  clause.push_back(c[0]); 
+  clause.push_back(utils::mkNot(b[0])); 
+  clause.push_back(utils::mkNot(a[1])); 
+  clause.push_back(c[1]); 
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
+			false, false, RULE_INVALID, TNode::null());
+  clause.clear();
   clause.push_back(utils::mkNot(c[1])); 
-  clause.push_back(utils::mkAnd(b[0], a[0])); 
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+  clause.push_back(utils::mkNot(c[0])); 
+  clause.push_back(utils::mkNot(b[1])); 
+  clause.push_back(utils::mkNot(a[1])); 
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
+			false, false, RULE_INVALID, TNode::null());
+  clause.clear();
+  clause.push_back(c[0]); 
+  clause.push_back(c[1]); 
+  clause.push_back(utils::mkNot(b[1])); 
+  clause.push_back(utils::mkNot(a[0])); 
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
+			false, false, RULE_INVALID, TNode::null());
+  clause.clear();
+  clause.push_back(a[1]); 
+  clause.push_back(c[1]); 
+  clause.push_back(utils::mkNot(b[1])); 
+  clause.push_back(utils::mkNot(a[0])); 
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
+			false, false, RULE_INVALID, TNode::null());
 }
+ 
+/* template<> */
+/* inline void optimalMult3Gen(const std::vector<Node>&a, */
+/* 			    const std::vector<Node>& b, */
+/* 			    std::vector<Node>& c, prop::CnfStream* cnf) { */
+/*   NodeManager* nm = NodeManager::currentNM(); */
+/*   unsigned bitwidth = 3; */
+/*   Assert(a.size() == b.size() && a.size() == bitwidth && */
+/* 	 c.size() == 0); */
+
+/*   for (unsigned i = 0; i < bitwidth; ++i) { */
+/*     c.push_back(nm->mkSkolem("c", nm->booleanType())); */
+/*   } */
+
+/*   std::vector<Node> clause;  */
+/* } */
+ 
+/* template<> */
+/* inline void optimalMult4Gen(const std::vector<Node>&a, */
+/* 			    const std::vector<Node>& b, */
+/* 			    std::vector<Node>& c, prop::CnfStream* cnf) { */
+/*   NodeManager* nm = NodeManager::currentNM(); */
+/*   unsigned bitwidth = 3; */
+/*   Assert(a.size() == b.size() && a.size() == bitwidth && */
+/* 	 c.size() == 0); */
+
+/*   for (unsigned i = 0; i < bitwidth; ++i) { */
+/*     c.push_back(nm->mkSkolem("c", nm->booleanType())); */
+/*   } */
+
+/*   std::vector<Node> clause;  */
+/* } */
 
 /*****************************
 *
@@ -826,7 +465,7 @@ inline void shiftOptimalAddMultiplier(const std::vector<Node>&a, const std::vect
     Node carry_in = mkFalse<Node>();
     std::pair<Node, Node> fa_res;
     for(unsigned j = 0; j < res.size() -k; ++j) {
-      Node aj = mkAnd(a[j], b[k]);
+      Node aj = mkAnd(b[k], a[j]);
       fa_res = optimalFullAdder(res[j+k], aj, carry_in, cnf);
       res[j+k] = fa_res.first;
       carry_in = fa_res.second;
@@ -994,6 +633,336 @@ inline void optimalBlock2Mult(const std::vector<Node>& a, const std::vector<Node
 				mkFalse<Node>()).first;
   }
 }
+
+/*************** DEBUGGING REFERENCE ENCODINGS ***********************/
+
+inline void optimalMult2Debug(const std::vector<Node>&a,
+			      const std::vector<Node>& b,
+			      std::vector<Node>& c, prop::CnfStream* cnf) {
+  unsigned size = 2;
+  Assert(a.size() == b.size() && a.size() == size);
+  NodeManager* nm = NodeManager::currentNM();
+  std::cout << "optimalMult2Debug";
+
+  Assert(a.size() == b.size() && a.size() == size &&
+	 c.size() == 0);
+  for (unsigned i = 0; i < size; ++i) {
+    c.push_back(nm->mkSkolem("c", nm->booleanType()));
+  }
+  Node x1 = nm->mkSkolem("x", nm->booleanType());
+  Node x2 = nm->mkSkolem("x", nm->booleanType());
+  Node x3 = nm->mkSkolem("x", nm->booleanType());
+  Node x4 = nm->mkSkolem("x", nm->booleanType());
+  Node x5 = nm->mkSkolem("x", nm->booleanType());
+
+  std::vector<Node> clause;
+  
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[1]), x1), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[1]), utils::mkNot(a[0]), x2), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), utils::mkNot(x2), x3), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), x3, x4), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x2), x3, x4), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, x2, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x2, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x3), utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x2, utils::mkNot(x3), utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x3), utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, x2, utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x5)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x5)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[0]), x5), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x5), c[0]), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x5, utils::mkNot(c[0])), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x4), c[1]), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x4, utils::mkNot(c[1])), false, false, RULE_INVALID, TNode::null());
+
+  
+}
+
+inline void optimalMult3Debug(const std::vector<Node>&a,
+			      const std::vector<Node>& b,
+			      std::vector<Node>& c, prop::CnfStream* cnf) {
+  unsigned size = 3;
+  Assert(a.size() == b.size() && a.size() == size);
+  NodeManager* nm = NodeManager::currentNM();
+  std::cout << "optimalMult3Debug";
+
+  Assert(a.size() == b.size() && a.size() == size &&
+	 c.size() == 0);
+  
+  for (unsigned i = 0; i < size; ++i) {
+    c.push_back(nm->mkSkolem("c", nm->booleanType()));
+  }
+
+  std::vector<Node> clause;
+  Node x1 = nm->mkSkolem("x", nm->booleanType());
+  Node x2 = nm->mkSkolem("x", nm->booleanType());
+  Node x3 = nm->mkSkolem("x", nm->booleanType());
+  Node x4 = nm->mkSkolem("x", nm->booleanType());
+  Node x5 = nm->mkSkolem("x", nm->booleanType());
+  Node x6 = nm->mkSkolem("x", nm->booleanType());
+  Node x7 = nm->mkSkolem("x", nm->booleanType());
+  Node x8 = nm->mkSkolem("x", nm->booleanType());
+  Node x9 = nm->mkSkolem("x", nm->booleanType());
+  Node x10 = nm->mkSkolem("x", nm->booleanType());
+  Node x11 = nm->mkSkolem("x", nm->booleanType());
+  Node x12 = nm->mkSkolem("x", nm->booleanType());
+
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[1]), x1), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[1]), utils::mkNot(a[0]), x2), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), utils::mkNot(x2), x3), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), x3, x4), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x2), x3, x4), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, x2, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x2, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x3), utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x2, utils::mkNot(x3), utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x3), utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x1, x2, utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x5)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[2], utils::mkNot(x5)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[2]), x5), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(x6)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(x6)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[1]), utils::mkNot(b[1]), x6), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x5), utils::mkNot(x6), x7), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x3), utils::mkNot(x5), x7), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x3), utils::mkNot(x6), x7), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x5), x7, x8), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x6), x7, x8), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x3), x7, x8), false, false, RULE_INVALID, TNode::null());
+  clause.clear();
+  clause.push_back(utils::mkNot(x3)); 
+  clause.push_back(utils::mkNot(x5)); 
+  clause.push_back(utils::mkNot(x6)); 
+  clause.push_back(x8); 
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x5, x6, utils::mkNot(x7)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x3, x5, utils::mkNot(x7)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x3, x6, utils::mkNot(x7)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x5, utils::mkNot(x7), utils::mkNot(x8)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x6, utils::mkNot(x7), utils::mkNot(x8)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x3, utils::mkNot(x7), utils::mkNot(x8)), false, false, RULE_INVALID, TNode::null());
+  clause.clear();
+  clause.push_back(x3); 
+  clause.push_back(x5); 
+  clause.push_back(x6); 
+  clause.push_back(utils::mkNot(x8)); 
+  cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[2], utils::mkNot(x9)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x9)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[0]), utils::mkNot(b[2]), x9), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x8), utils::mkNot(x9), x10), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x8), x10, x11), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x9), x10, x11), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x8, x9, utils::mkNot(x10)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x8, utils::mkNot(x10)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x9, utils::mkNot(x10)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x8, utils::mkNot(x10), utils::mkNot(x11)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x9, utils::mkNot(x10), utils::mkNot(x11)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x10), utils::mkNot(x11)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x8, x9, utils::mkNot(x11)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x12)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x12)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[0]), x12), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x12), c[0]), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x12, utils::mkNot(c[0])), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x4), c[1]), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x4, utils::mkNot(c[1])), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x11), c[2]), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, x11, utils::mkNot(c[2])), false, false, RULE_INVALID, TNode::null());
+
+} 
+
+inline void optimalMult4Debug(const std::vector<Node>&a,
+			      const std::vector<Node>& b,
+			      std::vector<Node>& c, prop::CnfStream* cnf) {
+  unsigned size = 4;
+  Assert(a.size() == b.size() && a.size() == size);
+  NodeManager* nm = NodeManager::currentNM();
+  std::cout << "optimalMult4Debug";
+
+  Assert(a.size() == b.size() && a.size() == size &&
+	 c.size() == 0);
+  
+  for (unsigned i = 0; i < size; ++i) {
+    c.push_back(nm->mkSkolem("c", nm->booleanType()));
+  }
+
+  std::vector<Node> clause;
+  Node x1 = nm->mkSkolem("x", nm->booleanType());
+  Node x2 = nm->mkSkolem("x", nm->booleanType());
+  Node x3 = nm->mkSkolem("x", nm->booleanType());
+  Node x4 = nm->mkSkolem("x", nm->booleanType());
+  Node x5 = nm->mkSkolem("x", nm->booleanType());
+  Node x6 = nm->mkSkolem("x", nm->booleanType());
+  Node x7 = nm->mkSkolem("x", nm->booleanType());
+  Node x8 = nm->mkSkolem("x", nm->booleanType());
+  Node x9 = nm->mkSkolem("x", nm->booleanType());
+  Node x10 = nm->mkSkolem("x", nm->booleanType());
+  Node x11 = nm->mkSkolem("x", nm->booleanType());
+  Node x12 = nm->mkSkolem("x", nm->booleanType());
+  Node x13 = nm->mkSkolem("x", nm->booleanType());
+  Node x14 = nm->mkSkolem("x", nm->booleanType());
+  Node x15 = nm->mkSkolem("x", nm->booleanType());
+  Node x16 = nm->mkSkolem("x", nm->booleanType());
+  Node x17 = nm->mkSkolem("x", nm->booleanType());
+  Node x18 = nm->mkSkolem("x", nm->booleanType());
+  Node x19 = nm->mkSkolem("x", nm->booleanType());
+  Node x20 = nm->mkSkolem("x", nm->booleanType());
+  Node x21 = nm->mkSkolem("x", nm->booleanType());
+
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[1]), x1), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x1)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[1]), utils::mkNot(a[0]), x1), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), utils::mkNot(x1), x2), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), x2, x3), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x1), x2, x3), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x1, x1, utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x2)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x2), utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x1, utils::mkNot(x2), utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x2), utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x1, x1, utils::mkNot(x3)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[2], utils::mkNot(x4)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[2]), x4), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(x5)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(x5)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[1]), utils::mkNot(b[1]), x5), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x4), utils::mkNot(x5), x6), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x2), utils::mkNot(x4), x6), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x2), utils::mkNot(x5), x6), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x4), x6, x7), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x5), x6, x7), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x2), x6, x7), false, false, RULE_INVALID, TNode::null());
+clause.clear();
+clause.push_back(utils::mkNot(x2)); 
+clause.push_back(utils::mkNot(x4)); 
+clause.push_back(utils::mkNot(x5)); 
+clause.push_back(x7); 
+cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x4, x5, utils::mkNot(x6)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x2, x4, utils::mkNot(x6)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x2, x5, utils::mkNot(x6)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x4, utils::mkNot(x6), utils::mkNot(x7)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x5, utils::mkNot(x6), utils::mkNot(x7)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x2, utils::mkNot(x6), utils::mkNot(x7)), false, false, RULE_INVALID, TNode::null());
+clause.clear();
+clause.push_back(x2); 
+clause.push_back(x4); 
+clause.push_back(x5); 
+clause.push_back(utils::mkNot(x7)); 
+cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x8)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[3], utils::mkNot(x8)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[3]), x8), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[1], utils::mkNot(x9)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[2], utils::mkNot(x9)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[1]), utils::mkNot(a[2]), x9), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x8), utils::mkNot(x9), x10), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x6), utils::mkNot(x8), x10), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x6), utils::mkNot(x9), x10), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x8), x10, x21), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x9), x10, x21), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x6), x10, x21), false, false, RULE_INVALID, TNode::null());
+clause.clear();
+clause.push_back(utils::mkNot(x6)); 
+clause.push_back(utils::mkNot(x8)); 
+clause.push_back(utils::mkNot(x9)); 
+clause.push_back(x21); 
+cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x8, x9, utils::mkNot(x10)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x6, x8, utils::mkNot(x10)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x6, x9, utils::mkNot(x10)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x8, utils::mkNot(x10), utils::mkNot(x21)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x9, utils::mkNot(x10), utils::mkNot(x21)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x6, utils::mkNot(x10), utils::mkNot(x21)), false, false, RULE_INVALID, TNode::null());
+clause.clear();
+clause.push_back(x6); 
+clause.push_back(x8); 
+clause.push_back(x9); 
+clause.push_back(utils::mkNot(x21)); 
+cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[2], utils::mkNot(x11)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x11)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[0]), utils::mkNot(b[2]), x11), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x7), utils::mkNot(x11), x12), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x7), x12, x13), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x11), x12, x13), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x7, x11, utils::mkNot(x12)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x7, utils::mkNot(x12)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x11, utils::mkNot(x12)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x7, utils::mkNot(x12), utils::mkNot(x13)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x11, utils::mkNot(x12), utils::mkNot(x13)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x12), utils::mkNot(x13)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x7, x11, utils::mkNot(x13)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[2], utils::mkNot(x14)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[1], utils::mkNot(x14)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[1]), utils::mkNot(b[2]), x14), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x21), utils::mkNot(x14), x15), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x21), utils::mkNot(x12), x15), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x12), utils::mkNot(x14), x15), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x21), x15, x16), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x14), x15, x16), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x12), x15, x16), false, false, RULE_INVALID, TNode::null());
+clause.clear();
+clause.push_back(utils::mkNot(x21)); 
+clause.push_back(utils::mkNot(x12)); 
+clause.push_back(utils::mkNot(x14)); 
+clause.push_back(x16); 
+cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x21, x14, utils::mkNot(x15)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x21, x12, utils::mkNot(x15)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x12, x14, utils::mkNot(x15)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x21, utils::mkNot(x15), utils::mkNot(x16)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x14, utils::mkNot(x15), utils::mkNot(x16)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x12, utils::mkNot(x15), utils::mkNot(x16)), false, false, RULE_INVALID, TNode::null());
+clause.clear();
+clause.push_back(x21); 
+clause.push_back(x12); 
+clause.push_back(x14); 
+clause.push_back(utils::mkNot(x16)); 
+cnf->convertAndAssert(nm->mkNode(kind::OR, clause), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[3], utils::mkNot(x17)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x17)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a[0]), utils::mkNot(b[3]), x17), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x16), utils::mkNot(x17), x18), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x16), x18, x19), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x17), x18, x19), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x16, x17, utils::mkNot(x18)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x16, utils::mkNot(x18)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x17, utils::mkNot(x18)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x16, utils::mkNot(x18), utils::mkNot(x19)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x17, utils::mkNot(x18), utils::mkNot(x19)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x18), utils::mkNot(x19)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x16, x17, utils::mkNot(x19)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, b[0], utils::mkNot(x20)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, a[0], utils::mkNot(x20)), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b[0]), utils::mkNot(a[0]), x20), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x20), c[0]), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x20, utils::mkNot(c[0])), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x3), c[1]), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x3, utils::mkNot(c[1])), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x13), c[2]), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x13, utils::mkNot(c[2])), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(x19), c[3]), false, false, RULE_INVALID, TNode::null());
+cnf->convertAndAssert(nm->mkNode(kind::OR, x19, utils::mkNot(c[3])), false, false, RULE_INVALID, TNode::null());
+} 
  
 }
 }

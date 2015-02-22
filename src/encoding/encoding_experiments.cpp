@@ -22,6 +22,7 @@
 #include "main/options.h"
 
 #include <stdlib.h>
+#include <fstream>
 
 using namespace std;
 using namespace CVC4;
@@ -450,8 +451,8 @@ public:
   }
 
   void printResults() {
-    d_encodingBB1.printLearned();
-    d_encodingBB2.printLearned();
+    d_encodingBB1.printLearned(std::cout);
+    d_encodingBB2.printLearned(std::cout);
   }
 };
 
@@ -558,8 +559,8 @@ public:
   }
 
   void printResults() {
-    d_encodingBB1.printLearned();
-    d_encodingBB2.printLearned();
+    d_encodingBB1.printLearned(std::cout);
+    d_encodingBB2.printLearned(std::cout);
   }
 };
 
@@ -651,54 +652,179 @@ public:
 };
 
 
-void printTermEncoding(Kind k, TBitblaster<Node>::TermBBStrategy e, std::string name, unsigned bitwidth) {
+void printTermEncoding(Kind k, TBitblaster<Node>::TermBBStrategy e, std::string name,
+		       unsigned bitwidth, bool auxiliaries = false) {
+
+  std::ostringstream os;
+  os << name << "_" << bitwidth<< (auxiliaries? "_aux" : "");
+  name = os.str();
+  
+  ofstream outfile;
+  outfile.open ((name+".dimacs").c_str());
+
   EncodingBitblaster eb(new context::Context(), name);
   eb.setTermBBStrategy(k, e);
-  Node a = utils::mkVar(bitwidth);
-  Node b = utils::mkVar(bitwidth);
-  Node c = utils::mkVar(bitwidth);
+  Node a = utils::mkVar("a", bitwidth);
+  Node b = utils::mkVar("b", bitwidth);
+  Node c = utils::mkVar("c", bitwidth);
 
   Node a_op_b = utils::mkNode(k, a, b);
   Node assertion = utils::mkNode(kind::EQUAL, a_op_b, c);
-  
+
   eb.assertFact(assertion);
 
-  eb.printCnfMapping();
-  eb.printProblemClauses();
+  EncodingBitblaster::Bits all_bits, bits;
+  eb.getBBTerm(a, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+  eb.getBBTerm(b, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+  eb.getBBTerm(c, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+
+  CVC4::prop::CnfStream* cnf = eb.getCnfStream();
+  
+  // for multiplication optionally print auxiliaries
+  if (k == kind::BITVECTOR_MULT && auxiliaries) {
+    NodeManager* nm = NodeManager::currentNM();
+    
+    EncodingBitblaster::Bits a_bits, b_bits;
+    eb.getBBTerm(a, a_bits);
+    eb.getBBTerm(b, b_bits);
+    for (unsigned i = 0; i < b_bits.size(); ++i) {
+      for (unsigned j = 0; j < a_bits.size(); ++j) {
+	Node a_and_b = nm->mkNode(kind::AND, b_bits[i], a_bits[j]);
+	if (!cnf->hasLiteral(a_and_b)) {
+	  a_and_b = nm->mkNode(kind::AND, a_bits[j], b_bits[i]);
+	  if (!cnf->hasLiteral(a_and_b)) {
+	    continue;
+	  }
+	}
+	all_bits.push_back(a_and_b);
+      }
+    }
+  }
+
+  outfile << "c " << eb.getName() << std::endl;
+  outfile << "c i ";
+  // print variables that should be decided
+  for (unsigned i = 0; i < all_bits.size(); ++i) {
+    CVC4::prop::SatLiteral var = cnf->getLiteral(all_bits[i]);
+    Assert (!var.isNegated());
+    outfile << var <<" ";
+  }
+
+  outfile << "0" << std::endl;
+  
+  eb.printCnfMapping(outfile);
+  eb.printProblemClauses(outfile);
+  outfile.close();
 }
 
 void printAtomEncoding(Kind k, TBitblaster<Node>::AtomBBStrategy e, std::string name, unsigned bitwidth) {
+  std::ostringstream os;
+  os << name << "_" << bitwidth;
+  name = os.str();
+  ofstream outfile;
+  outfile.open ((name+".dimacs").c_str());
+
   EncodingBitblaster eb(new context::Context(), name);
   eb.setAtomBBStrategy(k, e);
-  Node a = utils::mkVar(bitwidth);
-  Node b = utils::mkVar(bitwidth);
-  //NodeManager* nm = NodeManager::currentNM();
-  //Node out = nm->mkSkolem("out", nm->booleanType());
+  Node a = utils::mkVar("a", bitwidth);
+  Node b = utils::mkVar("b", bitwidth);
   Node a_op_b = utils::mkNode(k, a, b);
-  //Node assertion = utils::mkNode(kind::IFF, a_op_b, out);
   
   eb.bbAtom(a_op_b);
 
-  eb.printCnfMapping();
-  eb.printProblemClauses();
+  EncodingBitblaster::Bits all_bits, bits;
+  eb.getBBTerm(a, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+  eb.getBBTerm(b, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+
+  CVC4::prop::CnfStream* cnf = eb.getCnfStream();
+  Assert (cnf->hasLiteral(a_op_b));
+  all_bits.push_back(a_op_b);
+
+  outfile << "c " << eb.getName() << std::endl;
+  outfile << "c i ";
+  for (unsigned i = 0; i < all_bits.size(); ++i) {
+    CVC4::prop::SatLiteral var = cnf->getLiteral(all_bits[i]);
+    Assert (!var.isNegated());
+    outfile << var <<" ";
+  }
+  outfile << "0" << std::endl;    
+
+  eb.printCnfMapping(outfile);
+  eb.printProblemClauses(outfile);
+  outfile.close();
 }
 
-void printMult4x4x8(Kind k, TBitblaster<Node>::TermBBStrategy e) {
-  EncodingBitblaster eb(new context::Context(), "Mult4x4x8");
-  unsigned bitwidth = 4;
-  eb.setTermBBStrategy(k, e);
-  Node a = utils::mkVar(bitwidth);
-  Node b = utils::mkVar(bitwidth);
-  Node c = utils::mkVar(2*bitwidth);
+void printOperator2n(Kind k, TBitblaster<Node>::TermBBStrategy e, std::string name,
+		     unsigned bitwidth, bool auxiliaries = false) {
+  std::ostringstream os;
+  os << name << "_" <<bitwidth << (auxiliaries? "_aux" : "");
+  name = os.str();
+  EncodingBitblaster eb(new context::Context(), name);
 
-  Node a_op_b = utils::mkNode(k, utils::mkConcat(utils::mkConst(4, 0u), a),
-			         utils::mkConcat(utils::mkConst(4, 0u), b));
+  ofstream outfile;
+  outfile.open((name+".dimacs").c_str());
+  
+  eb.setTermBBStrategy(k, e);
+  Node a = utils::mkVar("a", bitwidth);
+  Node b = utils::mkVar("b", bitwidth);
+  Node c = utils::mkVar("c", 2*bitwidth);
+
+  Node a_op_b = utils::mkNode(k, utils::mkConcat(utils::mkConst(bitwidth, 0u), a),
+			         utils::mkConcat(utils::mkConst(bitwidth, 0u), b));
   Node assertion = utils::mkNode(kind::EQUAL, a_op_b, c);
   
   eb.assertFact(assertion);
 
-  eb.printCnfMapping();
-  eb.printProblemClauses();
+  EncodingBitblaster::Bits all_bits, bits;
+  eb.getBBTerm(a, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+  eb.getBBTerm(b, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+  eb.getBBTerm(c, bits);
+  all_bits.insert(all_bits.end(), bits.begin(), bits.end());
+
+  CVC4::prop::CnfStream* cnf = eb.getCnfStream();
+
+  // std::cout << "assertion " << cnf->getLiteral(assertion) << std::endl;
+  // for multiplication optionally print auxiliaries
+  if (k == kind::BITVECTOR_MULT && auxiliaries) {
+    NodeManager* nm = NodeManager::currentNM();
+    
+    EncodingBitblaster::Bits a_bits, b_bits;
+    eb.getBBTerm(a, a_bits);
+    eb.getBBTerm(b, b_bits);
+    for (unsigned i = 0; i < b_bits.size(); ++i) {
+      for (unsigned j = 0; j < a_bits.size(); ++j) {
+	Node a_and_b = nm->mkNode(kind::AND, b_bits[i], a_bits[j]);
+	if (!cnf->hasLiteral(a_and_b)) {
+	  a_and_b = nm->mkNode(kind::AND, a_bits[j], b_bits[i]);
+	  if (!cnf->hasLiteral(a_and_b))  {
+	    continue;
+	  }
+	}
+	all_bits.push_back(a_and_b);
+      }
+    }
+  }
+
+  outfile << "c " << eb.getName() << std::endl;
+  outfile << "c i ";
+  // print variables that should be decided
+  for (unsigned i = 0; i < all_bits.size(); ++i) {
+    CVC4::prop::SatLiteral var = cnf->getLiteral(all_bits[i]);
+    Assert (!var.isNegated());
+    outfile << var <<" ";
+  }
+  outfile << "0" << std::endl;
+  
+  eb.printCnfMapping(outfile);
+  eb.printProblemClauses(outfile);
+  outfile.close();
 }
 
 
@@ -722,8 +848,8 @@ void makeLTGadget() {
   CVC4::prop::SatLiteral answer_out = eb.getCnfStream()->getLiteral(pair.second);
   std::cout << "c " << ans_found_out << " : answerFoundOut" << std::endl;
   std::cout << "c " << answer_out <<" : answerOut"<< std::endl;
-  eb.printCnfMapping();
-  eb.printProblemClauses();
+  eb.printCnfMapping(std::cout);
+  eb.printProblemClauses(std::cout);
 }
 
 void makeLTGenGadget() {
@@ -746,8 +872,8 @@ void makeLTGenGadget() {
   CVC4::prop::SatLiteral answer_out = eb.getCnfStream()->getLiteral(pair.second);
   std::cout << "c " << ans_found_out << " : answerFoundOut" << std::endl;
   std::cout << "c " << answer_out <<" : answerOut"<< std::endl;
-  eb.printCnfMapping();
-  eb.printProblemClauses();
+  eb.printCnfMapping(std::cout);
+  eb.printProblemClauses(std::cout);
 }
 
 
@@ -823,8 +949,8 @@ void makeSignedGadget() {
   CVC4::prop::SatLiteral aSLTb = eb.getCnfStream()->getLiteral(res);
   std::cout << "c " << aSLTb << " : aSLTb" << std::endl;
   std::cout << "c " << eb.getCnfStream()->getLiteral(aLTb) <<" : aLTb"<< std::endl; 
-  eb.printCnfMapping();
-  eb.printProblemClauses();
+  eb.printCnfMapping(std::cout);
+  eb.printProblemClauses(std::cout);
 }
 
 void equivalenceCheckerTerm(TBitblaster<Node>::TermBBStrategy e1, std::string name1, 
@@ -915,6 +1041,23 @@ void equivalenceCheckerAtom(TBitblaster<Node>::AtomBBStrategy e1, std::string na
   }
 }
 
+void generateReferenceEncodings(unsigned k) {
+  Assert (k >= 2);
+  // to test generating optimal encodings (and optimality of current designs)
+  for (unsigned i = 2; i < k; ++i) {
+    printAtomEncoding(kind::BITVECTOR_ULT, OptimalUltBB<Node>, "optimal-ult", i);
+    printAtomEncoding(kind::BITVECTOR_ULE, OptimalUleBB<Node>, "optimal-ule", i);
+    printAtomEncoding(kind::BITVECTOR_SLT, OptimalSltBB<Node>, "optimal-slt", i);
+    printAtomEncoding(kind::BITVECTOR_SLE, OptimalSleBB<Node>, "optimal-sle", i);
+
+    printTermEncoding(kind::BITVECTOR_PLUS, OptimalPlusBB<Node>, "optimal-plus", i);
+    printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i);
+    printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, true);
+    
+    printOperator2n(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult2n", i);
+    printOperator2n(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult2n", i, true);
+  }
+}
 
 void CVC4::runEncodingExperiment(Options& opts) {
   ExprManager em;
@@ -926,7 +1069,10 @@ void CVC4::runEncodingExperiment(Options& opts) {
   unsigned width = opts[options::encodingBitwidth];
 
   
-  /**** Geneerating CNF encoding files for operations ****/
+  /**** Generating CNF encoding files for operations ****/
+
+  printOperator2n(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult2n", 1);
+  // generateReferenceEncodings(width);
 
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
@@ -985,10 +1131,14 @@ void CVC4::runEncodingExperiment(Options& opts) {
   //  			 DefaultMultBB<Node>, "default-mult",
   //  			 kind::BITVECTOR_MULT, width);
 
-  equivalenceCheckerTerm(MultBlock2BB<Node>, "optimal-mult-block2",
+  equivalenceCheckerTerm(DebugMultBB<Node>, "debug-mult",
   			 DefaultMultBB<Node>, "default-mult",
   			 kind::BITVECTOR_MULT, width);
-  
+
+  // equivalenceCheckerTerm(MultBlock2BB<Node>, "optimal-mult-block2",
+  // 			 DefaultMultBB<Node>, "default-mult",
+  // 			 kind::BITVECTOR_MULT, width);
+
   // equivalenceCheckerTerm(Mult3BB<Node>, "optimal-mult3",
   // 			 DefaultMultBB<Node>, "default-mult",
   // 			 kind::BITVECTOR_MULT, width);
@@ -997,7 +1147,7 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // 			 DefaultMultBB<Node>, "default-mult",
   // 			 kind::BITVECTOR_MULT, width);
 
-  
+
   // makeLTGadget();
   //testUltGadget();
   // makeLTGenGadget();
