@@ -267,6 +267,7 @@ private:
   void addAtom(TNode atom);
   bool hasValue(TNode a);
  public:
+  CVC4::prop::EMinisatSatSolver* getSatSolver() { return d_satSolver; }
   Node getModelFromSatSolver(TNode a, bool fullModel);  
   /** This class gets callbacks from minisat on propagations */
   class EncodingNotify : public CVC4::prop::EMinisatSatSolver::Notify {

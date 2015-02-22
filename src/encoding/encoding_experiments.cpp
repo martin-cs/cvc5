@@ -726,6 +726,90 @@ void makeLTGadget() {
   eb.printProblemClauses();
 }
 
+void makeLTGenGadget() {
+  EncodingBitblaster eb(new context::Context(), "LTGadget1");
+  NodeManager* nm = NodeManager::currentNM();
+  Node a = nm->mkSkolem("a", nm->booleanType());
+  Node b = nm->mkSkolem("b", nm->booleanType());
+  Node ans_found = nm->mkSkolem("answerFound", nm->booleanType());
+  Node answer = nm->mkSkolem("answer", nm->booleanType());
+
+  // Node ans_found_out = utils::mkSkolem("ans_found_out", nm->booleanType());
+  // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
+  
+  std::pair<Node, Node> pair;
+  pair = theory::bv::optimalUltGadget(ans_found, answer, a, b, eb.getCnfStream());
+
+  eb.getCnfStream()->ensureLiteral(pair.first);
+  eb.getCnfStream()->ensureLiteral(pair.second);
+  CVC4::prop::SatLiteral ans_found_out = eb.getCnfStream()->getLiteral(pair.first);
+  CVC4::prop::SatLiteral answer_out = eb.getCnfStream()->getLiteral(pair.second);
+  std::cout << "c " << ans_found_out << " : answerFoundOut" << std::endl;
+  std::cout << "c " << answer_out <<" : answerOut"<< std::endl;
+  eb.printCnfMapping();
+  eb.printProblemClauses();
+}
+
+
+// void testUltGadget() {
+//   EncodingBitblaster eb(new context::Context(), "LTGadget1");
+//   NodeManager* nm = NodeManager::currentNM();
+//   Node a = nm->mkSkolem("a", nm->booleanType());
+//   Node b = nm->mkSkolem("b", nm->booleanType());
+//   Node ans_found = nm->mkSkolem("answerFound", nm->booleanType());
+//   Node answer = nm->mkSkolem("answer", nm->booleanType());
+
+//   // Node ans_found_out = utils::mkSkolem("ans_found_out", nm->booleanType());
+//   // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
+  
+//   std::pair<Node, Node> pair;
+//   pair = theory::bv::optimalUltGadget(ans_found, answer, a, b, eb.getCnfStream());
+//   TNode af1 = pair.first;
+//   TNode ans1 = pair.second;
+
+//   CnfStream* cnf = eb.getCnfStream();
+//   CVC4::prop::EMinisatSatSolver* sat_solver = eb.getSatSolver();
+//   cnf->ensureLiteral(af1);
+//   cnf->ensureLiteral(ans1);
+//   pair = theory::bv::optimalUltGadgetGen(ans_found, answer, a, b, cnf);
+//   TNode af2 = pair.first;
+//   TNode ans2 = pair.second;
+
+//   Node af1_eq_af2 = af1.iffNode(af2);
+//   Node ans1_eq_ans2 = ans1.iffNode(ans2);
+
+//   //cnf->convertAndAssert(af1_eq_af2.notNode(), false, false, RULE_INVALID, TNode::null());
+//   cnf->convertAndAssert(ans1_eq_ans2.notNode(), false, false, RULE_INVALID, TNode::null());
+
+//   bool res = eb.solve();
+
+//   std::cout << "Result is " << res << std::endl;
+//   if (res) {
+//     std::cout << "a: " << eb.getModelFromSatSolver(a, false) << std::endl;
+//     std::cout << "b: " << eb.getModelFromSatSolver(b, false) << std::endl;
+//     std::cout << "ans_found: " << eb.getModelFromSatSolver(ans_found, false) << std::endl;
+//     std::cout << "answer: " << eb.getModelFromSatSolver(answer, false) << std::endl;
+//     CVC4::prop::SatValue af1_val = sat_solver->value(cnf->getLiteral(af1));
+//     std::cout << "af1: " << af1_val << std::endl;
+//     CVC4::prop::SatValue ans1_val = sat_solver->value(cnf->getLiteral(ans1));
+//     std::cout << "ans1: " << ans1_val << std::endl;
+//     std::cout << "af2: " << eb.getModelFromSatSolver(af2, false) << std::endl;
+//     std::cout << "ans2: " << eb.getModelFromSatSolver(ans2, false) << std::endl;
+//   }
+//   CVC4::prop::SatLiteral ans_found_out = cnf->getLiteral(af1);
+//   CVC4::prop::SatLiteral answer_out = cnf->getLiteral(ans1);
+//   std::cout << "c " << ans_found_out << " : answerFoundOut1" << std::endl;
+//   std::cout << "c " << answer_out <<" : answerOut1"<< std::endl;
+//   ans_found_out = cnf->getLiteral(af2);
+//   answer_out = cnf->getLiteral(ans2);
+//   std::cout << "c " << ans_found_out << " : answerFoundOut2" << std::endl;
+//   std::cout << "c " << answer_out <<" : answerOut2"<< std::endl;
+
+//   eb.printCnfMapping();
+//   eb.printProblemClauses();
+// }
+
+
 void makeSignedGadget() {
   EncodingBitblaster eb(new context::Context(), "SignedGadget");
   NodeManager* nm = NodeManager::currentNM();
@@ -912,7 +996,9 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // 			 kind::BITVECTOR_MULT, width);
 
   
-  makeLTGadget();
+  // makeLTGadget();
+  //testUltGadget();
+  // makeLTGenGadget();
   // makeSignedGadget();
   // BruteForceTermOptChecker opt(width, kind::BITVECTOR_MULT,
   // 			          DefaultMultBB<Node>, "default-mult",
