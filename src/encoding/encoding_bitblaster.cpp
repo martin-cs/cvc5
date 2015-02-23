@@ -102,22 +102,31 @@ void EncodingBitblaster::printLearned(std::ostream& out) {
   }
 }
 
-void EncodingBitblaster::printCnfMapping(std::ostream& out) {
+void EncodingBitblaster::printCnfMapping(std::ostream& out, const NodeSet& toprint) {
   // out << "c "<< getName() << std::endl;
   const CVC4::prop::CnfStream::LiteralToNodeMap& map = d_cnfStream->getNodeCache();
   CVC4::prop::CnfStream::LiteralToNodeMap::const_iterator it = map.begin();
   unsigned num_lits = 0 ;
+  unsigned num_skolems = 0;
   for (; it != map.end(); ++it) {
-    // we only want to print the variables really
-    if (num_lits% 2 == 0) {
-      CVC4::prop::SatLiteral lit = it->first;
-      TNode node = it->second;
+    CVC4::prop::SatLiteral lit = it->first;
+
+    if (lit.isNegated()) continue;
+    
+    TNode node = it->second;
+    if (!toprint.empty()) {
+      if (toprint.find(node) != toprint.end()) {
+	out << "c " << lit.toString() <<" : " << node << std::endl;
+      } else {
+	out << "c " << lit.toString() <<" : x[" << num_skolems<<"]" << std::endl;
+	++num_skolems;
+      }
+    } else {
       out << "c " << lit.toString() <<" : " << node << std::endl;
     }
     ++num_lits;
   }
-  Assert (num_lits%2 == 0);
-  out << "p cnf " << num_lits/2 <<" ";
+  out << "p cnf " << num_lits <<" ";
 }
 
 void EncodingBitblaster::printProblemClauses(std::ostream& out) {

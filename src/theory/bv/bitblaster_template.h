@@ -341,7 +341,7 @@ private:
   void clearLearnedClauses();
   int getNumLearnedClauses();
   int getNumProblemClauses();
-  void printCnfMapping(std::ostream&);
+  void printCnfMapping(std::ostream&, const NodeSet& named = NodeSet());
 private:
 
   class Statistics {

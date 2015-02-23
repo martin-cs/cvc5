@@ -1042,6 +1042,31 @@ void Mult4BB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   }
 }
 
+template <class T>
+void Mult3BottomBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::Mult3Bottom bitblasting "<< node << "\n";
+  Assert(res.size() == 0 &&
+         node.getKind() == kind::BITVECTOR_MULT);
+
+ 
+  std::vector<T> newres; 
+  bb->bbTerm(node[0], res); 
+  for(unsigned i = 1; i < node.getNumChildren(); ++i) {
+    std::vector<T> current;
+    bb->bbTerm(node[i], current);
+    newres.clear(); 
+
+    optimalMultKBottom(res, current, newres, 3, bb->getCnfStream());
+    
+    Assert (newres.size()); 
+    res = newres;
+  }
+  
+  if(Debug.isOn("bitvector-bb")) {
+    Debug("bitvector-bb") << "with bits: " << toString(res)  << "\n";
+  }
+}
+
  
 template <class T>
 void Mult4BottomBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
