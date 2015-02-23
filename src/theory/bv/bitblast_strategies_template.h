@@ -147,8 +147,11 @@ T DefaultSltBB(TNode node, TBitblaster<T>* bb){
 
   if (options::bvOptimalLess()) {
     unsigned width = a.size();
+    if(width == 1) {
+      return mkAnd(a[0], mkNot(b[0]));
+    }
     T ult = optimalUltBB(a, b, width - 1, false, bb->getCnfStream());
-    T res = optimalSignGadget(a[width-2], b[width-2], ult, bb->getCnfStream());
+    T res = optimalSignGadget(a[width-1], b[width-1], ult, bb->getCnfStream());
     return res;
   }
   
@@ -167,8 +170,12 @@ T DefaultSleBB(TNode node, TBitblaster<T>* bb){
 
   if (options::bvOptimalLess()) {
     unsigned width = a.size();
+    if(width == 1) {
+      return mkOr(a[0], mkNot(b[0]));
+    }
+
     T ult = optimalUltBB(a, b, width - 1, true, bb->getCnfStream());
-    T res = optimalSignGadget(a[width-2], b[width-2], ult, bb->getCnfStream());
+    T res = optimalSignGadget(a[width-1], b[width-1], ult, bb->getCnfStream());
     return res;
   }
   
@@ -393,11 +400,17 @@ void DefaultMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
     newres.clear(); 
     // constructs a simple shift and add multiplier building the result
     // in res
-    if (options::bvOptMult3() && utils::getSize(node) == 3) {
-      optimalMult3(res, current, newres, bb->getCnfStream());
-    } else if (options::bvOptMult4() && utils::getSize(node) == 4) {
-      optimalMult4(res, current, newres, bb->getCnfStream());
-    } else if (options::bvOptMult4Bottom()) {
+    
+    // optimalMultK currently return 2K bits
+    /* if (options::bvOptMult3() && utils::getSize(node) == 3) { */
+    /*   optimalMult3(res, current, newres, bb->getCnfStream()); */
+    /* } else if (options::bvOptMult4() && utils::getSize(node) == 4) { */
+    /*   optimalMult4(res, current, newres, bb->getCnfStream()); */
+    /* } else */ if (options::bvOptMult2Bottom() && utils::getSize(node) >=2 ) {
+      optimalMultKBottom(res, current, newres, 2, bb->getCnfStream());
+    } else if (options::bvOptMult3Bottom() && utils::getSize(node) >=3 ) {
+      optimalMultKBottom(res, current, newres, 3, bb->getCnfStream());
+    } else if (options::bvOptMult4Bottom() && utils::getSize(node) >=4 ) {
       optimalMultKBottom(res, current, newres, 4, bb->getCnfStream());
     } else if (options::bvOptimalAddMult()) {
       shiftOptimalAddMultiplier(res, current, newres,bb->getCnfStream());
@@ -1144,7 +1157,7 @@ Node inline DefaultSkolemBB(TNode node, TBitblaster<Node>* bb) {
  
 template <class T>
 void DebugMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
-  Debug("bitvector") << "theory::bv:: DefaultMultBB bitblasting "<< node << "\n";
+  Debug("bitvector") << "theory::bv:: DebugMultBB bitblasting "<< node << "\n";
   Assert(res.size() == 0 &&
          node.getKind() == kind::BITVECTOR_MULT);
 

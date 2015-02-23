@@ -81,6 +81,12 @@ expert-option bvOptMult3 --bv-optimal-mult3 bool :default false
 expert-option bvOptMult4 --bv-optimal-mult4 bool :default false
  bit-blast multiplication of size 4 optimally
 
+expert-option bvOptMult2Bottom --bv-optimal-mult2-bottom bool :default false
+ bit-blast the bottom 2 bits of multiplication optimally
+
+expert-option bvOptMult3Bottom --bv-optimal-mult3-bottom bool :default false
+ bit-blast the bottom 3 bits of multiplication optimally
+ 
 expert-option bvOptMult4Bottom --bv-optimal-mult4-bottom bool :default false
  bit-blast the bottom 4 bits of multiplication optimally
 

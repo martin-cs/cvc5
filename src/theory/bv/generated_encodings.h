@@ -221,12 +221,10 @@ template <class T>
   Assert (a.size() && b.size());
   Assert (k <= a.size());
   
-  if (a.size() == 1) {
-    if(orEqual) {
-      return  mkOr(mkIff(a[0], b[0]),
-                   mkAnd(mkNot(a[0]), b[0])); 
+  if (k == 1) {
+    if (orEqual) {
+      return mkOr(mkNot(a[0]),b[0]); 
     }
-
     return mkAnd(mkNot(a[0]), b[0]);
   }
 
