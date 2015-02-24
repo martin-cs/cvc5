@@ -116,9 +116,13 @@ EncodingOrder comparePropagations(EncodingBitblaster::EncodingNotify& en1,
 
 
 class Runner {
+  std::string d_name;
 public:
+  Runner(std::string name)
+    : d_name(name) {}
   virtual void run(const std::vector<int>& assumps) = 0;
-  virtual ~Runner() {} 
+  virtual ~Runner() {}
+  const std::string& getName() { return d_name; }
 };
 
 
@@ -129,8 +133,12 @@ void sampleAssignments(unsigned num_fixed, unsigned num, Runner* runner, bool ra
   std::random_shuffle (permutation.begin(), permutation.end());
 
   unsigned num_iter = std::pow(2, num_fixed);
-
+  std::cout << "Running "<< runner->getName() << std::endl;
   for (unsigned iter = 0; iter < num_iter; ++iter) {
+    if (iter % 10000 == 0) {
+      std::cout << "sampleAssignments iteration="<< iter <<"/"<< num_iter << "\r";
+      std::cout.flush();
+    }
     Trace("encoding") << "RUNNING iteration " << iter << std::endl;
     std::vector<int> assumps;
     
@@ -223,7 +231,8 @@ public:
   EncodingComparator(unsigned bitwidth, Kind k, bool keep_learned, 
 		     TBitblaster<Node>::TermBBStrategy e1, std::string name1,
 		     TBitblaster<Node>::TermBBStrategy e2, std::string name2)
-    : d_kind(k)
+    : Runner(name1+" vs "+name2+" comparator")
+    , d_kind(k)
     , d_ctx(new context::Context())
     , d_bitwidth(bitwidth)
     , d_name1(name1)
@@ -306,7 +315,7 @@ public:
 	bit2 = d_all_bits2[assump_index[i]];
       }
 
-      Debug("encoding") << bit1 << "/ "<<  bit2 <<" " <<std::endl;
+      Debug("encoding") << bit1 << " ";
       d_encodingBB1.assumeLiteral(bit1);
       res1 = d_encodingBB1.propagate();
       d_encodingBB2.assumeLiteral(bit2);
@@ -325,6 +334,7 @@ public:
 						d_encodingBB1, d_encodingBB2);
       d_cresult.add(order);
     }
+    Debug("encoding") << std::endl;
 
 
     // call solve to ensure that the encodings are correct
@@ -366,7 +376,8 @@ public:
   BruteForceTermOptChecker(unsigned bitwidth, Kind k,  
 		     TBitblaster<Node>::TermBBStrategy e1, std::string name1,
 		     TBitblaster<Node>::TermBBStrategy e2, std::string name2)
-    : d_kind(k)
+    : Runner(name1+" vs "+name2+" opt checker")
+    , d_kind(k)
     , d_ctx(new context::Context())
     , d_bitwidth(bitwidth)
     , d_name1(name1)
@@ -475,7 +486,8 @@ public:
   BruteForceAtomOptChecker(unsigned bitwidth, Kind k,  
 		     TBitblaster<Node>::AtomBBStrategy e1, std::string name1,
 		     TBitblaster<Node>::AtomBBStrategy e2, std::string name2)
-    : d_kind(k)
+    : Runner(name1+" vs "+name2+" opt checker")
+    , d_kind(k)
     , d_ctx(new context::Context())
     , d_bitwidth(bitwidth)
     , d_name1(name1)
@@ -579,7 +591,8 @@ class EncodingContradiction : public Runner {
 public:
   EncodingContradiction(unsigned bitwidth, Kind k, 
 		        TBitblaster<Node>::TermBBStrategy e, std::string name)
-    : d_kind(k)
+    : Runner(name+" detect conflicts")
+    , d_kind(k)
     , d_ctx(new context::Context())
     , d_bitwidth(bitwidth)
     , d_name(name)
@@ -1077,9 +1090,9 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // 			 DefaultMultBB<Node>, "default-mult",
   // 			 kind::BITVECTOR_MULT, width);
 
-  equivalenceCheckerTerm(Mult3BottomBB<Node>, "optimal-mult4bot",
-   			 DefaultMultBB<Node>, "default-mult",
-   			 kind::BITVECTOR_MULT, width);
+  // equivalenceCheckerTerm(Mult3BottomBB<Node>, "optimal-mult4bot",
+  //  			 DefaultMultBB<Node>, "default-mult",
+  //  			 kind::BITVECTOR_MULT, width);
 
   // equivalenceCheckerTerm(Mult4BottomBB<Node>, "optimal-mult4bot",
   //  			 DefaultMultBB<Node>, "default-mult",
@@ -1113,13 +1126,42 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // sampleAssignments(9, 3*3, &opt, false);
   // opt.printResults();
   
-  // EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
-  // 			     DefaultPlusBB<Node>, "default-plus",
-  // 			     OptimalPlusBB<Node>, "optimal-plus");
+  EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
+  			     DefaultPlusBB<Node>, "default-plus",
+  			     OptimalPlusBB<Node>, "optimal-plus");
 
-  // sampleAssignments(num_fixed, width*3, &ec_plus, true);
-  // ec_plus.printResults(std::cout);
+  sampleAssignments(num_fixed, width*3, &ec_plus, true);
+  ec_plus.printResults(std::cout);
 
+  EncodingComparator ec1(width, kind::BITVECTOR_MULT, false,
+  			DefaultMultBB<Node>, "default-mult1",
+  			OptimalAddMultBB<Node>, "optimal-add-mult");
+  
+  sampleAssignments(num_fixed, width*3, &ec1, true);
+  ec1.printResults(std::cout);
+
+  EncodingComparator ec2(width, kind::BITVECTOR_MULT, false,
+  			DefaultMultBB<Node>, "default-mult2",
+  			MultBlock2BB<Node>, "mult-block2");
+  
+  sampleAssignments(num_fixed, width*3, &ec2, true);
+  ec2.printResults(std::cout);
+
+  EncodingComparator ec3(width, kind::BITVECTOR_MULT, false,
+  			DefaultMultBB<Node>, "default-mult3",
+  			Mult3BottomBB<Node>, "mult-bot3");
+  
+  sampleAssignments(num_fixed, width*3, &ec3, true);
+  ec3.printResults(std::cout);
+
+  EncodingComparator ec4(width, kind::BITVECTOR_MULT, false,
+  			 MultBlock2BB<Node>, "mult-block2`",
+  			 Mult3BottomBB<Node>, "mult-bot3`");
+  
+  sampleAssignments(num_fixed, width*3, &ec4, true);
+  ec4.printResults(std::cout);
+
+  
   // EncodingComparator ec_mult(width, kind::BITVECTOR_MULT, false,
   // 			     DefaultMultBB<Node>, "default-mult",
   // 			     OptimalAddMultBB<Node>, "optimal-add-mult");
