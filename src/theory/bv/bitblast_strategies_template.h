@@ -420,7 +420,7 @@ void DefaultMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
     } else {
       shiftAddMultiplier(res, current, newres);
     }
-    
+
     Assert (newres.size()); 
     res = newres;
   }

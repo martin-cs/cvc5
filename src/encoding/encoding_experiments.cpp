@@ -735,7 +735,7 @@ void printTermEncoding(Kind k, TBitblaster<Node>::TermBBStrategy e, std::string 
     outfile << var <<" ";
   }
   outfile << "0" << std::endl;
-  
+
   eb.printCnfMapping(outfile, all_bits);
   eb.printProblemClauses(outfile);
 
@@ -812,6 +812,36 @@ void makeLTNewGadget() {
   inputs.insert(b);
   inputs.insert(rest);
   eb.printCnfMapping(std::cout, inputs);
+  eb.printProblemClauses(std::cout);
+}
+
+void makeFullAdder() {
+  EncodingBitblaster eb(new context::Context(), "FullAdder");
+  NodeManager* nm = NodeManager::currentNM();
+  Node a = nm->mkSkolem("a", nm->booleanType());
+  Node b = nm->mkSkolem("b", nm->booleanType());
+  Node carry = nm->mkSkolem("c", nm->booleanType());
+
+  std::pair<Node, Node> fa_res;
+  
+  fa_res = theory::bv::fullAdder<Node>(a, b, carry);
+
+  Node sum = fa_res.first;
+  Node carry_out = fa_res.second;
+
+  CVC4::prop::CnfStream* cnf  = eb.getCnfStream();
+  cnf->ensureLiteral(sum);
+  cnf->ensureLiteral(carry_out);
+
+  CVC4::prop::SatLiteral sum_lit = cnf->getLiteral(sum);
+  CVC4::prop::SatLiteral carry_out_lit = cnf->getLiteral(carry_out);
+  std::cout << "c " << eb.getName() << std::endl;
+  std::cout << "c " << sum_lit << " : sum" << std::endl;
+  std::cout << "c " << carry_out_lit << " : carry_out_lit" << std::endl;
+  std::cout << "i "<< sum_lit <<" " << carry_out_lit << " "
+	    << cnf->getLiteral(a) <<" " << cnf->getLiteral(b) <<" " << cnf->getLiteral(carry)
+	    << std::endl;
+  eb.printCnfMapping(std::cout);
   eb.printProblemClauses(std::cout);
 }
 
@@ -980,21 +1010,36 @@ void equivalenceCheckerAtom(TBitblaster<Node>::AtomBBStrategy e1, std::string na
   }
 }
 
-void generateReferenceEncodings(unsigned k) {
+void generateReferenceEncodings(unsigned k, Options& opts) {
   Assert (k >= 2);
   // to test generating optimal encodings (and optimality of current designs)
   for (unsigned i = 2; i <= k; ++i) {
-    printAtomEncoding(kind::BITVECTOR_ULT, OptimalUltBB<Node>, "optimal-ult-new", i);
-    printAtomEncoding(kind::BITVECTOR_ULE, OptimalUleBB<Node>, "optimal-ule-new", i);
-    printAtomEncoding(kind::BITVECTOR_SLT, OptimalSltBB<Node>, "optimal-slt-new", i);
-    printAtomEncoding(kind::BITVECTOR_SLE, OptimalSleBB<Node>, "optimal-sle-new", i);
+    // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "cvc-ult", i);
+    // printAtomEncoding(kind::BITVECTOR_ULE, DefaultUleBB<Node>, "cvc-ule", i);
+    // printAtomEncoding(kind::BITVECTOR_SLT, DefaultSltBB<Node>, "cvc-slt", i);
+    // printAtomEncoding(kind::BITVECTOR_SLE, DefaultSleBB<Node>, "cvc-sle", i);
+    // printTermEncoding(kind::BITVECTOR_PLUS, DefaultPlusBB<Node>, "cvc-plus", i);
 
+    // printAtomEncoding(kind::BITVECTOR_ULT, OptimalUltBB<Node>, "optimal-ult", i);
+    // printAtomEncoding(kind::BITVECTOR_ULE, OptimalUleBB<Node>, "optimal-ule", i);
+    // printAtomEncoding(kind::BITVECTOR_SLT, OptimalSltBB<Node>, "optimal-slt", i);
+    // printAtomEncoding(kind::BITVECTOR_SLE, OptimalSleBB<Node>, "optimal-sle", i);
     // printTermEncoding(kind::BITVECTOR_PLUS, OptimalPlusBB<Node>, "optimal-plus", i);
-    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i);
-    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, true);
 
-    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, false, false);
-    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, true, false);
+    // opts[options::bvBlock2Mult] = true;
+    
+    printTermEncoding(kind::BITVECTOR_MULT, MultBlock2BB<Node>, "optimal-mult-bl2", i);
+    printTermEncoding(kind::BITVECTOR_MULT, MultBlock2BB<Node>, "optimal-mult-bl2", i, true);
+    printTermEncoding(kind::BITVECTOR_MULT, MultBlock2BB<Node>, "optimal-mult-bl2", i, false, false);
+    printTermEncoding(kind::BITVECTOR_MULT, MultBlock2BB<Node>, "optimal-mult-bl2", i, true, false);
+
+    // opts[options::bvBlock2Mult] = false;
+    // opts[options::bvBlock2MultOpt] = true;
+    
+    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-mult-bl2", i);
+    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-mult-bl2", i, true);
+    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-mult-bl2", i, false, false);
+    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-mult-bl2", i, true, false);
 
   }
 }
@@ -1011,8 +1056,8 @@ void CVC4::runEncodingExperiment(Options& opts) {
   
   /**** Generating CNF encoding files for operations ****/
 
-  //  makeLTRevGadget();
-  generateReferenceEncodings(width);
+  makeFullAdder();
+  generateReferenceEncodings(width, opts);
 
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
