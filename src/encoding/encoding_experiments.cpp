@@ -792,7 +792,7 @@ void printAtomEncoding(Kind k, TBitblaster<Node>::AtomBBStrategy e, std::string 
 }
 
 void makeLTNewGadget() {
-  EncodingBitblaster eb(new context::Context(), "LTGadget1");
+  EncodingBitblaster eb(new context::Context(), "LTGadget");
   NodeManager* nm = NodeManager::currentNM();
   Node a = nm->mkSkolem("a", nm->booleanType());
   Node b = nm->mkSkolem("b", nm->booleanType());
@@ -801,7 +801,7 @@ void makeLTNewGadget() {
   // Node ans_found_out = utils::mkSkolem("ans_found_out", nm->booleanType());
   // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
   
-  Node answ = theory::bv::optimalUltGadget(a, b, rest, eb.getCnfStream());
+  Node answ = theory::bv::optimalUltGadgetSpec(a, b, rest, eb.getCnfStream());
 
   eb.getCnfStream()->ensureLiteral(answ);
 
@@ -811,7 +811,7 @@ void makeLTNewGadget() {
   inputs.insert(a);
   inputs.insert(b);
   inputs.insert(rest);
-  eb.printCnfMapping(std::cout, inputs);
+  eb.printCnfMapping(std::cout/*, inputs*/);
   eb.printProblemClauses(std::cout);
 }
 
@@ -1056,8 +1056,8 @@ void CVC4::runEncodingExperiment(Options& opts) {
   
   /**** Generating CNF encoding files for operations ****/
 
-  makeFullAdder();
-  generateReferenceEncodings(width, opts);
+  // makeFullAdder();
+  // generateReferenceEncodings(width, opts);
 
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
@@ -1069,7 +1069,7 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult3", 3);
   // printAtomEncoding(kind::BITVECTOR_ULT, DefaultUltBB<Node>, "ult4", 4);
   
-  // makeLTGadget();
+  makeLTNewGadget();
   // makeSignedGadget();
   // printMult4x4x8(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>);
 

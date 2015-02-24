@@ -40,7 +40,7 @@ inline void shiftOptimalAddMultiplier(const std::vector<T>&a, const std::vector<
 
   
 template <class T>
-T inline optimalUltGadget (const T &a, const T &b, const T &rest,
+T inline optimalUltGadgetSpec (const T &a, const T &b, const T &rest,
 			      CVC4::prop::CnfStream* cnf) {
   T eq = mkIff(a,b);
   return mkIte(eq, rest, mkNot(a));
@@ -143,6 +143,21 @@ void optimalMult4Aux(const std::vector<T>&a,
  
 std::pair<Node, Node> optimalFullAdder(const Node a, const Node b, const Node cin,
 					      CVC4::prop::CnfStream* cnf);
+
+template <class T>
+T optimalUltGadget(const T &a, const T &b, const T &rest,
+		   CVC4::prop::CnfStream* cnf) {Unreachable(); }
+
+template <class T>
+T fromCnfUltGadget(const T &a, const T &b, const T &rest,
+		   CVC4::prop::CnfStream* cnf) {
+  Unreachable();
+}
+
+template <>
+Node fromCnfUltGadget(const Node &a, const Node &b, const Node &rest,
+		      CVC4::prop::CnfStream* cnf);
+ 
  
 template <>
 Node optimalUltGadget(const Node &a, const Node &b, const Node &rest,
@@ -219,7 +234,11 @@ T inline optimalUltBB(const std::vector<T>&a, const std::vector<T>& b,
   
   T answer = orEqual? mkTrue<T>() : mkFalse<T>();
   for (int i = 0; i < k; ++i) {
-    answer = optimalUltGadget(a[i], b[i], answer, cnf);
+    if (options::bvOptimalLess()) {
+      answer = optimalUltGadget(a[i], b[i], answer, cnf);
+    } else {
+      answer = fromCnfUltGadget(a[i], b[i], answer, cnf);
+    }
   }
   return answer;
 }

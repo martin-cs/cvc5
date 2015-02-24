@@ -64,27 +64,75 @@ std::pair<Node, Node> CVC4::theory::bv::optimalFullAdder(const Node a, const Nod
 			false, false, RULE_INVALID, TNode::null());
   return std::make_pair(s, cout);
 }
- 
+
 template <>
 Node CVC4::theory::bv::optimalUltGadget(const Node &a, const Node &b, const Node &rest,
 					CVC4::prop::CnfStream* cnf) {
   NodeManager* nm = NodeManager::currentNM();
   Node answer = nm->mkSkolem("answer", nm->booleanType());
+  Node a_iff_b = nm->mkSkolem("and", nm->booleanType());
+
+  cnf->convertAndAssert(mkIff(a_iff_b, mkIff(a, b)), false, false, RULE_INVALID, TNode::null());
   
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), rest, utils::mkNot(a)),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), rest, b),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), utils::mkNot(a), b),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, a, answer, utils::mkNot(b)),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, a, answer, utils::mkNot(rest)),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(rest), utils::mkNot(b), answer),
-			false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, rest, utils::mkNot(a), utils::mkNot(answer)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, rest, b, utils::mkNot(answer)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, rest, utils::mkNot(a_iff_b), utils::mkNot(answer)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b, utils::mkNot(answer), a_iff_b), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, b, a, a_iff_b), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a), utils::mkNot(b), a_iff_b), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), utils::mkNot(a), b), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(rest), utils::mkNot(a_iff_b), answer), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(rest), utils::mkNot(b), answer), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(rest), a, answer), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b), utils::mkNot(a_iff_b), a), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a), utils::mkNot(a_iff_b), b), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(b), a, answer), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, answer, a_iff_b, a), false, false, RULE_INVALID, TNode::null());
   return answer;
 }
+
+template <>
+Node CVC4::theory::bv::fromCnfUltGadget(const Node &a, const Node &b, const Node &rest,
+					CVC4::prop::CnfStream* cnf) {
+  NodeManager* nm = NodeManager::currentNM();
+  Node answer = nm->mkSkolem("answer", nm->booleanType());
+  Node aux = nm->mkSkolem("aux", nm->booleanType());
+
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a), b, utils::mkNot(aux)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a, utils::mkNot(b), utils::mkNot(aux)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a), utils::mkNot(b), aux), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a, b, aux), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a), rest, utils::mkNot(answer)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(aux), rest, utils::mkNot(answer)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(a), aux, utils::mkNot(answer)), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a, utils::mkNot(rest), answer), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(aux), utils::mkNot(rest), answer), false, false, RULE_INVALID, TNode::null());
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a, aux, answer), false, false, RULE_INVALID, TNode::null());
+  return answer;
+}
+
+
+// old gadget 
+// template <>
+// Node CVC4::theory::bv::optimalUltGadget(const Node &a, const Node &b, const Node &rest,
+// 					CVC4::prop::CnfStream* cnf) {
+//   NodeManager* nm = NodeManager::currentNM();
+//   Node answer = nm->mkSkolem("answer", nm->booleanType());
+
+//   cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), rest, utils::mkNot(a)),
+// 			false, false, RULE_INVALID, TNode::null());
+//   cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), rest, b),
+// 			false, false, RULE_INVALID, TNode::null());
+//   cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), utils::mkNot(a), b),
+// 			false, false, RULE_INVALID, TNode::null());
+//   cnf->convertAndAssert(nm->mkNode(kind::OR, a, answer, utils::mkNot(b)),
+// 			false, false, RULE_INVALID, TNode::null());
+//   cnf->convertAndAssert(nm->mkNode(kind::OR, a, answer, utils::mkNot(rest)),
+// 			false, false, RULE_INVALID, TNode::null());
+//   cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(rest), utils::mkNot(b), answer),
+// 			false, false, RULE_INVALID, TNode::null());
+//   return answer;
+// }
 
 
 template<>
@@ -181,6 +229,7 @@ void CVC4::theory::bv::optimalMult2(const std::vector<Node>&a,
   cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
 			false, false, RULE_INVALID, TNode::null());
 }
+
 template<>
 void CVC4::theory::bv::optimalMult3(const std::vector<Node>&a,
 					   const std::vector<Node>& b,
