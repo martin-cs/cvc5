@@ -414,7 +414,8 @@ void DefaultMultBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
       optimalMultKBottom(res, current, newres, 4, bb->getCnfStream());
     } else if (options::bvOptimalAddMult()) {
       shiftOptimalAddMultiplier(res, current, newres,bb->getCnfStream());
-    } else if (options::bvBlock2Mult() && utils::getSize(node)%2 == 0) { // FIXME!!!!
+    } else if (utils::getSize(node) >=2 &&
+	       (options::bvBlock2Mult() || options::bvBlock2MultOpt())) {
       optimalBlock2Mult(res, current, newres,bb->getCnfStream());
     } else {
       shiftAddMultiplier(res, current, newres);

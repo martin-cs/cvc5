@@ -248,20 +248,14 @@ template <class T>
 T inline uLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqual) {
   Assert (a.size() && b.size());
   
-  T res = mkAnd(mkNot(a[0]), b[0]);
+  T res = orEqual? mkTrue<T>() : mkFalse<T>();
   
-  if(orEqual) {
-    res = mkOr(res, mkIff(a[0], b[0])); 
+  for (unsigned i = 0; i < a.size(); ++i) {
+    res = mkIte(mkIff(a[i], b[i]), res, mkNot(a[i]));
   }
-  
-  for (unsigned i = 1; i < a.size(); ++i) {
-    // a < b iff ( a[i] <-> b[i] AND a[i-1:0] < b[i-1:0]) OR (~a[i] AND b[i]) 
-    res = mkOr(mkAnd(mkIff(a[i], b[i]), res),
-               mkAnd(mkNot(a[i]), b[i])); 
-  }
-  return res;
+ return res;
 }
-
+ 
 template <class T>
 T inline sLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqual) {
   Assert (a.size() && b.size());

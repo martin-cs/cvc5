@@ -94,6 +94,9 @@ expert-option bvOptimalLess --bv-optimal-less bool :default false
  bit-blast comparison operators optimally
 
 expert-option bvBlock2Mult --bv-mult-block2 bool :default false
+ bit-blast mult with 2x2x4 multiplier components
+
+expert-option bvBlock2MultOpt --bv-mult-block2-opt bool :default false
  bit-blast mult with optimal 2x2x4 multiplier
  
  

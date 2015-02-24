@@ -791,51 +791,27 @@ void printAtomEncoding(Kind k, TBitblaster<Node>::AtomBBStrategy e, std::string 
   outfile.close();
 }
 
-void makeLTGadget() {
+void makeLTNewGadget() {
   EncodingBitblaster eb(new context::Context(), "LTGadget1");
   NodeManager* nm = NodeManager::currentNM();
   Node a = nm->mkSkolem("a", nm->booleanType());
   Node b = nm->mkSkolem("b", nm->booleanType());
-  Node ans_found = nm->mkSkolem("answerFound", nm->booleanType());
-  Node answer = nm->mkSkolem("answer", nm->booleanType());
+  Node rest = nm->mkSkolem("rest", nm->booleanType());
 
   // Node ans_found_out = utils::mkSkolem("ans_found_out", nm->booleanType());
   // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
   
-  std::pair<Node, Node> pair;
-  pair = theory::bv::optimalUltGadget(ans_found, answer, a, b, eb.getCnfStream());
+  Node answ = theory::bv::optimalUltGadget(a, b, rest, eb.getCnfStream());
 
-  eb.getCnfStream()->ensureLiteral(pair.first);
-  eb.getCnfStream()->ensureLiteral(pair.second);
-  CVC4::prop::SatLiteral ans_found_out = eb.getCnfStream()->getLiteral(pair.first);
-  CVC4::prop::SatLiteral answer_out = eb.getCnfStream()->getLiteral(pair.second);
-  std::cout << "c " << ans_found_out << " : answerFoundOut" << std::endl;
-  std::cout << "c " << answer_out <<" : answerOut"<< std::endl;
-  eb.printCnfMapping(std::cout);
-  eb.printProblemClauses(std::cout);
-}
+  eb.getCnfStream()->ensureLiteral(answ);
 
-void makeLTGenGadget() {
-  EncodingBitblaster eb(new context::Context(), "LTGadget1");
-  NodeManager* nm = NodeManager::currentNM();
-  Node a = nm->mkSkolem("a", nm->booleanType());
-  Node b = nm->mkSkolem("b", nm->booleanType());
-  Node ans_found = nm->mkSkolem("answerFound", nm->booleanType());
-  Node answer = nm->mkSkolem("answer", nm->booleanType());
-
-  // Node ans_found_out = utils::mkSkolem("ans_found_out", nm->booleanType());
-  // Node answer_out = utils::mkSkolem("answer_out", nm->booleanType());
-  
-  std::pair<Node, Node> pair;
-  pair = theory::bv::optimalUltGadget(ans_found, answer, a, b, eb.getCnfStream());
-
-  eb.getCnfStream()->ensureLiteral(pair.first);
-  eb.getCnfStream()->ensureLiteral(pair.second);
-  CVC4::prop::SatLiteral ans_found_out = eb.getCnfStream()->getLiteral(pair.first);
-  CVC4::prop::SatLiteral answer_out = eb.getCnfStream()->getLiteral(pair.second);
-  std::cout << "c " << ans_found_out << " : answerFoundOut" << std::endl;
-  std::cout << "c " << answer_out <<" : answerOut"<< std::endl;
-  eb.printCnfMapping(std::cout);
+  CVC4::prop::SatLiteral answ_lit = eb.getCnfStream()->getLiteral(answ);
+  std::cout << "c " << answ_lit << " : answ" << std::endl;
+  NodeSet inputs;
+  inputs.insert(a);
+  inputs.insert(b);
+  inputs.insert(rest);
+  eb.printCnfMapping(std::cout, inputs);
   eb.printProblemClauses(std::cout);
 }
 
@@ -1008,17 +984,17 @@ void generateReferenceEncodings(unsigned k) {
   Assert (k >= 2);
   // to test generating optimal encodings (and optimality of current designs)
   for (unsigned i = 2; i <= k; ++i) {
-    // printAtomEncoding(kind::BITVECTOR_ULT, OptimalUltBB<Node>, "optimal-ult", i);
-    // printAtomEncoding(kind::BITVECTOR_ULE, OptimalUleBB<Node>, "optimal-ule", i);
-    // printAtomEncoding(kind::BITVECTOR_SLT, OptimalSltBB<Node>, "optimal-slt", i);
-    // printAtomEncoding(kind::BITVECTOR_SLE, OptimalSleBB<Node>, "optimal-sle", i);
+    printAtomEncoding(kind::BITVECTOR_ULT, OptimalUltBB<Node>, "optimal-ult-new", i);
+    printAtomEncoding(kind::BITVECTOR_ULE, OptimalUleBB<Node>, "optimal-ule-new", i);
+    printAtomEncoding(kind::BITVECTOR_SLT, OptimalSltBB<Node>, "optimal-slt-new", i);
+    printAtomEncoding(kind::BITVECTOR_SLE, OptimalSleBB<Node>, "optimal-sle-new", i);
 
     // printTermEncoding(kind::BITVECTOR_PLUS, OptimalPlusBB<Node>, "optimal-plus", i);
     // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i);
     // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, true);
 
-    printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, false, false);
-    printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, true, false);
+    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, false, false);
+    // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "optimal-add-mult", i, true, false);
 
   }
 }
@@ -1035,7 +1011,8 @@ void CVC4::runEncodingExperiment(Options& opts) {
   
   /**** Generating CNF encoding files for operations ****/
 
-  //generateReferenceEncodings(width);
+  //  makeLTRevGadget();
+  generateReferenceEncodings(width);
 
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult2", 2);
   // printTermEncoding(kind::BITVECTOR_MULT, OptimalAddMultBB<Node>, "mult3", 3);
@@ -1126,40 +1103,40 @@ void CVC4::runEncodingExperiment(Options& opts) {
   // sampleAssignments(9, 3*3, &opt, false);
   // opt.printResults();
   
-  EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
-  			     DefaultPlusBB<Node>, "default-plus",
-  			     OptimalPlusBB<Node>, "optimal-plus");
+  // EncodingComparator ec_plus(width, kind::BITVECTOR_PLUS, false,
+  // 			     DefaultPlusBB<Node>, "default-plus",
+  // 			     OptimalPlusBB<Node>, "optimal-plus");
 
-  sampleAssignments(num_fixed, width*3, &ec_plus, true);
-  ec_plus.printResults(std::cout);
+  // sampleAssignments(num_fixed, width*3, &ec_plus, true);
+  // ec_plus.printResults(std::cout);
 
-  EncodingComparator ec1(width, kind::BITVECTOR_MULT, false,
-  			DefaultMultBB<Node>, "default-mult1",
-  			OptimalAddMultBB<Node>, "optimal-add-mult");
+  // EncodingComparator ec1(width, kind::BITVECTOR_MULT, false,
+  // 			DefaultMultBB<Node>, "default-mult1",
+  // 			OptimalAddMultBB<Node>, "optimal-add-mult");
   
-  sampleAssignments(num_fixed, width*3, &ec1, true);
-  ec1.printResults(std::cout);
+  // sampleAssignments(num_fixed, width*3, &ec1, true);
+  // ec1.printResults(std::cout);
 
-  EncodingComparator ec2(width, kind::BITVECTOR_MULT, false,
-  			DefaultMultBB<Node>, "default-mult2",
-  			MultBlock2BB<Node>, "mult-block2");
+  // EncodingComparator ec2(width, kind::BITVECTOR_MULT, false,
+  // 			DefaultMultBB<Node>, "default-mult2",
+  // 			MultBlock2BB<Node>, "mult-block2");
   
-  sampleAssignments(num_fixed, width*3, &ec2, true);
-  ec2.printResults(std::cout);
+  // sampleAssignments(num_fixed, width*3, &ec2, true);
+  // ec2.printResults(std::cout);
 
-  EncodingComparator ec3(width, kind::BITVECTOR_MULT, false,
-  			DefaultMultBB<Node>, "default-mult3",
-  			Mult3BottomBB<Node>, "mult-bot3");
+  // EncodingComparator ec3(width, kind::BITVECTOR_MULT, false,
+  // 			DefaultMultBB<Node>, "default-mult3",
+  // 			Mult3BottomBB<Node>, "mult-bot3");
   
-  sampleAssignments(num_fixed, width*3, &ec3, true);
-  ec3.printResults(std::cout);
+  // sampleAssignments(num_fixed, width*3, &ec3, true);
+  // ec3.printResults(std::cout);
 
-  EncodingComparator ec4(width, kind::BITVECTOR_MULT, false,
-  			 MultBlock2BB<Node>, "mult-block2`",
-  			 Mult3BottomBB<Node>, "mult-bot3`");
+  // EncodingComparator ec4(width, kind::BITVECTOR_MULT, false,
+  // 			 MultBlock2BB<Node>, "mult-block2`",
+  // 			 Mult3BottomBB<Node>, "mult-bot3`");
   
-  sampleAssignments(num_fixed, width*3, &ec4, true);
-  ec4.printResults(std::cout);
+  // sampleAssignments(num_fixed, width*3, &ec4, true);
+  // ec4.printResults(std::cout);
 
   
   // EncodingComparator ec_mult(width, kind::BITVECTOR_MULT, false,

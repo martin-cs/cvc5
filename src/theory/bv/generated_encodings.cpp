@@ -66,81 +66,26 @@ std::pair<Node, Node> CVC4::theory::bv::optimalFullAdder(const Node a, const Nod
 }
  
 template <>
-std::pair<Node, Node> CVC4::theory::bv::optimalUltGadget(const Node &answerFound, const Node &answer,
-								const Node &a, const Node &b,
-								CVC4::prop::CnfStream* cnf) {
+Node CVC4::theory::bv::optimalUltGadget(const Node &a, const Node &b, const Node &rest,
+					CVC4::prop::CnfStream* cnf) {
   NodeManager* nm = NodeManager::currentNM();
-  Node answerFoundOut = nm->mkSkolem("answerFoundOut", nm->booleanType());
-  Node answerOut = nm->mkSkolem("answerOut", nm->booleanType());
-  std::vector<Node> clause;
-
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answerFoundOut, utils::mkNot(answerFound)),
+  Node answer = nm->mkSkolem("answer", nm->booleanType());
+  
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), rest, utils::mkNot(a)),
 			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answerFoundOut, b, utils::mkNot(a)),
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), rest, b),
 			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answer, utils::mkNot(answerOut), utils::mkNot(a)),
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), utils::mkNot(a), b),
 			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answerFoundOut, answerOut, utils::mkNot(answer)),
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a, answer, utils::mkNot(b)),
 			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answer), answerOut, a),
+  cnf->convertAndAssert(nm->mkNode(kind::OR, a, answer, utils::mkNot(rest)),
 			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answer, b, utils::mkNot(answerOut)),
+  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(rest), utils::mkNot(b), answer),
 			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answerFoundOut, answer, utils::mkNot(answerOut)),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answerFoundOut, utils::mkNot(b), a),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answerFound), answer, utils::mkNot(answerOut)),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, answerOut, utils::mkNot(answer), utils::mkNot(b)),
-			false, false, RULE_INVALID, TNode::null());
-  cnf->convertAndAssert(nm->mkNode(kind::OR, utils::mkNot(answerFound), answerOut, utils::mkNot(answer)),
-			false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(b);
-  clause.push_back(utils::mkNot(answerFoundOut));
-  clause.push_back(utils::mkNot(answerOut));
-  clause.push_back(answerFound);
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
-			false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(a);
-  clause.push_back(b);
-  clause.push_back(answerFound);
-  clause.push_back(utils::mkNot(answerFoundOut));
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
-			false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(b));
-  clause.push_back(answerOut);
-  clause.push_back(answerFound);
-  clause.push_back(utils::mkNot(answerFoundOut));
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
-			false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(b));
-  clause.push_back(utils::mkNot(answerFoundOut));
-  clause.push_back(utils::mkNot(a));
-  clause.push_back(answerFound);
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
-			false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(answerOut);
-  clause.push_back(answerFound);
-  clause.push_back(a);
-  clause.push_back(utils::mkNot(answerFoundOut));
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
-			false, false, RULE_INVALID, TNode::null());
-  clause.clear();
-  clause.push_back(utils::mkNot(answerFoundOut));
-  clause.push_back(utils::mkNot(answerOut));
-  clause.push_back(utils::mkNot(a));
-  clause.push_back(answerFound);
-  cnf->convertAndAssert(nm->mkNode(kind::OR, clause),
-			false, false, RULE_INVALID, TNode::null());
-
-  return std::make_pair(answerFoundOut, answerOut);
+  return answer;
 }
+
 
 template<>
 Node CVC4::theory::bv::optimalSignGadget(const Node& a,

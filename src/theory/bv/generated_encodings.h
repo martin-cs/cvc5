@@ -39,31 +39,13 @@ inline void shiftOptimalAddMultiplier(const std::vector<T>&a, const std::vector<
 				      std::vector<T>& res, CVC4::prop::CnfStream* cnf);
 
   
-/*
-  In the cnf encoding file we can specify whether aEQb should be an input/output bit
- */
 template <class T>
-std::pair<T, T> inline optimalUltGadget (const T &answerFound, const T &answer,
-					 const T &a, const T &b,
-					 CVC4::prop::CnfStream* cnf) {
-
-  // If answerFound, then propagate it
-  // If a = 0, b = 1 then have found the answer true
-  // If a = 1, b = 0 then have found the answer false
-  // If a == b then haven't found an answer
-
-  T aLTb = mkAnd(mkNot(a), b);
-
-  T aEQb = mkIff(a,b);
-  T aNEQb = mkNot(aEQb);
-  
-  T outputAnswerFound = mkOr(answerFound, aNEQb);
-  T outputAnswer = mkIte(mkOr(answerFound, aEQb),
-                         answer,
-                         aLTb);
-  return std::make_pair(outputAnswerFound, outputAnswer);
+T inline optimalUltGadget (const T &a, const T &b, const T &rest,
+			      CVC4::prop::CnfStream* cnf) {
+  T eq = mkIff(a,b);
+  return mkIte(eq, rest, mkNot(a));
 }
-
+ 
 template <class T>
 T inline optimalSignGadget (const T& a, const T& b, const T &aLTbRec,
 			      CVC4::prop::CnfStream* cnf) {
@@ -89,8 +71,14 @@ inline void optimalMult2(const std::vector<T>&a,
 			 const std::vector<T>& b,
 			 std::vector<T>& c,
 			 prop::CnfStream* cnf) {
+  Unreachable();
+}
 
-  // FIXME: until we have the real encoding for debugging
+template <class T>
+inline void mult2(const std::vector<T>&a,
+		  const std::vector<T>& b,
+		  std::vector<T>& c,
+		  prop::CnfStream* cnf) {
   Assert (a.size() == b.size() && a.size() == 2);
   std::vector<T> zeroes_a(a.size(), mkFalse<T>());
   std::vector<T> zeroes_b(a.size(), mkFalse<T>());
@@ -99,11 +87,18 @@ inline void optimalMult2(const std::vector<T>&a,
   shiftOptimalAddMultiplier(zeroes_a, zeroes_b, c, cnf);
 }
  
+ 
 template <class T>
 inline void optimalMult3(const std::vector<T>&a,
 			 const std::vector<T>& b,
 			 std::vector<T>& c, prop::CnfStream* cnf) {
-  // FIXME: until we have the real encoding for debugging
+  Unreachable();
+}
+
+template <class T>
+inline void mult3(const std::vector<T>&a,
+			 const std::vector<T>& b,
+			 std::vector<T>& c, prop::CnfStream* cnf) {
   Assert (a.size() == b.size() && a.size() == 3);
   std::vector<T> zeroes_a(a.size(), mkFalse<T>());
   std::vector<T> zeroes_b(a.size(), mkFalse<T>());
@@ -111,11 +106,13 @@ inline void optimalMult3(const std::vector<T>&a,
   zeroes_b.insert(zeroes_b.begin(), b.begin(), b.end());
   shiftOptimalAddMultiplier(zeroes_a, zeroes_b, c, cnf);
 }
-
+ 
+ 
 template <class T>
 inline void optimalMult4(const std::vector<T>&a,
 			 const std::vector<T>& b,
 			 std::vector<T>& c, prop::CnfStream* cnf) {
+  Unreachable();
   // FIXME: until we have the real encoding for debugging
   Assert (a.size() == b.size() && a.size() == 4);
   std::vector<T> zeroes_a(a.size(), mkFalse<T>());
@@ -148,9 +145,8 @@ std::pair<Node, Node> optimalFullAdder(const Node a, const Node b, const Node ci
 					      CVC4::prop::CnfStream* cnf);
  
 template <>
-std::pair<Node, Node> optimalUltGadget(const Node &answerFound, const Node &answer,
-					      const Node &a, const Node &b,
-					      CVC4::prop::CnfStream* cnf);
+Node optimalUltGadget(const Node &a, const Node &b, const Node &rest,
+		      CVC4::prop::CnfStream* cnf);
 
 template<>
 Node optimalSignGadget(const Node& a, const Node& b, const Node &aLTb,
@@ -216,29 +212,15 @@ Node inline optimalRippleCarryAdder(const std::vector<Node>&av,
 
  
 template <class T>
-  T inline optimalUltBB(const std::vector<T>&a, const std::vector<T>& b,
-			unsigned k, bool orEqual, CVC4::prop::CnfStream* cnf) {
+T inline optimalUltBB(const std::vector<T>&a, const std::vector<T>& b,
+		      unsigned k, bool orEqual, CVC4::prop::CnfStream* cnf) {
   Assert (a.size() && b.size());
   Assert (k <= a.size());
   
-  if (k == 1) {
-    if (orEqual) {
-      return mkOr(mkNot(a[0]),b[0]); 
-    }
-    return mkAnd(mkNot(a[0]), b[0]);
-  }
-
-  T answer_found = mkFalse<T>();
   T answer = orEqual? mkTrue<T>() : mkFalse<T>();
-
-  std::pair<T, T> res;
-  
-  for (int i = k -1; i >= 0; --i) {
-    res = optimalUltGadget(answer_found, answer, a[i], b[i], cnf);
-    answer_found = res.first;
-    answer = res.second;
+  for (int i = 0; i < k; ++i) {
+    answer = optimalUltGadget(a[i], b[i], answer, cnf);
   }
-  
   return answer;
 }
 
@@ -359,7 +341,11 @@ inline Node multByBlock2(const std::vector<Node>& a, const Block& block_b,
     block_a[0] = a[i];
     block_a[1] = a[i+1];
     // curr will have bitwidth 4 so half of it is carry other half result
-    optimalMult2<Node>(block_a, block_b, curr, cnf);
+    if (options::bvBlock2MultOpt()) {
+      optimalMult2<Node>(block_a, block_b, curr, cnf);
+    } else {
+      mult2<Node>(block_a, block_b, curr, cnf);
+    }
     // make sure to add the carry in 
     rippleCarryAdder(curr, carry_in, curr_sum, mkFalse<Node>());
     
