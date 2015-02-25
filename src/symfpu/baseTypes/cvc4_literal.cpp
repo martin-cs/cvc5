@@ -37,6 +37,283 @@ namespace symfpu {
     void ipostcondition (const bool b) { Assert(b); }
     void iinvariant (const bool b) { Assert(b); }
 
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::one (const bitWidthType &w) { return bitVector<isSigned>(w,1); }
+
+    template <bool isSigned>    
+    bitVector<isSigned> bitVector<isSigned>::zero (const bitWidthType &w)  { return bitVector<isSigned>(w,0); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::allOnes (const bitWidthType &w)  { return ~bitVector<isSigned>::zero(w); }
+      
+    template <bool isSigned>
+    proposition bitVector<isSigned>::isAllOnes() const {return (*this == bitVector<isSigned>::allOnes(this->getWidth()));}
+    template <bool isSigned>
+    proposition bitVector<isSigned>::isAllZeros() const {return (*this == bitVector<isSigned>::zero(this->getWidth()));}
+
+
+    /*** Operators ***/
+    template <bool isSigned>    
+    bitVector<isSigned> bitVector<isSigned>::operator << (unsigned s) const {
+      IPRECONDITION(s <= this->getWidth());
+      return this->CVC4BV::leftShift(CVC4BV(this->getWidth(),s));
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator << (const bitVector<isSigned> &op) const {
+      return this->CVC4BV::leftShift(op);
+    }
+
+
+    template <>    
+    bitVector<true> bitVector<true>::operator >> (uint64_t s) const {
+      IPRECONDITION(s <= this->getWidth());
+      
+      return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
+    }
+
+    template <>
+    bitVector<false> bitVector<false>::operator >> (uint64_t s) const {
+      IPRECONDITION(s <= this->getWidth());
+      
+      return this->CVC4BV::logicalRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
+    }
+
+
+
+    template <>
+    bitVector<true> bitVector<true>::operator >> (const bitVector<true> &op) const {
+      return this->CVC4BV::arithRightShift(op);
+    }
+
+    template <>
+    bitVector<false> bitVector<false>::operator >> (const bitVector<false> &op) const {
+      return this->CVC4BV::logicalRightShift(op);
+    }
+
+
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator | (const bitVector<isSigned> &op) const { return this->CVC4BV::operator|(op); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator & (const bitVector<isSigned> &op) const { return this->CVC4BV::operator&(op); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator + (const bitVector<isSigned> &op) const { return this->CVC4BV::operator+(op); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator - (const bitVector<isSigned> &op) const { return this->CVC4BV::operator-(op); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator * (const bitVector<isSigned> &op) const { return this->CVC4BV::operator*(op); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator - (void) const { return this->CVC4BV::operator-(); }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::operator ~ (void) const { return this->CVC4BV::operator~(); }
+      
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::increment () const {
+      return *this + bitVector<isSigned>::one(this->getWidth());
+    }
+    
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::decrement () const {
+      return *this - bitVector<isSigned>::one(this->getWidth());
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::signExtendRightShift (const bitVector<isSigned> &op) const {
+      return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op));
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::rightShiftStickyBit (const bitVector<isSigned> &op) const {
+      bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) | op).isAllZeros(),
+					bitVector<isSigned>::zero(this->getWidth()),
+					bitVector<isSigned>::one(this->getWidth())));
+      
+      
+      return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op)) | stickyBit;
+    }
+
+
+    /*** Modular opertaions ***/
+    // No overflow checking so these are the same as other operations
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::modularLeftShift (uint64_t s) const {
+      IPRECONDITION(s <= this->getWidth());
+      return *this << s;
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::modularIncrement () const {
+      return this->increment();
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::modularAdd (const bitVector<isSigned> &op) const {
+      return *this + op;
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::modularNegate () const {
+      return -(*this);
+    }
+
+
+    
+    
+    /*** Comparisons ***/
+
+    template <bool isSigned>    
+    proposition bitVector<isSigned>::operator == (const bitVector<isSigned> &op) const { return this->CVC4BV::operator==(op); }
+
+
+    template <>
+    proposition bitVector<true>::operator <= (const bitVector<true> &op) const { 
+      return this->signedLessThanEq(op);
+    }
+
+    template <>
+    proposition bitVector<true>::operator >= (const bitVector<true> &op) const {
+      return !(this->signedLessThan(op));
+    }
+
+    template <>
+    proposition bitVector<true>::operator < (const bitVector<true> &op) const  {
+      return this->signedLessThan(op);
+    }
+
+    template <>
+    proposition bitVector<true>::operator > (const bitVector<true> &op) const  {
+      return !(this->signedLessThanEq(op));
+    }
+
+
+    template <>
+    proposition bitVector<false>::operator <= (const bitVector<false> &op) const { 
+      return this->unsignedLessThanEq(op);
+    }
+
+    template <>
+    proposition bitVector<false>::operator >= (const bitVector<false> &op) const {
+      return !(this->unsignedLessThan(op));
+    }
+
+    template <>
+    proposition bitVector<false>::operator < (const bitVector<false> &op) const  {
+      return this->unsignedLessThan(op);
+    }
+
+    template <>
+    proposition bitVector<false>::operator > (const bitVector<false> &op) const  {
+      return !(this->unsignedLessThanEq(op));
+    }
+
+
+
+    /*** Type conversion ***/
+    // CVC4 nodes make no distinction between signed and unsigned, thus ...
+    template <bool isSigned>
+    bitVector<true> bitVector<isSigned>::toSigned (void) const {
+      return bitVector<true>(*this);
+    }
+
+    template <bool isSigned>
+    bitVector<false> bitVector<isSigned>::toUnsigned (void) const {
+      return bitVector<false>(*this);
+    }
+
+
+
+    /*** Bit hacks ***/
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::extend (bitWidthType extension) const {
+      if (isSigned) {
+	return this->CVC4BV::signExtend(extension);
+      } else {
+	return this->CVC4BV::zeroExtend(extension);
+      }
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::contract (bitWidthType reduction) const {
+      IPRECONDITION(this->getWidth() > reduction);
+
+      return this->extract((this->getWidth() - 1) - reduction, 0);
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::resize (bitWidthType newSize) const {
+      bitWidthType width = this->getWidth();
+
+      if (newSize > width) {
+	return this->extend(newSize - width);
+      } else if (newSize < width) {
+	return this->contract(width - newSize);
+      } else {
+	return *this;
+      }
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::append(const bitVector<isSigned> &op) const {
+      return this->CVC4BV::concat(op);
+    }
+
+    // Inclusive of end points, thus if the same, extracts just one bit
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::extract(bitWidthType upper, bitWidthType lower) const {
+      IPRECONDITION(upper >= lower);
+      return this->CVC4BV::extract(upper, lower);
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::orderEncode (bitWidthType w) const {
+      bitVector<isSigned> tmp((bitVector<isSigned>::one(w + 1) << this->resize(w + 1)).decrement().contract(1));
+      return tmp;
+    }
+
+
+
+    /*** Expanding operations ***/
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::expandingAdd (const bitVector<isSigned> &op) const {
+      bitVector<isSigned> x((*this).extend(1));
+      bitVector<isSigned> y(     op.extend(1));
+
+      return x + y;
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::expandingSubtract (const bitVector<isSigned> &op) const {
+      bitVector<isSigned> x((*this).extend(1));
+      bitVector<isSigned> y(     op.extend(1));
+
+      return x - y;
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::expandingMultiply (const bitVector<isSigned> &op) const {
+      bitVector<isSigned> x((*this).extend(this->getWidth()));
+      bitVector<isSigned> y(     op.extend(this->getWidth()));
+
+      return x * y;
+    }
+
+
+    // Explicit instantiation
+    template class bitVector<true>;
+    template class bitVector<false>;
+
+
+
+
     roundingMode traits::RNE (void) { return ::CVC4::roundNearestTiesToEven; };
     roundingMode traits::RNA (void) { return ::CVC4::roundNearestTiesToAway; };
     roundingMode traits::RTP (void) { return ::CVC4::roundTowardPositive; };
@@ -53,3 +330,5 @@ namespace symfpu {
 
   };
 };
+
+

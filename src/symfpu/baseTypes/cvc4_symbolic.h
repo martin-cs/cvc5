@@ -307,8 +307,13 @@ namespace symfpu {
       }
 
       bitVector<isSigned> rightShiftStickyBit (const bitVector<isSigned> &op) const {
-	Unimplemented("rightShiftStickyBit");
-	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ASHR, this->node, op.node));
+	bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) | op).isAllZeros(),
+					  bitVector<isSigned>::zero(this->getWidth()),
+					  bitVector<isSigned>::one(this->getWidth())));
+
+	bitVector<isSigned> shifted(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ASHR, this->node, op.node));
+    
+	return shifted | stickyBit;
       }
 
 
@@ -409,7 +414,7 @@ namespace symfpu {
       }
 
       bitVector<isSigned> orderEncode (bitWidthType w) const {
-	Unimplemented("orderEncode");
+	return (bitVector<isSigned>::one(w) << this->resize(w)).decrement();
       }
 
 

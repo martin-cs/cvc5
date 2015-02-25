@@ -40,6 +40,8 @@
 #include "symfpu/core/ite.h"
 #include "symfpu/core/nondet.h"
 
+// For debugging only
+#include <iostream>
 
 #ifndef SYMFPU_UNPACKED_FLOAT
 #define SYMFPU_UNPACKED_FLOAT
@@ -349,9 +351,14 @@ namespace symfpu {
       return (NaNCase || InfCase || ZeroCase || normalCase || subnormalCase);
     }
 
-    unsigned hash (void) const {
-      assert(0);
-      return 23;
+    // Just for debugging
+    void print (void) const {
+      std::cerr << "nan : " << this->nan << '\t'
+		<< "inf : " << this->inf << '\t'
+		<< "zero : " << this->zero << '\t'
+		<< "sign : " << this->sign << '\t'
+		<< "exponent : " << this->exponent << '\t'
+		<< "significand : " << this->significand << std::endl;
     }
 
   };
@@ -369,6 +376,9 @@ template <class t>
 			    ITE(cond, l.significand, r.significand));
     }
  };
+
+
+
 
 };
 
