@@ -49,6 +49,7 @@
 #ifndef SYMFPU_CVC4_LITERAL
 #define SYMFPU_CVC4_LITERAL
 
+#include <iostream>
 
 namespace symfpu {
   namespace cvc4_literal {
@@ -99,41 +100,19 @@ namespace symfpu {
 
       /*** Constant creation and test ***/
       
-      static bitVector<isSigned> one (const bitWidthType &w) { return bitVector<isSigned>(w,1); }
-      static bitVector<isSigned> zero (const bitWidthType &w)  { return bitVector<isSigned>(w,0); }
-      static bitVector<isSigned> allOnes (const bitWidthType &w)  { return ~bitVector<isSigned>::zero(w); }
+      static bitVector<isSigned> one (const bitWidthType &w);
+      static bitVector<isSigned> zero (const bitWidthType &w);
+      static bitVector<isSigned> allOnes (const bitWidthType &w);
       
-      inline proposition isAllOnes() const {return (*this == bitVector<isSigned>::allOnes(this->getWidth()));}
-      inline proposition isAllZeros() const {return (*this == bitVector<isSigned>::zero(this->getWidth()));}
+      proposition isAllOnes() const;
+      proposition isAllZeros() const;
 
 
       /*** Operators ***/
-      inline bitVector<isSigned> operator << (unsigned s) const {
-	IPRECONDITION(s <= this->getWidth());
-	return this->CVC4BV::leftShift(CVC4BV(this->getWidth(),s));
-      }
-
-      inline bitVector<isSigned> operator << (const bitVector<isSigned> &op) const {
-	return this->CVC4BV::leftShift(op);
-      }
-
-      inline bitVector<isSigned> operator >> (uint64_t s) const {
-	IPRECONDITION(s <= this->getWidth());
-
-	if (isSigned) {
-	  return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
-	} else {
-	  return this->CVC4BV::logicalRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
-	}
-      }
-
-      inline bitVector<isSigned> operator >> (const bitVector<isSigned> &op) const {
-	if (isSigned) {
-	  return this->CVC4BV::arithRightShift(op);
-	} else {
-	  return this->CVC4BV::logicalRightShift(op);
-	}
-      }
+      bitVector<isSigned> operator << (unsigned s) const;
+      bitVector<isSigned> operator << (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator >> (uint64_t s) const;
+      bitVector<isSigned> operator >> (const bitVector<isSigned> &op) const;
 
 
       /* Inherited but ...
@@ -147,144 +126,65 @@ namespace symfpu {
        * pointless wrapping functions are needed.
        */
 
-      inline bitVector<isSigned> operator | (const bitVector<isSigned> &op) const { return this->CVC4BV::operator|(op); }
-      inline bitVector<isSigned> operator & (const bitVector<isSigned> &op) const { return this->CVC4BV::operator&(op); }
-      inline bitVector<isSigned> operator + (const bitVector<isSigned> &op) const { return this->CVC4BV::operator+(op); }
-      inline bitVector<isSigned> operator - (const bitVector<isSigned> &op) const { return this->CVC4BV::operator-(op); }
-      inline bitVector<isSigned> operator * (const bitVector<isSigned> &op) const { return this->CVC4BV::operator*(op); }
-      inline bitVector<isSigned> operator - (void) const { return this->CVC4BV::operator-(); }
-      inline bitVector<isSigned> operator ~ (void) const { return this->CVC4BV::operator~(); }
+      bitVector<isSigned> operator | (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator & (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator + (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator - (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator * (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator - (void) const;
+      bitVector<isSigned> operator ~ (void) const;
       
 
-      inline bitVector<isSigned> increment () const {
-	return *this + bitVector<isSigned>::one(this->getWidth());
-      }
-
-      inline bitVector<isSigned> decrement () const {
-	return *this - bitVector<isSigned>::one(this->getWidth());
-      }
-
-      inline bitVector<isSigned> signExtendRightShift (const bitVector<isSigned> &op) const {
-	return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op));
-      }
-
-      bitVector<isSigned> rightShiftStickyBit (const bitVector<isSigned> &op) const {
-	UNFINISHED("rightShiftStickyBit");
-	return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op));
-      }
+      bitVector<isSigned> increment () const;
+      bitVector<isSigned> decrement () const;
+      bitVector<isSigned> signExtendRightShift (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> rightShiftStickyBit (const bitVector<isSigned> &op) const;
 
 
       /*** Modular opertaions ***/
       // No overflow checking so these are the same as other operations
-      inline bitVector<isSigned> modularLeftShift (uint64_t s) const {
-	IPRECONDITION(s <= this->getWidth());
-	return *this << s;
-      }
-
-      inline bitVector<isSigned> modularIncrement () const {
-	return this->increment();
-      }
-
-      inline bitVector<isSigned> modularAdd (const bitVector<isSigned> &op) const {
-	return *this + op;
-      }
-
-      inline bitVector<isSigned> modularNegate () const {
-	return -(*this);
-      }
-
+      bitVector<isSigned> modularLeftShift (uint64_t s) const;
+      bitVector<isSigned> modularIncrement () const;
+      bitVector<isSigned> modularAdd (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> modularNegate () const;
 
 
 
       /*** Comparisons ***/
 
       /* Inherited ... ish ... */
-      inline proposition operator == (const bitVector<isSigned> &op) const { return this->CVC4BV::operator==(op); }
-      inline proposition operator <= (const bitVector<isSigned> &op) const { return this->CVC4BV::operator<=(op); }
-      inline proposition operator >= (const bitVector<isSigned> &op) const { return this->CVC4BV::operator>=(op); }
-      inline proposition operator < (const bitVector<isSigned> &op) const  { return this->CVC4BV::operator< (op); }
-      inline proposition operator > (const bitVector<isSigned> &op) const  { return this->CVC4BV::operator> (op); }
+      proposition operator == (const bitVector<isSigned> &op) const;
+      proposition operator <= (const bitVector<isSigned> &op) const;
+      proposition operator >= (const bitVector<isSigned> &op) const;
+      proposition operator < (const bitVector<isSigned> &op) const;
+      proposition operator > (const bitVector<isSigned> &op) const;
 
 
       /*** Type conversion ***/
       // CVC4 nodes make no distinction between signed and unsigned, thus ...
-      bitVector<true> toSigned (void) const {
-	return bitVector<true>(*this);
-      }
-      bitVector<false> toUnsigned (void) const {
-	return bitVector<false>(*this);
-      }
-
+      bitVector<true> toSigned (void) const;
+      bitVector<false> toUnsigned (void) const;
 
 
       /*** Bit hacks ***/
 
-      inline bitVector<isSigned> extend (bitWidthType extension) const {
-	if (isSigned) {
-	  return this->CVC4BV::signExtend(extension);
-	} else {
-	  return this->CVC4BV::zeroExtend(extension);
-	}
-      }
-
-      inline bitVector<isSigned> contract (bitWidthType reduction) const {
-	IPRECONDITION(this->getWidth() > reduction);
-
-	return this->extract(this->getWidth() - reduction, 0);
-      }
-
-      inline bitVector<isSigned> resize (bitWidthType newSize) const {
-	bitWidthType width = this->getWidth();
-
-	if (newSize > width) {
-	  return this->extend(newSize - width);
-	} else if (newSize < width) {
-	  return this->contract(width - newSize);
-	} else {
-	  return *this;
-	}
-      }
-
-      bitVector<isSigned> append(const bitVector<isSigned> &op) const {
-	return this->CVC4BV::concat(op);
-      }
+      bitVector<isSigned> extend (bitWidthType extension) const;
+      bitVector<isSigned> contract (bitWidthType reduction) const;
+      bitVector<isSigned> resize (bitWidthType newSize) const;
+      bitVector<isSigned> append(const bitVector<isSigned> &op) const;
 
       // Inclusive of end points, thus if the same, extracts just one bit
-      bitVector<isSigned> extract(bitWidthType upper, bitWidthType lower) const {
-	IPRECONDITION(upper >= lower);
-	return this->CVC4BV::extract(upper, lower);
-      }
+      bitVector<isSigned> extract(bitWidthType upper, bitWidthType lower) const;
 
-      bitVector<isSigned> orderEncode (bitWidthType w) const {
-	UNFINISHED("orderEncode");
-      }
+      bitVector<isSigned> orderEncode (bitWidthType w) const;
 
 
 
       /*** Expanding operations ***/
 
-      inline bitVector<isSigned> expandingAdd (const bitVector<isSigned> &op) const {
-	bitVector<isSigned> x((*this).extend(1));
-	bitVector<isSigned> y(     op.extend(1));
-
-	return x + y;
-      }
-
-      inline bitVector<isSigned> expandingSubtract (const bitVector<isSigned> &op) const {
-	bitVector<isSigned> x((*this).extend(1));
-	bitVector<isSigned> y(     op.extend(1));
-
-	return x - y;
-      }
-
-      inline bitVector<isSigned> expandingMultiply (const bitVector<isSigned> &op) const {
-	bitVector<isSigned> x((*this).extend(this->getWidth()));
-	bitVector<isSigned> y(     op.extend(this->getWidth()));
-
-	return x * y;
-      }
-
-
+      bitVector<isSigned> expandingAdd (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> expandingSubtract (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> expandingMultiply (const bitVector<isSigned> &op) const;
 
     };
 

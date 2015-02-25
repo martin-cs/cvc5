@@ -181,8 +181,12 @@ namespace CVC4 {
 
   struct CVC4_PUBLIC FloatingPointHashFunction {
     inline size_t operator() (const FloatingPoint& fp) const {
-      FloatingPointSizeHashFunction h;
-      return h(fp.t) ^ fp.getLiteral().hash();
+      FloatingPointSizeHashFunction fpshf;
+      BitVectorHashFunction bvhf;
+
+      BitVector bv(symfpu::pack<symfpuLiteral::traits>(fp.t,fp.getLiteral()));
+
+      return fpshf(fp.t) ^ bvhf(bv);
     }
   }; /* struct FloatingPointHashFunction */
 
