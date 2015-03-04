@@ -185,6 +185,89 @@ typedef executableTests<uint32_t, float, traits> test;
 
 
 
+/*** Output helpers ***/
+
+#define BUFFERLENGTH 256
+
+FILE * openOutputFile (const char *string, const char *name, const char *roundingMode, const uint64_t testNumber) {
+  char filename[BUFFERLENGTH];
+
+  snprintf(filename, BUFFERLENGTH, string, name, roundingMode, testNumber);
+
+  FILE *out = fopen(filename, "w");
+  if (out == NULL) { 
+    fprintf(stderr,"Couldn't open %s\n", filename);
+    perror("Can't open file for writing");
+    exit(1);
+  }
+
+  return out;
+}
+
+FILE * startOutputC (const char *name, const char *roundingMode, const uint64_t testNumber) {
+  FILE * out = openOutputFile("testC-%s-%s-%x.c", name, roundingMode, testNumber);
+
+  // TODO : version and date
+  fprintf(out, "// Test case created by symfpu for operation %s, rounding mode %s, test %x\n\n", name, roundingMode, testNumber);
+  fprintf(out, "#include <assert.h>\n");
+  fprintf(out, "#include <math.h>\n");
+  fprintf(out, "#include <fenv.h>\n\n");
+
+  fprintf(out, "int compare (float ref, float computed) {\n\n");
+
+  fprintf(out, "int isrefnan = isnan(ref);\n");
+  fprintf(out, "int iscomputednan = isnan(computed);\n");
+  fprintf(out, "int equal = (ref == computed);\n");
+  fprintf(out, "int signref = signbit(ref);\n");
+  fprintf(out, "int signcomp = signbit(computed);\n");
+
+  fprintf(out, "return ((isrefnan && iscomputednan) || \n");
+  fprintf(out, "        (equal && ((signref == 0 && signcomp == 0) || \n");
+  fprintf(out, "                   (signref != 0 && signcomp != 0))));\n");
+  fprintf(out, "}\n\n");
+
+  fprintf(out, "int main (void) {\n");
+
+  return out;
+}
+
+void finishOutputC (FILE *out) {
+  fprintf(out,"return 1;\n");
+  fprintf(out, "}\n\n");
+  fclose(out);
+  return;
+}
+
+void printFloatC (FILE *out, float f) {
+  if (isnan(f)) {
+    fprintf(out, "NAN");
+  } else if (isinf(f)) {
+    fprintf(out, "%cINFINITY", (signbit(f) == 0) ? ' ' : '-');
+  } else {
+    fprintf(out, "%af", f);
+  }
+
+  return;
+}
+
+
+
+FILE * startOutputSMT (const char *name, const char *roundingMode, const uint64_t testNumber) {
+  FILE * out = openOutputFile("testSMT-%s-%s-%x.c", name, roundingMode, testNumber);
+
+  // TODO : version and date
+  assert(0);
+
+  return out;
+}
+
+void finishOutputSMT (FILE *out) {
+  assert(0);
+
+  fclose(out);
+  return;
+}
+
 
 
 
@@ -220,6 +303,60 @@ void unaryFunctionTest (int verbose, uint64_t start, uint64_t end, unaryFunction
   return;
 }
 
+void unaryFunctionPrintC (int verbose, uint64_t start, uint64_t end, unaryFunctionTFP ref, const char *name, const char *cPrintString) {
+  uint64_t i;
+  FILE * out;
+
+  for (i = start; i < end; ++i) {
+      float f = getTestValue(i);
+      uint32_t input = *((uint32_t *)(&f));
+     
+      uint32_t reference = ref(singlePrecision, input);
+      float fref = *((float *)(&reference));
+
+      out = startOutputC(name, "NA", i);
+
+      fprintf(out, "float f = ");
+      printFloatC(out, f);
+      fprintf(out,";\n");
+
+      fprintf(out, "float ref = ");
+      printFloatC(out, fref);
+      fprintf(out,";\n");
+
+      fprintf(out, "float computed = %s;\n", cPrintString);
+      fprintf(out, "assert(compare(ref, computed));\n");
+
+      finishOutputC(out);
+
+  }
+
+  return;
+}
+
+void unaryFunctionPrintSMT (int verbose, uint64_t start, uint64_t end, unaryFunctionTFP ref, const char *name, const char *SMTPrintString) {
+  uint64_t i;
+  FILE * out;
+
+  for (i = start; i < end; ++i) {
+      float f = getTestValue(i);
+      uint32_t input = *((uint32_t *)(&f));
+     
+      uint32_t reference = ref(singlePrecision, input);
+      float fref = *((float *)(&reference));
+
+      out = startOutputSMT(name, "NA", i);
+
+      assert(0);
+
+
+      finishOutputC(out);
+  }
+
+  return;
+}
+
+
 
 
 typedef bool (*unaryPredicateTFP) (const fpt &, uint32_t);
@@ -245,6 +382,53 @@ void unaryPredicateTest (int verbose, uint64_t start, uint64_t end, unaryPredica
 	fprintf(stdout,".");
 	fflush(stdout);
       }
+  }
+
+  return;
+}
+
+
+void unaryPredicatePrintC (int verbose, uint64_t start, uint64_t end, unaryPredicateTFP ref, const char *name, const char *cPrintString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+      float f = getTestValue(i);
+      
+      uint32_t input = *((uint32_t *)(&f));
+     
+      bool reference = ref(singlePrecision, input);
+
+      out = startOutputC(name, "NA", i);
+
+      fprintf(out, "float f = ");
+      printFloatC(out, f);
+      fprintf(out,";\n");
+
+      fprintf(out, "assert(%c(%s));\n", (reference) ? ' ' : '!', cPrintString);
+
+      finishOutputC(out);
+  }
+
+  return;}
+
+void unaryPredicatePrintSMT (int verbose, uint64_t start, uint64_t end, unaryPredicateTFP ref, const char *name, const char *SMTPrintString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+      float f = getTestValue(i);
+      
+      uint32_t input = *((uint32_t *)(&f));
+     
+      bool reference = ref(singlePrecision, input);
+
+      out = startOutputSMT(name, "NA", i);
+
+      assert(0);
+
+
+      finishOutputSMT(out);
   }
 
   return;
@@ -306,6 +490,68 @@ void binaryPredicateTest (int verbose, uint64_t start, uint64_t end, binaryPredi
 }
 
 
+void binaryPredicatePrintC (int verbose, uint64_t start, uint64_t end, binaryPredicateTFP ref, const char *name, const char *cPrintString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitRight(i);
+    uint64_t left = splitLeft(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    
+    bool reference = ref(singlePrecision, input1, input2);
+
+    out = startOutputC(name, "NA", i);
+
+    fprintf(out, "float f = ");
+    printFloatC(out, f);
+    fprintf(out,";\n");
+
+    fprintf(out, "float g = ");
+    printFloatC(out, g);
+    fprintf(out,";\n");
+
+    fprintf(out, "assert(%c(%s));\n", (reference) ? ' ' : '!', cPrintString);
+
+    finishOutputC(out);
+  }
+  
+  return;
+}
+
+
+void binaryPredicatePrintSMT (int verbose, uint64_t start, uint64_t end, binaryPredicateTFP ref, const char *name, const char *SMTPrintString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitRight(i);
+    uint64_t left = splitLeft(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    
+    bool reference = ref(singlePrecision, input1, input2);
+
+    out = startOutputSMT(name, "NA", i);
+
+    assert(0);
+
+    finishOutputSMT(out);
+  }
+  
+  return;
+}
+
+
 
 
 
@@ -324,8 +570,8 @@ void binaryFunctionTest (int verbose, uint64_t start, uint64_t end, const rm &ro
     float f = getTestValue(right);
     float g = getTestValue(left);
     
-    uint32_t input1 = *((uint32_t *)(&g));
-    uint32_t input2 = *((uint32_t *)(&f));
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
     
     uint32_t reference = ref(singlePrecision, roundingMode, input1, input2);
     uint32_t computed = test(singlePrecision, roundingMode, input1, input2);
@@ -346,6 +592,79 @@ void binaryFunctionTest (int verbose, uint64_t start, uint64_t end, const rm &ro
 }
 
 
+void binaryFunctionPrintC (int verbose, uint64_t start, uint64_t end, const rm &roundingMode, binaryFunctionTFP ref, const char *name, const char *roundingModeString, const char *cPrintString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitRight(i);
+    uint64_t left = splitLeft(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    
+    uint32_t reference = ref(singlePrecision, roundingMode, input1, input2);
+    float fref = *((float *)(&reference));
+
+    out = startOutputC(name, roundingModeString, i);
+
+    fprintf(out, "float f = ");
+    printFloatC(out, f);
+    fprintf(out,";\n");
+
+    fprintf(out, "float g = ");
+    printFloatC(out, g);
+    fprintf(out,";\n");
+
+    fprintf(out, "float ref = ");
+    printFloatC(out, fref);
+    fprintf(out,";\n");
+
+    fprintf(out, "fesetround(%s);\n", roundingModeString);
+    fprintf(out, "float computed = %s;\n", cPrintString);
+    fprintf(out, "assert(compare(ref, computed));\n");
+
+    finishOutputC(out);
+
+  }
+  
+  return;
+}
+
+
+void binaryFunctionPrintSMT (int verbose, uint64_t start, uint64_t end, const rm &roundingMode, binaryFunctionTFP ref, const char *name, const char *roundingModeString, const char *SMTPrintString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitRight(i);
+    uint64_t left = splitLeft(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    
+    uint32_t reference = ref(singlePrecision, roundingMode, input1, input2);
+    uint32_t fref = *((float *)(&reference));
+
+    out = startOutputSMT(name, roundingModeString, i);
+
+    assert(0);
+
+    finishOutputSMT(out);
+
+  }
+  
+  return;
+}
+
+
+
 
 
 
@@ -354,6 +673,8 @@ struct unaryFunctionTestStruct {
   const char *name;
   unaryFunctionTFP test;
   unaryFunctionTFP ref;
+  const char *cPrintString;
+  const char *SMTPrintString;
 };
 
 struct unaryPredicateTestStruct {
@@ -361,6 +682,8 @@ struct unaryPredicateTestStruct {
   const char *name;
   unaryPredicateTFP test;
   unaryPredicateTFP ref;
+  const char *cPrintString;
+  const char *SMTPrintString;
 };
 
 struct binaryPredicateTestStruct {
@@ -368,6 +691,8 @@ struct binaryPredicateTestStruct {
   const char *name;
   binaryPredicateTFP test;
   binaryPredicateTFP ref;
+  const char *cPrintString;
+  const char *SMTPrintString;
 };
 
 struct binaryFunctionTestStruct {
@@ -375,12 +700,15 @@ struct binaryFunctionTestStruct {
   const char *name;
   binaryFunctionTFP test;
   binaryFunctionTFP ref;
+  const char *cPrintString;
+  const char *SMTPrintString;
 };
 
 struct roundingModeTestStruct {
   int enable;
   const char *name;
   rm *roundingMode;
+  const char *cPrintString;
 };
 
 
@@ -393,45 +721,50 @@ struct roundingModeTestStruct {
 
 #define INCREMENT 0xFFFFFF
 
+#define TEST 0
+#define PRINTC 1
+#define PRINTSMT 2
+
+
 int main (int argc, char **argv) {
   struct unaryFunctionTestStruct unaryFunctionTests[] = {
-    {0, "unpackPack", test::unpackPack, test::unpackPackReference},
-    {0,     "negate",     test::negate,     test::negateReference},
-    {0,   "absolute",   test::absolute,   test::absoluteReference},
-    {0,         NULL,             NULL,                      NULL}
+    {0, "unpackPack", test::unpackPack, test::unpackPackReference, "f", "f"},
+    {0,     "negate",     test::negate,     test::negateReference, "-f", "(fp.neg f)"},
+    {0,   "absolute",   test::absolute,   test::absoluteReference, "fabsf(f)", "(fp.abs f)"},
+    {0,         NULL,             NULL,                      NULL, NULL, NULL}
   };
 
   struct unaryPredicateTestStruct unaryPredicateTests[] = {
-    {0,    "isNormal",    test::isNormal,    test::isNormalReference},
-    {0, "isSubnormal", test::isSubnormal, test::isSubnormalReference},
-    {0,      "isZero",      test::isZero,      test::isZeroReference},
-    {0,  "isInfinite",  test::isInfinite,  test::isInfiniteReference},
-    {0,       "isNaN",       test::isNaN,       test::isNaNReference},
-    {0,  "isPositive",  test::isPositive,  test::isPositiveReference},
-    {0,  "isNegative",  test::isNegative,  test::isNegativeReference},
-    {0,          NULL,              NULL,                       NULL}
+    {0,    "isNormal",    test::isNormal,    test::isNormalReference, "isnormal(f)", "(fp.isNormal f)"},
+    {0, "isSubnormal", test::isSubnormal, test::isSubnormalReference, "fpclassify(f) == FP_SUBNORMAL", "(fp.isSubnormal)"},
+    {0,      "isZero",      test::isZero,      test::isZeroReference, "(f) == 0.0f", "(fp.isZero f)"},
+    {0,  "isInfinite",  test::isInfinite,  test::isInfiniteReference, "isinf(f)", "(fp.isInfinite f)"},
+    {0,       "isNaN",       test::isNaN,       test::isNaNReference, "isnan(f)", "(fp.isNaN f)"},
+    {0,  "isPositive",  test::isPositive,  test::isPositiveReference, "!isnan(f) && signbit(f) == 0", "(fp.isPositive f)"},
+    {0,  "isNegative",  test::isNegative,  test::isNegativeReference, "!isnan(f) && signbit(f) != 0", "(fp.isNegative)"},
+    {0,          NULL,              NULL,                       NULL, NULL, NULL}
   };
 
   struct binaryPredicateTestStruct binaryPredicateTests[] = {
-    {0,      "SMT-LIB equal",     test::smtlibEqual,     test::smtlibEqualReference},
-    {0,       "IEE754 equal",    test::ieee754Equal,    test::ieee754EqualReference},
-    {0,          "less than",        test::lessThan,        test::lessThanReference},
-    {0, "less than or equal", test::lessThanOrEqual, test::lessThanOrEqualReference},
-    {0,                 NULL,                  NULL,                           NULL}
+    {0,      "SMT-LIB_equal",     test::smtlibEqual,     test::smtlibEqualReference, "compare(f,g)", "(= f g)"},
+    {0,       "IEE754_equal",    test::ieee754Equal,    test::ieee754EqualReference, "f == g", "(fp.eq f g)"},
+    {0,          "less_than",        test::lessThan,        test::lessThanReference, "f < g", "(fp.lt f g)"},
+    {0, "less_than_or_equal", test::lessThanOrEqual, test::lessThanOrEqualReference, "f <= g", "(fp.leq f g)"},
+    {0,                 NULL,                  NULL,                           NULL, NULL, NULL}
   };
 
   struct binaryFunctionTestStruct binaryFunctionTests[] = {
-    {0, "multiply",  test::multiply, test::multiplyReference},
-    {0,      "add",       test::add,      test::addReference},
-    {0, "subtract",       test::sub,      test::subReference},
+    {0, "multiply",  test::multiply, test::multiplyReference, "f * g", "(fp.mul rm f g)"},
+    {0,      "add",       test::add,      test::addReference, "f + g", "(fp.add rm f g)"},
+    {0, "subtract",       test::sub,      test::subReference, "f - g", "(fp.sub rm f g)"},
     {0,       NULL,            NULL,                    NULL}
   };
 
   struct roundingModeTestStruct roundingModeTests[] = {
-    {0, "RNE", new traits::rm(traits::RNE())},
-    {0, "RTP", new traits::rm(traits::RTP())},
-    {0, "RTN", new traits::rm(traits::RTN())},
-    {0, "RTZ", new traits::rm(traits::RTZ())},
+    {0, "RNE", new traits::rm(traits::RNE()), "FE_TONEAREST"},
+    {0, "RTP", new traits::rm(traits::RTP()), "FE_UPWARD"},
+    {0, "RTN", new traits::rm(traits::RTN()), "FE_DOWNWARD"},
+    {0, "RTZ", new traits::rm(traits::RTZ()), "FE_TOWARDZERO"},
   //{0, "RNA", new traits::rm(traits::RNA())},   // Disabled until a suitable reference is available
     {0,  NULL,         NULL}
   };
@@ -443,15 +776,23 @@ int main (int argc, char **argv) {
   int enableAllTests = 0;
   int enableAllRoundingModes = 0;
   int continuous = 0;
+  int action = TEST;
 
   struct option options[] = {
     {         "verbose",        no_argument,                          &verbose,  1 },
     {            "help",        no_argument,                             &help,  1 },
+
     {           "start",  required_argument,                              NULL, 's'},
     {             "end",  required_argument,                              NULL, 'e'},
+    {   "specialValues",        no_argument,                              NULL, 't'},
     {      "continuous",        no_argument,                       &continuous,  1 },
+
     {        "allTests",        no_argument,                   &enableAllTests,  1 },
     {"allRoundingModes",        no_argument,           &enableAllRoundingModes,  1 },
+
+    {          "printC",        no_argument,                           &action,  PRINTC },
+    {        "printSMT",        no_argument,                           &action,  PRINTSMT },
+
     {      "unpackPack",        no_argument,   &(unaryFunctionTests[0].enable),  1 },
     {          "negate",        no_argument,   &(unaryFunctionTests[1].enable),  1 },
     {        "absolute",        no_argument,   &(unaryFunctionTests[2].enable),  1 },
@@ -485,7 +826,7 @@ int main (int argc, char **argv) {
   bool parseOptions = true;
   while (parseOptions) {
     int currentOption = 0;
-    int response = getopt_long(argc, argv, "vs:e:", options, &currentOption);
+    int response = getopt_long(argc, argv, "vs:e:t", options, &currentOption);
 
     switch(response) {
     case 'v' :
@@ -498,6 +839,10 @@ int main (int argc, char **argv) {
 
     case 'e' :
       end = strtoull(optarg,NULL,0);
+      break;
+
+    case 't' :
+      end = NUMBER_OF_FLOAT_TESTS  * NUMBER_OF_FLOAT_TESTS;
       break;
 
     case 0 :    /* Flag set */
@@ -560,7 +905,23 @@ int main (int argc, char **argv) {
       fprintf(stdout, "Running unary test for %s : ", unaryFunctionTests[i].name);
       fflush(stdout);
 
-      unaryFunctionTest(verbose, start, end, unaryFunctionTests[i].test, unaryFunctionTests[i].ref);
+      switch (action) {
+      case TEST :
+	unaryFunctionTest(verbose, start, end, unaryFunctionTests[i].test, unaryFunctionTests[i].ref);
+	break;
+
+      case PRINTC :
+	unaryFunctionPrintC(verbose, start, end, unaryFunctionTests[i].ref, unaryFunctionTests[i].name, unaryFunctionTests[i].cPrintString);
+	break;
+
+      case PRINTSMT :
+	unaryFunctionPrintSMT(verbose, start, end, unaryFunctionTests[i].ref, unaryFunctionTests[i].name, unaryFunctionTests[i].cPrintString);
+	break;
+
+      default :
+	assert(0);
+	break;
+      }
 
       fprintf(stdout, "\n");
       fflush(stdout);
@@ -577,7 +938,23 @@ int main (int argc, char **argv) {
       fprintf(stdout, "Running unary test for %s : ", unaryPredicateTests[i].name);
       fflush(stdout);
 
-      unaryPredicateTest(verbose, start, end, unaryPredicateTests[i].test, unaryPredicateTests[i].ref);
+      switch (action) {
+      case TEST :
+	unaryPredicateTest(verbose, start, end, unaryPredicateTests[i].test, unaryPredicateTests[i].ref);
+	break;
+
+      case PRINTC :
+	unaryPredicatePrintC(verbose, start, end, unaryPredicateTests[i].ref, unaryPredicateTests[i].name, unaryPredicateTests[i].cPrintString);
+	break;
+	
+      case PRINTSMT :
+	unaryPredicatePrintSMT(verbose, start, end, unaryPredicateTests[i].ref, unaryPredicateTests[i].name, unaryPredicateTests[i].SMTPrintString);
+	break;
+
+      default :
+	assert(0);
+	break;
+      }
 
       fprintf(stdout, "\n");
       fflush(stdout);
@@ -594,7 +971,23 @@ int main (int argc, char **argv) {
       fprintf(stdout, "Running binary test for %s : ", binaryPredicateTests[i].name);
       fflush(stdout);
 
-      binaryPredicateTest(verbose, start, end, binaryPredicateTests[i].test, binaryPredicateTests[i].ref);
+      switch (action) {
+      case TEST :
+	binaryPredicateTest(verbose, start, end, binaryPredicateTests[i].test, binaryPredicateTests[i].ref);
+	break;
+
+      case PRINTC :
+	binaryPredicatePrintC(verbose, start, end, binaryPredicateTests[i].ref, binaryPredicateTests[i].name, binaryPredicateTests[i].cPrintString);
+	break;
+
+      case PRINTSMT :
+	binaryPredicatePrintSMT(verbose, start, end, binaryPredicateTests[i].ref, binaryPredicateTests[i].name, binaryPredicateTests[i].SMTPrintString);
+	break;
+
+      default :
+	assert(0);
+	break;
+      }
 
       fprintf(stdout, "\n");
       fflush(stdout);
@@ -615,7 +1008,23 @@ int main (int argc, char **argv) {
 	  fprintf(stdout, "Running binary test for %s %s : ", binaryFunctionTests[i].name, roundingModeTests[j].name);
 	  fflush(stdout);
 
-	  binaryFunctionTest(verbose, start, end, *(roundingModeTests[j].roundingMode), binaryFunctionTests[i].test, binaryFunctionTests[i].ref);
+	  switch (action) {
+	  case TEST :
+	    binaryFunctionTest(verbose, start, end, *(roundingModeTests[j].roundingMode), binaryFunctionTests[i].test, binaryFunctionTests[i].ref);
+	    break;
+
+	  case PRINTC :
+	    binaryFunctionPrintC(verbose, start, end, *(roundingModeTests[j].roundingMode), binaryFunctionTests[i].ref, binaryFunctionTests[i].name, roundingModeTests[j].cPrintString, binaryFunctionTests[i].cPrintString);
+	    break;
+
+	  case PRINTSMT :
+	    binaryFunctionPrintSMT(verbose, start, end, *(roundingModeTests[j].roundingMode), binaryFunctionTests[i].ref, binaryFunctionTests[i].name, roundingModeTests[j].name, binaryFunctionTests[i].SMTPrintString);
+	    break;
+	    
+	  default :
+	    assert(0);
+	    break;
+	  }
 
 	  fprintf(stdout, "\n");
 	  fflush(stdout);
