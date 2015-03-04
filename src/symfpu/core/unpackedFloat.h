@@ -288,6 +288,8 @@ namespace symfpu {
       bwt sigWidth = unpackedFloat<t>::significandWidth(format);
       bwt exWidth = unpackedFloat<t>::exponentWidth(format);
      
+      // TODO : is range checking needed here?  Only in obscure use cases.
+
       for (bwt power = previousPowerOfTwo(sigWidth); power != 0; power >>= 1) {
 	bwt rem = sigWidth - power;
 
@@ -300,6 +302,7 @@ namespace symfpu {
 	// performing the shift will loose information.
 	working.significand = ITE(shiftNeeded, working.significand.modularLeftShift(power), working.significand);
 	working.exponent = ITE(shiftNeeded, working.exponent - sbv(exWidth,power), working.exponent);
+        // Optimisation : rather than add each cycle, build shiftNeeded into a number and add once.
       }
 
       return working;

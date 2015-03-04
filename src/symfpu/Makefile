@@ -1,4 +1,4 @@
-CXXFLAGS+=-Wall -W
+CXXFLAGS+=-Wall -W -frounding-math -fsignaling-nans -ffp-contract=off -msse2 -mfpmath=sse -pedantic
 SUBDIRS=applications/ utils/ baseTypes/ core/
 OBJECTFILES=utils/common.o baseTypes/simpleExecutable.o core/nondet.o
 LIBFILES=symfpu.a

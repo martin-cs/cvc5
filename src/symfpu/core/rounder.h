@@ -136,6 +136,7 @@ template <class t>
   // Optimisation : early underflow is correct in almost all cases
   //                only need to round if:
   //                   exponent >= minSubnormalExponent - 1
+  //                && sigWidth > targetSignificandBits
 
 
   /*** Normal or subnormal rounding? ***/
@@ -172,6 +173,7 @@ template <class t>
   // Can overflow but is handled
   ubv incrementedSignificand(extractedSignificand.modularIncrement());
   prop incrementedSignificandOverflow(incrementedSignificand.isAllZeros());
+  // Optimisation : conditional increment
 
   ubv correctedIncrementedSignificand(ITE(!incrementedSignificandOverflow,
 					  incrementedSignificand,

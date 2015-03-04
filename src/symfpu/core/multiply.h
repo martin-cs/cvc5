@@ -78,6 +78,7 @@ template <class t>
 
   // Add up exponents
   sbv exponentSum(left.getExponent().expandingAdd(right.getExponent()));
+  // Optimisation : do this late and use the increment as a carry in
 
   sbv min(unpackedFloat<t>::minSubnormalExponent(format));
   sbv max(unpackedFloat<t>::maxNormalExponent(format));
