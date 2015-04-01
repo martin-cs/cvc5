@@ -294,9 +294,9 @@ namespace CVC4 {
     unsigned largestExponentBit = (fp.t.exponent() - 1) + (largestSignificandBit + 1);
 
     return os 
-      << "(fp " << bv.extract(largestExponentBit + 1, largestExponentBit + 1)
-      << " " << bv.extract(largestExponentBit, largestSignificandBit + 1)
-      << " " << bv.extract(largestSignificandBit, 0)
+      << "(fp #b" << bv.extract(largestExponentBit + 1, largestExponentBit + 1)
+      << " #b" << bv.extract(largestExponentBit, largestSignificandBit + 1)
+      << " #b" << bv.extract(largestSignificandBit, 0)
       << ")";
   }
 

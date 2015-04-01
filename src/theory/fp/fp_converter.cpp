@@ -169,7 +169,7 @@ namespace fp {
     if (i == exponentMap.end()) {
       traits::fpt fmt(t);
       fun = nm->mkSkolem("floating_point_to_BV_exponent",
-			 nm->mkFunctionType(t, nm->mkBitVectorType(fmt.exponentWidth())),
+			 nm->mkFunctionType(t, nm->mkBitVectorType(uf::exponentWidth(fmt))),
 			 "floating_point_to_BV_exponent",
 			 NodeManager::SKOLEM_EXACT_NAME);
       NaNMap.insert(t,fun);
@@ -191,7 +191,7 @@ namespace fp {
     if (i == significandMap.end()) {
       traits::fpt fmt(t);
       fun = nm->mkSkolem("floating_point_to_BV_significand",
-			 nm->mkFunctionType(t, nm->mkBitVectorType(fmt.significandWidth())),
+			 nm->mkFunctionType(t, nm->mkBitVectorType(uf::significandWidth(fmt))),
 			 "floating_point_to_BV_significand",
 			 NodeManager::SKOLEM_EXACT_NAME);
       NaNMap.insert(t,fun);
@@ -742,7 +742,7 @@ namespace fp {
 				     significandValue.getConst<BitVector>());
 	    return NodeManager::currentNM()->mkConst(FloatingPoint(var.getType().getConst<FloatingPointSize>(), fpl));
 	    
-	    Unimplemented("Unfinished!");
+	    Unimplemented("Unfinished!");  // Or is it?
 	  }
       }
       break;

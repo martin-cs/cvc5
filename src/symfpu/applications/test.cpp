@@ -41,7 +41,7 @@
 
 /*** Test Vector Generation ***/
 
-#define NUMBER_OF_FLOAT_TESTS 120
+#define NUMBER_OF_FLOAT_TESTS 121
 static float floatTestValue [NUMBER_OF_FLOAT_TESTS] = {
   0x0p+0f, -0x0p+0f,                        // Zeros
   0x1p+0f, -0x1p+0f,                        // Ones
@@ -122,7 +122,8 @@ static float floatTestValue [NUMBER_OF_FLOAT_TESTS] = {
    0x1.fffffcp+24,
    0x1.0p-1,                   // Half for a laugh
    0x1.000002p-75f,            // To test rounding on multiply
-   0x1.0p-75f
+   0x1.0p-75f,
+   0x1.8p+0f                   // Carry in to top bit of fraction when half is added
 };
 
 float getTestValue (uint64_t index) {
@@ -205,7 +206,7 @@ FILE * openOutputFile (const char *string, const char *name, const char *roundin
 }
 
 FILE * startOutputC (const char *name, const char *roundingMode, const uint64_t testNumber) {
-  FILE * out = openOutputFile("testC-%s-%s-%x.c", name, roundingMode, testNumber);
+  FILE * out = openOutputFile("testC-%s-%s-%d.c", name, roundingMode, testNumber);
 
   // TODO : version and date
   fprintf(out, "// Test case created by symfpu for operation %s, rounding mode %s, test %x\n\n", name, roundingMode, testNumber);
@@ -250,19 +251,27 @@ void printFloatC (FILE *out, float f) {
   return;
 }
 
-
+void printFloatSMT (FILE *out, uint32_t f) {
+  fprintf(out, "(fp (_ bv%d 1) (_ bv%d 8) (_ bv%d 23))",
+	  (f & 0x80000000) >> 31,
+	  (f & 0x7F800000) >> 23,
+	  (f & 0x007FFFFF) >> 0);
+  return;
+}
 
 FILE * startOutputSMT (const char *name, const char *roundingMode, const uint64_t testNumber) {
-  FILE * out = openOutputFile("testSMT-%s-%s-%x.c", name, roundingMode, testNumber);
+  FILE * out = openOutputFile("testSMT-%s-%s-%d.smt2", name, roundingMode, testNumber);
 
   // TODO : version and date
-  assert(0);
+  fprintf(out, "(set-logic ALL_SUPPORTED)\n");
+  fprintf(out, "; Should be SAT\n");
 
   return out;
 }
 
 void finishOutputSMT (FILE *out) {
-  assert(0);
+
+  fprintf(out, "(check-sat)\n");
 
   fclose(out);
   return;
@@ -347,10 +356,18 @@ void unaryFunctionPrintSMT (int verbose, uint64_t start, uint64_t end, unaryFunc
 
       out = startOutputSMT(name, "NA", i);
 
-      assert(0);
+      fprintf(out, "(define-fun f () Float32 ");
+      printFloatSMT(out, input);
+      fprintf(out, ")\n");
 
+      fprintf(out, "(define-fun ref () Float32 ");
+      printFloatSMT(out, reference);
+      fprintf(out, ")\n");
 
-      finishOutputC(out);
+      fprintf(out, "(define-fun result () Float32 %s )\n", SMTPrintString);
+      fprintf(out, "(assert (= ref result))\n");
+
+      finishOutputSMT(out);
   }
 
   return;
@@ -425,7 +442,21 @@ void unaryPredicatePrintSMT (int verbose, uint64_t start, uint64_t end, unaryPre
 
       out = startOutputSMT(name, "NA", i);
 
-      assert(0);
+      fprintf(out, "(define-fun f () Float32 ");
+      printFloatSMT(out, input);
+      fprintf(out, ")\n");
+
+      fprintf(out, "(define-fun ref () Bool ");
+      if (reference) {
+	fprintf(out, "true");
+      } else {
+	fprintf(out, "false");
+      }
+      fprintf(out, ")\n");
+
+      fprintf(out, "(define-fun result () Bool %s )\n", SMTPrintString);
+
+      fprintf(out, "(assert (= ref result))\n");
 
 
       finishOutputSMT(out);
@@ -543,7 +574,27 @@ void binaryPredicatePrintSMT (int verbose, uint64_t start, uint64_t end, binaryP
 
     out = startOutputSMT(name, "NA", i);
 
-    assert(0);
+    fprintf(out, "(define-fun f () Float32 ");
+    printFloatSMT(out, input1);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun g () Float32 ");
+    printFloatSMT(out, input2);
+    fprintf(out, ")\n");
+    
+    fprintf(out, "(define-fun ref () Bool ");
+    if (reference) {
+      fprintf(out, "true");
+    } else {
+      fprintf(out, "false");
+    }
+    fprintf(out, ")\n");
+    
+    fprintf(out, "(define-fun result () Bool %s )\n", SMTPrintString);
+    
+    fprintf(out, "(assert (= ref result))\n");
+    
+
 
     finishOutputSMT(out);
   }
@@ -654,7 +705,24 @@ void binaryFunctionPrintSMT (int verbose, uint64_t start, uint64_t end, const rm
 
     out = startOutputSMT(name, roundingModeString, i);
 
-    assert(0);
+    fprintf(out, "(define-fun f () Float32 ");
+    printFloatSMT(out, input1);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun g () Float32 ");
+    printFloatSMT(out, input2);
+    fprintf(out, ")\n");
+    
+    fprintf(out, "(define-fun ref () Float32 ");
+    printFloatSMT(out, reference);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun rm () RoundingMode %s )\n", roundingModeString);
+        
+    fprintf(out, "(define-fun result () Float32 %s )\n", SMTPrintString);
+    
+    fprintf(out, "(assert (= ref result))\n");
+    
 
     finishOutputSMT(out);
 
@@ -736,12 +804,12 @@ int main (int argc, char **argv) {
 
   struct unaryPredicateTestStruct unaryPredicateTests[] = {
     {0,    "isNormal",    test::isNormal,    test::isNormalReference, "isnormal(f)", "(fp.isNormal f)"},
-    {0, "isSubnormal", test::isSubnormal, test::isSubnormalReference, "fpclassify(f) == FP_SUBNORMAL", "(fp.isSubnormal)"},
+    {0, "isSubnormal", test::isSubnormal, test::isSubnormalReference, "fpclassify(f) == FP_SUBNORMAL", "(fp.isSubnormal f)"},
     {0,      "isZero",      test::isZero,      test::isZeroReference, "(f) == 0.0f", "(fp.isZero f)"},
     {0,  "isInfinite",  test::isInfinite,  test::isInfiniteReference, "isinf(f)", "(fp.isInfinite f)"},
     {0,       "isNaN",       test::isNaN,       test::isNaNReference, "isnan(f)", "(fp.isNaN f)"},
     {0,  "isPositive",  test::isPositive,  test::isPositiveReference, "!isnan(f) && signbit(f) == 0", "(fp.isPositive f)"},
-    {0,  "isNegative",  test::isNegative,  test::isNegativeReference, "!isnan(f) && signbit(f) != 0", "(fp.isNegative)"},
+    {0,  "isNegative",  test::isNegative,  test::isNegativeReference, "!isnan(f) && signbit(f) != 0", "(fp.isNegative f)"},
     {0,          NULL,              NULL,                       NULL, NULL, NULL}
   };
 
@@ -915,7 +983,7 @@ int main (int argc, char **argv) {
 	break;
 
       case PRINTSMT :
-	unaryFunctionPrintSMT(verbose, start, end, unaryFunctionTests[i].ref, unaryFunctionTests[i].name, unaryFunctionTests[i].cPrintString);
+	unaryFunctionPrintSMT(verbose, start, end, unaryFunctionTests[i].ref, unaryFunctionTests[i].name, unaryFunctionTests[i].SMTPrintString);
 	break;
 
       default :

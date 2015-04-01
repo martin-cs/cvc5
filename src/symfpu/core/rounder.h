@@ -158,7 +158,7 @@ template <class t>
   prop aboveLimit(subnormalAmount >= sbv(expWidth, targetSignificandWidth));  // Will underflow
   sbv subnormalShift(ITE((belowLimit || aboveLimit), sbv::zero(expWidth), subnormalAmount));
 
-  ubv subnormalShiftPrepared(subnormalShift.toUnsigned().extend(sigWidth - expWidth));
+  ubv subnormalShiftPrepared(subnormalShift.toUnsigned().extend(targetSignificandWidth - expWidth));
   ubv guardLocation(ubv::one(targetSignificandWidth) << subnormalShiftPrepared);
   ubv stickyMask(guardLocation.decrement());
 

@@ -68,13 +68,11 @@ namespace symfpu {
 
     class nodeWrapper {
     protected :
+      // TODO : move to inheriting from Node rather than including it
       Node node;
 
-      // Overload to get type checking on construction
-      bool checkNodeType (const TNode node) { return false; }
-
-      nodeWrapper (const Node n) : node(n) { Assert(checkNodeType(node)); }
-      nodeWrapper (const nodeWrapper &old) : node(old.node) { Assert(checkNodeType(node)); }
+      nodeWrapper (const Node n) : node(n) {}
+      nodeWrapper (const nodeWrapper &old) : node(old.node) {}
 
     public :
       const Node getNode (void) const {
@@ -98,13 +96,13 @@ namespace symfpu {
       friend ite<proposition, proposition>;   // For ITE
 
     public : 
-      proposition (const Node n) : nodeWrapper(n) {}        // Only used within this header so could be friend'd
-      proposition (bool v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(v)) {}
-      proposition (const proposition &old) : nodeWrapper(old) {}
+      proposition (const Node n) : nodeWrapper(n) { Assert(checkNodeType(node)); }        // Only used within this header so could be friend'd
+      proposition (bool v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(v)) { Assert(checkNodeType(node)); }
+      proposition (const proposition &old) : nodeWrapper(old) { Assert(checkNodeType(node)); }
       proposition (const nonDetMarkerType &)
 	: nodeWrapper(::CVC4::NodeManager::currentNM()->mkSkolem("nondet_proposition", 
 								 ::CVC4::NodeManager::currentNM()->booleanType(),
-								 "created by symfpu")) {}
+								 "created by symfpu")) {  Assert(checkNodeType(node)); }
 
       proposition operator ! (void) const {
 	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::NOT, this->node));
@@ -142,21 +140,22 @@ namespace symfpu {
 
       // TODO : make this private again
     public :
-      roundingMode (const Node n) : nodeWrapper(n) {}
+      roundingMode (const Node n) : nodeWrapper(n) {  Assert(checkNodeType(node)); }
 
       friend ite<proposition, roundingMode>;   // For ITE
 
     public :
       roundingMode (const unsigned v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(5, v))) {
 	Assert((v & v-1) == 0 && v != 0);   // Exactly one bit set
-      }
-      roundingMode (const roundingMode &old) : nodeWrapper(old) {}
+	Assert(checkNodeType(node));
+     }
+      roundingMode (const roundingMode &old) : nodeWrapper(old) {  Assert(checkNodeType(node)); }
 
       // Not necessarily valid on creation
       roundingMode (const nonDetMarkerType &)
 	: nodeWrapper(::CVC4::NodeManager::currentNM()->mkSkolem("nondet_roundingMode", 
 								 ::CVC4::NodeManager::currentNM()->mkBitVectorType(5),
-								 "created by symfpu")) {}
+								 "created by symfpu")) {  Assert(checkNodeType(node)); }
 
       proposition valid (void) const {
 	::CVC4::NodeManager* nm = ::CVC4::NodeManager::currentNM();
@@ -207,7 +206,7 @@ namespace symfpu {
       // TODO : make this private again
     public :
 
-      bitVector (const Node n) : nodeWrapper(n) {}
+      bitVector (const Node n) : nodeWrapper(n) {  Assert(checkNodeType(node)); }
 
       bool checkNodeType (const TNode n) {
 	::CVC4::TypeNode tn = n.getType(false);
@@ -220,13 +219,13 @@ namespace symfpu {
 
 
     public :
-      bitVector (const bitWidthType w, const unsigned v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(w, v))) { }
-      bitVector (const bitVector<isSigned> &old) : nodeWrapper(old) {}
+      bitVector (const bitWidthType w, const unsigned v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(w, v))) { Assert(checkNodeType(node)); }
+      bitVector (const bitVector<isSigned> &old) : nodeWrapper(old) {  Assert(checkNodeType(node)); }
       bitVector (const nonDetMarkerType &, const unsigned v)
 	: nodeWrapper(::CVC4::NodeManager::currentNM()->mkSkolem("nondet_bitVector", 
 								 ::CVC4::NodeManager::currentNM()->mkBitVectorType(v),
-								 "created by symfpu")) {}
-      bitVector (const ::CVC4::BitVector &old) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(old)) { }
+								 "created by symfpu")) { Assert(checkNodeType(node)); }
+      bitVector (const ::CVC4::BitVector &old) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(old)) { Assert(checkNodeType(node)); }
 
       bitWidthType getWidth (void) const {
 	return this->node.getType(false).getBitVectorSize();
@@ -307,7 +306,7 @@ namespace symfpu {
       }
 
       bitVector<isSigned> rightShiftStickyBit (const bitVector<isSigned> &op) const {
-	bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) | op).isAllZeros(),
+	bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) & *this).isAllZeros(),
 					  bitVector<isSigned>::zero(this->getWidth()),
 					  bitVector<isSigned>::one(this->getWidth())));
 
@@ -397,6 +396,12 @@ namespace symfpu {
 	  return *this;
 	}
       }
+
+      inline bitVector<isSigned> matchWidth (const bitVector<isSigned> &op) const {
+	IPRECONDITION(this->getWidth() <= op.getWidth());
+	return this->extend(op.getWidth() - this->getWidth());
+      }
+
 
       bitVector<isSigned> append(const bitVector<isSigned> &op) const {
 	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_CONCAT, this->node, op.node));
@@ -529,7 +534,7 @@ namespace symfpu {
     static const T iteOp (const cvc4_symbolic::proposition &cond,	\
 			  const T &l,					\
 			  const T &r) {					\
-      return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::ITE, l.getNode(), r.getNode())); \
+      return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::ITE, cond.getNode(), l.getNode(), r.getNode())); \
     }									\
   }
 

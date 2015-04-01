@@ -132,7 +132,7 @@ namespace symfpu {
 
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::rightShiftStickyBit (const bitVector<isSigned> &op) const {
-      bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) | op).isAllZeros(),
+      bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) & *this).isAllZeros(),
 					bitVector<isSigned>::zero(this->getWidth()),
 					bitVector<isSigned>::one(this->getWidth())));
       
@@ -260,6 +260,12 @@ namespace symfpu {
 	return *this;
       }
     }
+
+    bitVector<isSigned> matchWidth (const bitVector<isSigned> &op) const {
+      IPRECONDITION(this->getWidth() <= op.getWidth());
+      return this->extend(op.getWidth() - this->getWidth());
+    }
+
 
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::append(const bitVector<isSigned> &op) const {

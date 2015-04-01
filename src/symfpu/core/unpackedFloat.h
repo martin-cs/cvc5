@@ -242,6 +242,7 @@ namespace symfpu {
 	      (exponent <= maxSubnormalExponent(format)));
     }
 
+    // The amount needed to normalise the number
     inline sbv getSubnormalAmount(const fpt &format) const {
       return ITE(this->inSubnormalRange(format),
 		 minNormalExponent(format) - exponent,

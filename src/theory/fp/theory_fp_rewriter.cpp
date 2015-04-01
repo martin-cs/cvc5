@@ -353,7 +353,7 @@ namespace rewrite {
 
 
   RewriteResponse constantFoldLeq (TNode node, bool) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_LT);
+    Assert(node.getKind() == kind::FLOATINGPOINT_LEQ);
     Assert(node.getNumChildren() == 2);
 
     if (constantFoldEnabled &&
