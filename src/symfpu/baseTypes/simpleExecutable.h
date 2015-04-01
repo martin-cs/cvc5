@@ -222,6 +222,7 @@ namespace symfpu {
       }
 
       inline bitVector<T> operator << (const bitVector<T> &op) const {
+	IPRECONDITION(this->width == op.width);
 	IPRECONDITION(op.value >= 0 && op.value < this->width);
 	return bitVector<T>(this->width, this->value << op.value);
       }
@@ -232,6 +233,7 @@ namespace symfpu {
       }
 
       inline bitVector<T> operator >> (const bitVector<T> &op) const {
+	IPRECONDITION(this->width == op.width);
 	IPRECONDITION(op.value >= 0 && op.value < this->width);
 	return bitVector<T>(this->width, this->value >> op.value);
       }
@@ -361,6 +363,11 @@ namespace symfpu {
       inline bitVector<T> resize (bitWidthType newSize) const {
 	return bitVector<T>(newSize, 
 			    bitVector<T>::makeRepresentable(newSize, this->value));
+      }
+
+      inline bitVector<T> matchWidth (const bitVector<T> &op) const {
+	IPRECONDITION(this->width <= op.width);
+	return this->extend(op.width - this->width);
       }
 
 

@@ -171,6 +171,7 @@ namespace symfpu {
       bitVector<isSigned> extend (bitWidthType extension) const;
       bitVector<isSigned> contract (bitWidthType reduction) const;
       bitVector<isSigned> resize (bitWidthType newSize) const;
+      bitVector<isSigned> matchWidth (const bitVector<isSigned> &op) const;
       bitVector<isSigned> append(const bitVector<isSigned> &op) const;
 
       // Inclusive of end points, thus if the same, extracts just one bit

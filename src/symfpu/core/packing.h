@@ -129,7 +129,7 @@ namespace symfpu {
 
     INVARIANT(packedSigWidth == unpackedSignificand.getWidth() - 1);
     ubv dropLeadingOne(unpackedSignificand.extract(packedSigWidth - 1,0));
-    ubv correctedSubnormal((unpackedSignificand >> (uf.getSubnormalAmount(format).toUnsigned())).extract(packedSigWidth - 1,0));
+    ubv correctedSubnormal((unpackedSignificand >> (uf.getSubnormalAmount(format).toUnsigned().matchWidth(unpackedSignificand))).extract(packedSigWidth - 1,0));
 
     
     // Encodings
