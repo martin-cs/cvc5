@@ -261,7 +261,8 @@ namespace symfpu {
       }
     }
 
-    bitVector<isSigned> matchWidth (const bitVector<isSigned> &op) const {
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::matchWidth (const bitVector<isSigned> &op) const {
       IPRECONDITION(this->getWidth() <= op.getWidth());
       return this->extend(op.getWidth() - this->getWidth());
     }

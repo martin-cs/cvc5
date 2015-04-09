@@ -461,10 +461,25 @@ namespace symfpu {
 
   SEITEDFN(simpleExecutable::traits::rm);
   SEITEDFN(simpleExecutable::traits::prop);
-  SEITEDFN(simpleExecutable::traits::sbv);
-  SEITEDFN(simpleExecutable::traits::ubv);
 
-  // Ideally check (trueCase.width() == falseCase.width()))
+#define SEITEDFNW(T) template <>					\
+    struct ite<simpleExecutable::proposition, T> {			\
+    static const T & iteOp (const simpleExecutable::proposition &cond,	\
+			    const T &l,					\
+			    const T &r) {				\
+      assert(l.getWidth() == r.getWidth());				\
+									\
+      if (cond.toBool()) {						\
+	return l;							\
+      } else {								\
+	return r;							\
+      }									\
+    }									\
+  }
+
+  SEITEDFNW(simpleExecutable::traits::sbv);
+  SEITEDFNW(simpleExecutable::traits::ubv);
+
 
 };
 
