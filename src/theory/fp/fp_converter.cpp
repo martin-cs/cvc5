@@ -439,9 +439,10 @@ namespace fp {
 		  continue;    // i.e. recurse!
 		}
 
-		b.insert(current, symfpu::smtlibEqual<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::smtlibEqual<traits>(fpt(childType),
 							      (*arg1).second,
 							      (*arg2).second));
+
 	      } else if (childType.isRoundingMode()) {
 		rmMap::const_iterator arg1(r.find(current[0]));
 		rmMap::const_iterator arg2(r.find(current[1]));
@@ -467,6 +468,8 @@ namespace fp {
 	  case kind::FLOATINGPOINT_LEQ :
 	  case kind::FLOATINGPOINT_LT :
 	    {
+      	      TypeNode childType (current[0].getType());
+
 	      fpMap::const_iterator arg1(f.find(current[0]));
 	      fpMap::const_iterator arg2(f.find(current[1]));
 	      bool recurseNeeded = (arg1 == f.end()) || (arg2 == f.end());
@@ -480,13 +483,13 @@ namespace fp {
 
 	      switch (current.getKind()) {
 	      case kind::FLOATINGPOINT_LEQ :
-		b.insert(current, symfpu::lessThanOrEqual<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::lessThanOrEqual<traits>(fpt(childType),
 								  (*arg1).second,
 								  (*arg2).second));
 		break;
 
 	      case kind::FLOATINGPOINT_LT :
-		b.insert(current, symfpu::lessThan<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::lessThan<traits>(fpt(childType),
 							   (*arg1).second,
 							   (*arg2).second));
 		break;
@@ -507,6 +510,7 @@ namespace fp {
 	  case kind::FLOATINGPOINT_ISNEG :
 	  case kind::FLOATINGPOINT_ISPOS :
 	    {
+      	      TypeNode childType (current[0].getType());
 	      fpMap::const_iterator arg1(f.find(current[0]));
 
 	      if (arg1 == f.end()) {
@@ -517,37 +521,37 @@ namespace fp {
 
 	      switch (current.getKind()) {
 	      case kind::FLOATINGPOINT_ISN :
-		b.insert(current, symfpu::isNormal<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isNormal<traits>(fpt(childType),
 							   (*arg1).second));
 		break;
 
 	      case kind::FLOATINGPOINT_ISSN :
-		b.insert(current, symfpu::isSubnormal<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isSubnormal<traits>(fpt(childType),
 							      (*arg1).second));
 		break;
 
 	      case kind::FLOATINGPOINT_ISZ :
-		b.insert(current, symfpu::isZero<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isZero<traits>(fpt(childType),
 							 (*arg1).second));
 		break;
 
 	      case kind::FLOATINGPOINT_ISINF :
-		b.insert(current, symfpu::isInfinite<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isInfinite<traits>(fpt(childType),
 							     (*arg1).second));
 		break;
 
 	      case kind::FLOATINGPOINT_ISNAN :
-		b.insert(current, symfpu::isNaN<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isNaN<traits>(fpt(childType),
 							(*arg1).second));
 		break;
 
 	      case kind::FLOATINGPOINT_ISPOS :
-		b.insert(current, symfpu::isPositive<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isPositive<traits>(fpt(childType),
 							     (*arg1).second));
 		break;
 
 	      case kind::FLOATINGPOINT_ISNEG :
-		b.insert(current, symfpu::isNegative<traits>(fpt(current.getType()),
+		b.insert(current, symfpu::isNegative<traits>(fpt(childType),
 							     (*arg1).second));
 		break;
 
@@ -582,6 +586,7 @@ namespace fp {
 	  /******** Conversions ********/
 	case kind::FLOATINGPOINT_TO_UBV :
 	  {
+	    TypeNode childType (current[0].getType());
 	    ubvMap::const_iterator i(u.find(current));
 	      
 	    if (i == u.end()) {
@@ -598,7 +603,7 @@ namespace fp {
 		
 	      Unimplemented("Operation not yet supported in symfpu");
 	      /*
-		u.insert(current, symfpu::toUnsigned<traits>(fpt(current.getType()),
+		u.insert(current, symfpu::toUnsigned<traits>(fpt(childType),
 		(*mode).second,
 		(*arg1).second));
 	      */
@@ -611,6 +616,7 @@ namespace fp {
 
 	case kind::FLOATINGPOINT_TO_SBV :
 	  {
+	    TypeNode childType (current[0].getType());
 	    sbvMap::const_iterator i(s.find(current));
 	      
 	    if (i == s.end()) {
@@ -627,7 +633,7 @@ namespace fp {
 
 	      Unimplemented("Operation not yet supported in symfpu");
 	      /*
-		s.insert(current, symfpu::toSigned<traits>(fpt(current.getType()),
+		s.insert(current, symfpu::toSigned<traits>(fpt(childType),
 		(*mode).second,
 		(*arg1).second));
 	      */

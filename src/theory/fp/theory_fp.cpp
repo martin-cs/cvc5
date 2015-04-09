@@ -135,7 +135,7 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
   if (node.getType().isBoolean()) {
     Assert(converted != node);
 
-    d_out->lemma(NodeManager::currentNM()->mkNode(kind::EQUAL, node, converted),
+    d_out->lemma(NodeManager::currentNM()->mkNode(kind::IFF, node, converted),
 		 false,
 		 true);
   }
