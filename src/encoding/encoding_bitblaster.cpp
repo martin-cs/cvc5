@@ -118,7 +118,8 @@ void EncodingBitblaster::printCnfMapping(std::ostream& out, const NodeSet& topri
       if (toprint.find(node) != toprint.end()) {
 	out << "c " << lit.toString() <<" : " << node << std::endl;
       } else {
-	out << "c " << lit.toString() <<" : x[" << num_skolems<<"]" << std::endl;
+        out << "c " << lit.toString() << " : n" << node.getId() << std::endl;
+	//out << "c " << lit.toString() <<" : x[" << num_skolems<<"]" << std::endl;
 	++num_skolems;
       }
     } else {
