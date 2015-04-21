@@ -106,7 +106,7 @@ namespace fp {
 			 nm->mkFunctionType(t, nm->booleanType()),
 			 "floating_point_to_BV_inf",
 			 NodeManager::SKOLEM_EXACT_NAME);
-      NaNMap.insert(t,fun);
+      infMap.insert(t,fun);
     } else {
       fun = (*i).second;
     }
@@ -128,7 +128,7 @@ namespace fp {
 			 nm->mkFunctionType(t, nm->booleanType()),
 			 "floating_point_to_BV_zero",
 			 NodeManager::SKOLEM_EXACT_NAME);
-      NaNMap.insert(t,fun);
+      zeroMap.insert(t,fun);
     } else {
       fun = (*i).second;
     }
@@ -149,7 +149,7 @@ namespace fp {
 			 nm->mkFunctionType(t, nm->booleanType()),
 			 "floating_point_to_BV_sign",
 			 NodeManager::SKOLEM_EXACT_NAME);
-      NaNMap.insert(t,fun);
+      signMap.insert(t,fun);
     } else {
       fun = (*i).second;
     }
@@ -172,7 +172,7 @@ namespace fp {
 			 nm->mkFunctionType(t, nm->mkBitVectorType(uf::exponentWidth(fmt))),
 			 "floating_point_to_BV_exponent",
 			 NodeManager::SKOLEM_EXACT_NAME);
-      NaNMap.insert(t,fun);
+      exponentMap.insert(t,fun);
     } else {
       fun = (*i).second;
     }
@@ -194,7 +194,7 @@ namespace fp {
 			 nm->mkFunctionType(t, nm->mkBitVectorType(uf::significandWidth(fmt))),
 			 "floating_point_to_BV_significand",
 			 NodeManager::SKOLEM_EXACT_NAME);
-      NaNMap.insert(t,fun);
+      significandMap.insert(t,fun);
     } else {
       fun = (*i).second;
     }
@@ -741,8 +741,6 @@ namespace fp {
 				     exponentValue.getConst<BitVector>(),
 				     significandValue.getConst<BitVector>());
 	    return NodeManager::currentNM()->mkConst(FloatingPoint(var.getType().getConst<FloatingPointSize>(), fpl));
-	    
-	    Unimplemented("Unfinished!");  // Or is it?
 	  }
       }
       break;
