@@ -20,8 +20,8 @@ using namespace CVC4::theory;
 using namespace CVC4::theory::bv; 
 
 std::pair<Node, Node> CVC4::theory::bv::optimalFullAdder(const Node a, const Node b,
-								const Node cin,
-								CVC4::prop::CnfStream* cnf) {
+							 const Node cin,
+							 CVC4::prop::CnfStream* cnf) {
 
   NodeManager* nm = NodeManager::currentNM();
   Node s = nm->mkSkolem("sum", nm->booleanType());
