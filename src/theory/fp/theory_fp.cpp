@@ -172,6 +172,34 @@ void TheoryFp::check(Effort level) {
     return conv.getValue(d_valuation, var);
   }
 
+  void TheoryFp::collectModelInfo(TheoryModel *m, bool fullModel) {
+    std::set<Node> relevantTerms;
+
+    computeRelevantTerms(relevantTerms);
+
+    if (Trace.isOn("fp-collectModelInfo")) {
+      for (std::set<Node>::const_iterator i(relevantTerms.begin());
+	   i != relevantTerms.end();
+	   ++i) {
+	Trace("fp-collectModelInfo") << "TheoryFp::collectModelInfo(): processing " << *i << std::endl;
+      }
+    }
+
+
+    for (std::set<Node>::const_iterator i(relevantTerms.begin());
+	 i != relevantTerms.end();
+	 ++i) {
+      TNode node = *i;
+      
+      m->assertEquality(node,
+			conv.getValue(d_valuation, node),
+			true);
+    }
+
+    return;
+  }
+
+
 
 }/* CVC4::theory::fp namespace */
 }/* CVC4::theory namespace */
