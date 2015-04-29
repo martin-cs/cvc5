@@ -1848,6 +1848,15 @@ term[CVC4::Expr& expr, CVC4::Expr& expr2]
     | FP_NAN_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
       { expr = MK_CONST(FloatingPoint::makeNaN(FloatingPointSize(AntlrInput::tokenToUnsigned($eb),
                                                                  AntlrInput::tokenToUnsigned($sb)))); }
+
+    | FP_PZERO_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPoint::makeZero(FloatingPointSize(AntlrInput::tokenToUnsigned($eb),
+                                                                AntlrInput::tokenToUnsigned($sb)),
+                                              false)); }
+    | FP_NZERO_TOK eb=INTEGER_LITERAL sb=INTEGER_LITERAL
+      { op = MK_CONST(FloatingPoint::makeZero(FloatingPointSize(AntlrInput::tokenToUnsigned($eb),
+                                                                AntlrInput::tokenToUnsigned($sb)),
+                                              true)); }
     // NOTE: Theory parametric constants go here
 
     )
