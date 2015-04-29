@@ -1,4 +1,5 @@
 #include "theory/fp/theory_fp.h"
+#include "theory/theory_model.h"
 
 using namespace std;
 
@@ -176,6 +177,7 @@ void TheoryFp::check(Effort level) {
     std::set<Node> relevantTerms;
 
     computeRelevantTerms(relevantTerms);
+    // TODO : only bother with the leaves
 
     if (Trace.isOn("fp-collectModelInfo")) {
       for (std::set<Node>::const_iterator i(relevantTerms.begin());
