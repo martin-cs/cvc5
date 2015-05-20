@@ -18,6 +18,8 @@
 #include "theory/fp/theory_fp.h"
 #include "theory/theory_model.h"
 
+#include <stack>
+
 using namespace std;
 
 namespace CVC4 {
@@ -198,22 +200,61 @@ void TheoryFp::check(Effort level) {
   void TheoryFp::collectModelInfo(TheoryModel *m, bool fullModel) {
     std::set<Node> relevantTerms;
 
+    // Work out which variables are needed
     computeRelevantTerms(relevantTerms);
-    // TODO : only bother with the leaves
 
     if (Trace.isOn("fp-collectModelInfo")) {
       for (std::set<Node>::const_iterator i(relevantTerms.begin());
 	   i != relevantTerms.end();
 	   ++i) {
-	Trace("fp-collectModelInfo") << "TheoryFp::collectModelInfo(): processing " << *i << std::endl;
+	Trace("fp-collectModelInfo") << "TheoryFp::collectModelInfo(): relevantTerms " << *i << std::endl;
       }
     }
 
 
+    std::hash_set<TNode, TNodeHashFunction> visited;
+    std::stack<TNode> working;
+    std::set<TNode> relevantVariables;
     for (std::set<Node>::const_iterator i(relevantTerms.begin());
 	 i != relevantTerms.end();
 	 ++i) {
+      working.push(*i);
+    }
+
+    while (!working.empty()) {
+      TNode current = working.top();
+      working.pop();
+
+      // Ignore things that have already been explored
+      if (visited.find(current) == visited.end()) {
+	visited.insert(current);
+
+	TypeNode t(current.getType());
+
+	if ((t.isRoundingMode() ||
+	     t.isFloatingPoint()) &&
+	    ((current.getKind() == kind::VARIABLE) ||
+	     (current.getKind() == kind::BOUND_VARIABLE) ||
+	     (current.getKind() == kind::SELECT) ||
+	     (current.getKind() == kind::SKOLEM))) {
+	  relevantVariables.insert(current);
+	}
+
+	for (size_t i = 0; i < current.getNumChildren(); ++i) {
+	  working.push(current[i]);
+	}
+      }
+
+    }
+
+
+
+    for (std::set<TNode>::const_iterator i(relevantVariables.begin());
+	 i != relevantVariables.end();
+	 ++i) {
       TNode node = *i;
+
+      Trace("fp-collectModelInfo") << "TheoryFp::collectModelInfo(): relevantVariable " << node << std::endl;
       
       m->assertEquality(node,
 			conv.getValue(d_valuation, node),

@@ -570,6 +570,16 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     preRewriteTable[kind::EQUAL] = rewrite::equal;
 
 
+    /******** Components for bit-blasting ********/
+    preRewriteTable[kind::FLOATINGPOINT_COMPONENT_NAN] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_COMPONENT_INF] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_COMPONENT_ZERO] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGN] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_COMPONENT_EXPONENT] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND] = rewrite::identity;
+    preRewriteTable[kind::ROUNDINGMODE_BITBLAST] = rewrite::identity;
+
+
 
 
     /* Set up the post-rewrite dispatch table */
@@ -634,6 +644,16 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
     postRewriteTable[kind::BOUND_VARIABLE] = rewrite::variable;
 
     postRewriteTable[kind::EQUAL] = rewrite::equal;
+
+
+    /******** Components for bit-blasting ********/
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_NAN] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_INF] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_ZERO] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGN] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_EXPONENT] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND] = rewrite::identity;
+    postRewriteTable[kind::ROUNDINGMODE_BITBLAST] = rewrite::identity;
 
 
   }

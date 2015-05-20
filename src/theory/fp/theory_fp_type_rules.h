@@ -452,9 +452,9 @@ class FloatingPointToRealTypeRule {
             n, "first argument must be a rounding mode");
       }
 
-      TypeNode operand = n[1].getType(check);
+      TypeNode operandType = n[1].getType(check);
 
-      if (!operand.isFloatingPoint()) {
+      if (!operandType.isFloatingPoint()) {
         throw TypeCheckingExceptionPrivate(
             n, "floating-point to real applied to a non floating-point sort");
       }
@@ -463,6 +463,111 @@ class FloatingPointToRealTypeRule {
     return nodeManager->realType();
   }
 };
+
+
+class FloatingPointComponentBit {
+public :
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+      throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE("FloatingPointComponentBit");
+
+    if (check) {
+      TypeNode operandType = n[0].getType(check);
+
+      if (!operandType.isFloatingPoint()) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point bit component applied to a non floating-point sort");
+      }
+      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point bit component applied to a non leaf node");
+      }
+
+    }
+
+    return nodeManager->booleanType();
+  }
+};
+
+
+class FloatingPointComponentExponent {
+public :
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+      throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE("FloatingPointComponentExponent");
+
+    TypeNode operandType = n[0].getType(check);
+
+    if (check) {
+      if (!operandType.isFloatingPoint()) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point exponent component applied to a non floating-point sort");
+      }
+      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point exponent component applied to a non leaf node");
+      }
+    }
+
+    /* Need to create some symfpu objects as the size of bit-vector
+     * that is needed for this component is dependent on the encoding
+     * used (i.e. whether subnormals are forcibly normalised or not).
+     * Here we use types from floatingpoint.h */
+    symfpuLiteral::fpt format(operandType);  // The symfpu interface to type info
+    unsigned bw = symfpuLiteral::uf::exponentWidth(format);
+
+    return nodeManager->mkBitVectorType(bw);
+  }
+};
+
+
+class FloatingPointComponentSignificand {
+public :
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+      throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE("FloatingPointComponentSignificand");
+
+    TypeNode operandType = n[0].getType(check);
+
+    if (check) {
+      if (!operandType.isFloatingPoint()) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point significand component applied to a non floating-point sort");
+      }
+      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point significand component applied to a non leaf node");
+      }
+    }
+
+    /* As before we need to use some of sympfu. */
+    symfpuLiteral::fpt format(operandType);
+    unsigned bw = symfpuLiteral::uf::significandWidth(format);
+
+    return nodeManager->mkBitVectorType(bw);
+  }
+};
+
+
+class RoundingModeBitBlast {
+public :
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+      throw (TypeCheckingExceptionPrivate, AssertionException) {
+    TRACE("RoundingModeBitBlast");
+
+    if (check) {
+      TypeNode operandType = n[0].getType(check);
+
+      if (!operandType.isRoundingMode()) {
+	throw TypeCheckingExceptionPrivate(n, "rounding mode bit-blast applied to a non rounding-mode sort");
+      }
+      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
+	throw TypeCheckingExceptionPrivate(n, "rounding mode bit-blast applied to a non leaf node");
+      }
+    }
+
+    /* Uses sympfu for the macro. */
+    return nodeManager->mkBitVectorType(NUMRM);
+  }
+};
+
+
+
+
 
 
 class CardinalityComputer {
