@@ -298,10 +298,7 @@ void TheoryFp::check(Effort level) {
 
 	if ((t.isRoundingMode() ||
 	     t.isFloatingPoint()) &&
-	    ((current.getKind() == kind::VARIABLE) ||
-	     (current.getKind() == kind::BOUND_VARIABLE) ||
-	     (current.getKind() == kind::SELECT) ||
-	     (current.getKind() == kind::SKOLEM))) {
+	    this->isLeaf(t)) {
 	  relevantVariables.insert(current);
 	}
 
