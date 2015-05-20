@@ -225,35 +225,32 @@ namespace fp {
 	rmMap::const_iterator i(r.find(current));
 	
 	if (i == r.end()) {
-	  switch (current.getKind()) {
-	    
-	    /******** Constants ********/
-	  case kind::CONST_ROUNDINGMODE :
-	    switch (current.getConst<RoundingMode>()) {
-	    case roundNearestTiesToEven : r.insert(current, traits::RNE()); break;
-	    case roundNearestTiesToAway : r.insert(current, traits::RNA()); break;
-	    case roundTowardPositive : r.insert(current, traits::RTP()); break;
-	    case roundTowardNegative : r.insert(current, traits::RTN()); break;
-	    case roundTowardZero : r.insert(current, traits::RTZ()); break;
-	    default :	Unreachable("Unknown rounding mode"); break;
-	    }
-	    break;
-	    
-	    /******** Variables ********/
-	  case kind::VARIABLE :
-	  case kind::BOUND_VARIABLE :
-	  case kind::SELECT : // Support array reasoning, \todo check
-	    {
+	  if (Theory::isLeafOf(current, THEORY_FP)) {
+
+	    if (current.getKind() == kind::CONST_ROUNDINGMODE) {
+
+	      /******** Constants ********/
+	      switch (current.getConst<RoundingMode>()) {
+	      case roundNearestTiesToEven : r.insert(current, traits::RNE()); break;
+	      case roundNearestTiesToAway : r.insert(current, traits::RNA()); break;
+	      case roundTowardPositive : r.insert(current, traits::RTP()); break;
+	      case roundTowardNegative : r.insert(current, traits::RTN()); break;
+	      case roundTowardZero : r.insert(current, traits::RTZ()); break;
+	      default :	Unreachable("Unknown rounding mode"); break;
+	      }
+
+	    } else {
+	      /******** Variables ********/
 	      //rm tmp(symfpu::NONDET);
-	      rm tmp(buildRoundingModeUFApp(current));
+	      //rm tmp(buildRoundingModeUFApp(current));
+	      rm tmp(NodeManager::currentNM()->mkNode(kind::ROUNDINGMODE_BITBLAST, current));
 	      r.insert(current, tmp);
 	      additionalAssertions.push_back(tmp.valid().getNode());
+
 	    }
-	    break;
-	    
-	  default :
+
+	  } else {
 	    Unreachable("Unknown kind of type RoundingMode");
-	    break;
 	  }
 	}
 	// Returns a rounding-mode type so don't alter the return value
@@ -263,154 +260,171 @@ namespace fp {
 	fpMap::const_iterator i(f.find(current));
 	
 	if (i == f.end()) {
-	  
-	  switch (current.getKind()) {
-	    
-	    /******** Constants ********/
-	  case kind::CONST_FLOATINGPOINT :
-	    f.insert(current, symfpu::unpackedFloat<traits>( current.getConst<FloatingPoint>().getLiteral()  ));
-	    break;
-	    
-	    /******** Variables ********/
-	  case kind::VARIABLE :
-	  case kind::BOUND_VARIABLE :
-	  case kind::SELECT : // Support array reasoning, \todo check
-	    {
+
+	  if (Theory::isLeafOf(current, THEORY_FP)) {
+	    if (current.getKind() == kind::CONST_FLOATINGPOINT) {
+	      /******** Constants ********/
+	      f.insert(current, symfpu::unpackedFloat<traits>( current.getConst<FloatingPoint>().getLiteral() ));
+
+
+	    } else {
+	      /******** Variables ********/
 	      //symfpu::unpackedFloat<traits> tmp(symfpu::NONDET, fpt(current.getType()));
-	      symfpu::unpackedFloat<traits> tmp(buildNaNUFApp(current),
-						buildInfUFApp(current),
-						buildZeroUFApp(current),
-						buildSignUFApp(current),
-						buildExponentUFApp(current),
-						buildSignificandUFApp(current));
+	      /*
+		symfpu::unpackedFloat<traits>
+		  tmp(buildNaNUFApp(current),
+		      buildInfUFApp(current),
+		      buildZeroUFApp(current),
+		      buildSignUFApp(current),
+		      buildExponentUFApp(current),
+		      buildSignificandUFApp(current));
+	    */
+	      NodeManager *nm = NodeManager::currentNM();
+	      symfpu::unpackedFloat<traits>
+		tmp(nm->mkNode(kind::FLOATINGPOINT_COMPONENT_NAN, current),
+		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_INF, current),
+		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_ZERO, current),
+		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_SIGN, current),
+		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_EXPONENT, current),
+		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND, current));
 	      f.insert(current, tmp);
 	      additionalAssertions.push_back(tmp.valid(fpt(current.getType())).getNode());
 	    }
-	    break;
-	      
-	    /******** Operations ********/
-	  case kind::FLOATINGPOINT_ABS :
-	  case kind::FLOATINGPOINT_NEG :
-	    {
-	      fpMap::const_iterator arg1(f.find(current[0]));
-		
-	      if (arg1 == f.end()) {
-		workStack.push(current);
-		workStack.push(current[0]);
-		continue;    // i.e. recurse!
-	      }
-		
-	      switch (current.getKind()) {
-	      case kind::FLOATINGPOINT_ABS :
-		f.insert(current, symfpu::absolute<traits>(fpt(current.getType()), (*arg1).second));
-		break;
-	      case kind::FLOATINGPOINT_NEG :
-		f.insert(current, symfpu::negate<traits>(fpt(current.getType()), (*arg1).second));
-		break;
-	      default :
-		Unreachable("Unknown unary floating-point function");
-		break;
-	      }
-		
-	    }
-	    break;
-	      
-	  case kind::FLOATINGPOINT_PLUS :
-	  case kind::FLOATINGPOINT_SUB :
-	  case kind::FLOATINGPOINT_MULT :
-	    {
-	      rmMap::const_iterator mode(r.find(current[0]));
-	      fpMap::const_iterator arg1(f.find(current[1]));
-	      fpMap::const_iterator arg2(f.find(current[2]));
-	      bool recurseNeeded = (mode == r.end()) || (arg1 == f.end()) || (arg2 == f.end());
-	      
-	      if (recurseNeeded) {
-		workStack.push(current);
-		if (mode == r.end()) { workStack.push(current[0]); }
-		if (arg1 == f.end()) { workStack.push(current[1]); }
-		if (arg2 == f.end()) { workStack.push(current[2]); }
-		continue;    // i.e. recurse!
-	      }
 
-	      switch (current.getKind()) {
-	      case kind::FLOATINGPOINT_PLUS :
-		f.insert(current, symfpu::add<traits>(fpt(current.getType()),
-						      (*mode).second,
-						      (*arg1).second,
-						      (*arg2).second,
-						      prop(true)));
-		break;
-		  
-	      case kind::FLOATINGPOINT_SUB :
-		// Should have been removed by the rewriter
-		Unreachable("Floating-point subtraction should be removed by the rewriter.");
-		f.insert(current, symfpu::add<traits>(fpt(current.getType()),
-						      (*mode).second,
-						      (*arg1).second,
-						      (*arg2).second,
-						      prop(false)));
-		break;
+	  } else {
 
-	      case kind::FLOATINGPOINT_MULT :
-		f.insert(current, symfpu::multiply<traits>(fpt(current.getType()),
-							   (*mode).second,
-							   (*arg1).second,
-							   (*arg2).second));
-		break;
-	      default :
-		Unreachable("Unknown binary floating-point function");
-		break;
-	      }
-	    }
-	    break;
-	    
-	  case kind::FLOATINGPOINT_DIV :
-	  case kind::FLOATINGPOINT_FMA :
-	  case kind::FLOATINGPOINT_SQRT :
-	  case kind::FLOATINGPOINT_REM :
-	  case kind::FLOATINGPOINT_RTI :
-	  case kind::FLOATINGPOINT_MIN :
-	  case kind::FLOATINGPOINT_MAX :
-	    Unimplemented("Operation not yet supported in symfpu");
-	    break;
+	    switch (current.getKind()) {
+	    case kind::CONST_FLOATINGPOINT :
+	    case kind::VARIABLE :
+	    case kind::BOUND_VARIABLE :
+	    case kind::SKOLEM :
+	      Unreachable("Kind " + kindToString(current.getKind()) + " should have been handled as a leaf.");
+	      break;
 	      
-	    /******** Conversions ********/
-	  case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT :
-	    {
-	      rmMap::const_iterator mode(r.find(current[0]));
-	      fpMap::const_iterator arg1(f.find(current[1]));
-	      bool recurseNeeded = (mode == r.end()) || (arg1 == f.end());
-	      
-	      if (recurseNeeded) {
-		workStack.push(current);
-		if (mode == r.end()) { workStack.push(current[0]); }
-		if (arg1 == f.end()) { workStack.push(current[1]); }
-		continue;    // i.e. recurse!
-	      }
+	      /******** Operations ********/
+	    case kind::FLOATINGPOINT_ABS :
+	    case kind::FLOATINGPOINT_NEG :
+	      {
+		fpMap::const_iterator arg1(f.find(current[0]));
 		
-	      f.insert(current, symfpu::convert<traits>(fpt(current[1].getType()),
-							fpt(current.getType()),
+		if (arg1 == f.end()) {
+		  workStack.push(current);
+		  workStack.push(current[0]);
+		  continue;    // i.e. recurse!
+		}
+		
+		switch (current.getKind()) {
+		case kind::FLOATINGPOINT_ABS :
+		  f.insert(current, symfpu::absolute<traits>(fpt(current.getType()), (*arg1).second));
+		  break;
+		case kind::FLOATINGPOINT_NEG :
+		  f.insert(current, symfpu::negate<traits>(fpt(current.getType()), (*arg1).second));
+		  break;
+		default :
+		  Unreachable("Unknown unary floating-point function");
+		  break;
+		}
+		
+	      }
+	      break;
+	      
+	    case kind::FLOATINGPOINT_PLUS :
+	    case kind::FLOATINGPOINT_SUB :
+	    case kind::FLOATINGPOINT_MULT :
+	      {
+		rmMap::const_iterator mode(r.find(current[0]));
+		fpMap::const_iterator arg1(f.find(current[1]));
+		fpMap::const_iterator arg2(f.find(current[2]));
+		bool recurseNeeded = (mode == r.end()) || (arg1 == f.end()) || (arg2 == f.end());
+	      
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (mode == r.end()) { workStack.push(current[0]); }
+		  if (arg1 == f.end()) { workStack.push(current[1]); }
+		  if (arg2 == f.end()) { workStack.push(current[2]); }
+		  continue;    // i.e. recurse!
+		}
+
+		switch (current.getKind()) {
+		case kind::FLOATINGPOINT_PLUS :
+		  f.insert(current, symfpu::add<traits>(fpt(current.getType()),
 							(*mode).second,
-							(*arg1).second));
+							(*arg1).second,
+							(*arg2).second,
+							prop(true)));
+		  break;
+		  
+		case kind::FLOATINGPOINT_SUB :
+		  // Should have been removed by the rewriter
+		  Unreachable("Floating-point subtraction should be removed by the rewriter.");
+		  f.insert(current, symfpu::add<traits>(fpt(current.getType()),
+							(*mode).second,
+							(*arg1).second,
+							(*arg2).second,
+							prop(false)));
+		  break;
+
+		case kind::FLOATINGPOINT_MULT :
+		  f.insert(current, symfpu::multiply<traits>(fpt(current.getType()),
+							     (*mode).second,
+							     (*arg1).second,
+							     (*arg2).second));
+		  break;
+		default :
+		  Unreachable("Unknown binary floating-point function");
+		  break;
+		}
+	      }
+	      break;
+	    
+	    case kind::FLOATINGPOINT_DIV :
+	    case kind::FLOATINGPOINT_FMA :
+	    case kind::FLOATINGPOINT_SQRT :
+	    case kind::FLOATINGPOINT_REM :
+	    case kind::FLOATINGPOINT_RTI :
+	    case kind::FLOATINGPOINT_MIN :
+	    case kind::FLOATINGPOINT_MAX :
+	      Unimplemented("Operation not yet supported in symfpu");
+	      break;
+	      
+	      /******** Conversions ********/
+	    case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT :
+	      {
+		rmMap::const_iterator mode(r.find(current[0]));
+		fpMap::const_iterator arg1(f.find(current[1]));
+		bool recurseNeeded = (mode == r.end()) || (arg1 == f.end());
+	      
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (mode == r.end()) { workStack.push(current[0]); }
+		  if (arg1 == f.end()) { workStack.push(current[1]); }
+		  continue;    // i.e. recurse!
+		}
+		
+		f.insert(current, symfpu::convert<traits>(fpt(current[1].getType()),
+							  fpt(current.getType()),
+							  (*mode).second,
+							  (*arg1).second));
+	      }
+	      break;
+
+
+	    case kind::FLOATINGPOINT_FP :
+	    case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR :
+	    case kind::FLOATINGPOINT_TO_FP_REAL :
+	    case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR :
+	    case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR :
+	      Unimplemented("Conversion not finished");
+	      break;
+	      
+	    case kind::FLOATINGPOINT_TO_FP_GENERIC :
+	      Unreachable("Generic to_fp not removed");
+	      break;
+	      
+	    default :
+	      Unreachable("Unknown kind of type FloatingPoint");
+	      break;
 	    }
-	    break;
-
-
-	  case kind::FLOATINGPOINT_FP :
-	  case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR :
-	  case kind::FLOATINGPOINT_TO_FP_REAL :
-	  case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR :
-	  case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR :
-	    Unimplemented("Conversion not finished");
-	    break;
-	      
-	  case kind::FLOATINGPOINT_TO_FP_GENERIC :
-	    Unreachable("Generic to_fp not removed");
-	    break;
-	      
-	  default :
-	    Unreachable("Unknown kind of type FloatingPoint");
-	    break;
 	  }
 	}
 	// Returns a floating-point type so don't alter the return value
@@ -672,86 +686,84 @@ namespace fp {
 
 
   Node fpConverter::getValue (Valuation &val, TNode var) {
+    // Should be checking if it is a meta-kind variable and one of our types
+    // OR one of our types and kind is not one of our interpretted functions
+    //  isLeaf() should work, apparently
     Assert((var.getKind() == kind::VARIABLE) ||
 	   (var.getKind() == kind::BOUND_VARIABLE) ||
-	   (var.getKind() == kind::SELECT));
+	   (var.getKind() == kind::SELECT) ||
+	   (var.getKind() == kind::SKOLEM));
 
     TypeNode t(var.getType());
 
-    switch (t.getKind()) {
-    case CVC4::ROUNDINGMODE_TYPE :
-      {
-	  rmMap::const_iterator i(r.find(var));
-	  
-	  if (i == r.end()) {
-	    Unreachable("Asking for the value of an unregistered expression");
-	  } else {
-	    Node rmValue = val.getModelValue((*i).second.getNode());
-	    Assert(rmValue.isConst());
-	    Assert(rmValue.getType().getKind() == kind::BITVECTOR_TYPE);
-
-	    BitVector rmBVValue(rmValue.getConst<BitVector>());
-
-	    if (rmBVValue == traits::RNE().getNode().getConst<BitVector>()) {
-	      return NodeManager::currentNM()->mkConst(roundNearestTiesToEven);
-	    } else if (rmBVValue == traits::RNA().getNode().getConst<BitVector>()) {
-	      return NodeManager::currentNM()->mkConst(roundNearestTiesToAway);
-	    } else if (rmBVValue == traits::RTP().getNode().getConst<BitVector>()) {
-	      return NodeManager::currentNM()->mkConst(roundTowardPositive);
-	    } else if (rmBVValue == traits::RTN().getNode().getConst<BitVector>()) {
-	      return NodeManager::currentNM()->mkConst(roundTowardNegative);
-	    } else if (rmBVValue == traits::RTZ().getNode().getConst<BitVector>()) {
-	      return NodeManager::currentNM()->mkConst(roundTowardZero);
-	    } else {
-	      Unreachable("Bit-vector corresponding to a rounding mode contains an unrecognised value");
-	    }
-	  }
+    if (t.isRoundingMode()) {
+      rmMap::const_iterator i(r.find(var));
+      
+      if (i == r.end()) {
+	Unreachable("Asking for the value of an unregistered expression");
+      } else {
+	Node rmValue = val.getModelValue((*i).second.getNode());
+	Assert(rmValue.isConst());
+	Assert(rmValue.getType().getKind() == kind::BITVECTOR_TYPE);
+	
+	BitVector rmBVValue(rmValue.getConst<BitVector>());
+	
+	if (rmBVValue == traits::RNE().getNode().getConst<BitVector>()) {
+	  return NodeManager::currentNM()->mkConst(roundNearestTiesToEven);
+	} else if (rmBVValue == traits::RNA().getNode().getConst<BitVector>()) {
+	  return NodeManager::currentNM()->mkConst(roundNearestTiesToAway);
+	} else if (rmBVValue == traits::RTP().getNode().getConst<BitVector>()) {
+	  return NodeManager::currentNM()->mkConst(roundTowardPositive);
+	} else if (rmBVValue == traits::RTN().getNode().getConst<BitVector>()) {
+	  return NodeManager::currentNM()->mkConst(roundTowardNegative);
+	} else if (rmBVValue == traits::RTZ().getNode().getConst<BitVector>()) {
+	  return NodeManager::currentNM()->mkConst(roundTowardZero);
+	} else {
+	  Unreachable("Bit-vector corresponding to a rounding mode contains an unrecognised value");
+	}
       }
-      break;
 
-    case kind::FLOATINGPOINT_TYPE :
-      {
-	  fpMap::const_iterator i(f.find(var));
+    } else if (t.isFloatingPoint()) {
 
-	  if (i == f.end()) {
-	    Unreachable("Asking for the value of an unregistered expression");
-	  } else {
-	    Node nanValue = val.getModelValue((*i).second.nan.getNode());
-	    Assert(nanValue.isConst());
-	    Assert(nanValue.getType().isBoolean());
+      fpMap::const_iterator i(f.find(var));
+      
+      if (i == f.end()) {
+	Unreachable("Asking for the value of an unregistered expression");
+      } else {
+	Node nanValue = val.getModelValue((*i).second.nan.getNode());
+	Assert(nanValue.isConst());
+	Assert(nanValue.getType().isBoolean());
+	
+	Node infValue = val.getModelValue((*i).second.inf.getNode());
+	Assert(infValue.isConst());
+	Assert(infValue.getType().isBoolean());
 
-	    Node infValue = val.getModelValue((*i).second.inf.getNode());
-	    Assert(infValue.isConst());
-	    Assert(infValue.getType().isBoolean());
+	Node zeroValue = val.getModelValue((*i).second.zero.getNode());
+	Assert(zeroValue.isConst());
+	Assert(zeroValue.getType().isBoolean());
 
-	    Node zeroValue = val.getModelValue((*i).second.zero.getNode());
-	    Assert(zeroValue.isConst());
-	    Assert(zeroValue.getType().isBoolean());
+	Node signValue = val.getModelValue((*i).second.sign.getNode());
+	Assert(signValue.isConst());
+	Assert(signValue.getType().isBoolean());
 
-	    Node signValue = val.getModelValue((*i).second.sign.getNode());
-	    Assert(signValue.isConst());
-	    Assert(signValue.getType().isBoolean());
+	Node exponentValue = val.getModelValue((*i).second.exponent.getNode());
+	Assert(exponentValue.isConst());
+	Assert(exponentValue.getType().isBitVector());
 
-	    Node exponentValue = val.getModelValue((*i).second.exponent.getNode());
-	    Assert(exponentValue.isConst());
-	    Assert(exponentValue.getType().isBitVector());
+	Node significandValue = val.getModelValue((*i).second.significand.getNode());
+	Assert(significandValue.isConst());
+	Assert(significandValue.getType().isBitVector());
 
-	    Node significandValue = val.getModelValue((*i).second.significand.getNode());
-	    Assert(significandValue.isConst());
-	    Assert(significandValue.getType().isBitVector());
-
-	    FloatingPointLiteral fpl(nanValue.getConst<bool>(),
-				     infValue.getConst<bool>(),
-				     zeroValue.getConst<bool>(),
-				     signValue.getConst<bool>(),
-				     exponentValue.getConst<BitVector>(),
-				     significandValue.getConst<BitVector>());
-	    return NodeManager::currentNM()->mkConst(FloatingPoint(var.getType().getConst<FloatingPointSize>(), fpl));
-	  }
+	FloatingPointLiteral fpl(nanValue.getConst<bool>(),
+				 infValue.getConst<bool>(),
+				 zeroValue.getConst<bool>(),
+				 signValue.getConst<bool>(),
+				 exponentValue.getConst<BitVector>(),
+				 significandValue.getConst<BitVector>());
+	return NodeManager::currentNM()->mkConst(FloatingPoint(var.getType().getConst<FloatingPointSize>(), fpl));
       }
-      break;
 
-    default :
+    } else {
       Unreachable("Asking for the value of a type that is not managed by the floating-point theory");
     }
 

@@ -533,6 +533,13 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
   case kind::FLOATINGPOINT_ISNEG:
   case kind::FLOATINGPOINT_ISPOS:
   case kind::FLOATINGPOINT_TO_REAL:
+  case kind::FLOATINGPOINT_COMPONENT_NAN:
+  case kind::FLOATINGPOINT_COMPONENT_INF:
+  case kind::FLOATINGPOINT_COMPONENT_ZERO:
+  case kind::FLOATINGPOINT_COMPONENT_SIGN:
+  case kind::FLOATINGPOINT_COMPONENT_EXPONENT:
+  case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND:
+  case kind::ROUNDINGMODE_BITBLAST:
     out << smtKindString(k) << ' '; break;
 
   case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR:
@@ -821,6 +828,14 @@ static string smtKindString(Kind k) throw() {
   case kind::FLOATINGPOINT_TO_UBV: return "fp.to_ubv";
   case kind::FLOATINGPOINT_TO_SBV: return "fp.to_sbv";
   case kind::FLOATINGPOINT_TO_REAL: return "fp.to_real";
+
+  case kind::FLOATINGPOINT_COMPONENT_NAN: return "NAN";
+  case kind::FLOATINGPOINT_COMPONENT_INF: return "INF";
+  case kind::FLOATINGPOINT_COMPONENT_ZERO: return "ZERO";
+  case kind::FLOATINGPOINT_COMPONENT_SIGN: return "SIGN";
+  case kind::FLOATINGPOINT_COMPONENT_EXPONENT: return "EXPONENT";
+  case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND: return "SIGNIFICAND";
+  case kind::ROUNDINGMODE_BITBLAST: return "RMBITBLAST";
 
   default:
     ; /* fall through */
