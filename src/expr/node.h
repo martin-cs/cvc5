@@ -455,8 +455,8 @@ public:
   bool isConst() const;
 
   /**
-   * Returns true if this node represents a constant
-   * @return true if const
+   * Returns true if this node represents a variable
+   * @return true if variable
    */
   inline bool isVar() const {
     assertTNodeNotExpired();
