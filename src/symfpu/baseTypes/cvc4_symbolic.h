@@ -32,6 +32,7 @@
 
 // Symfpu headers
 #include "symfpu/utils/properties.h"
+#include "symfpu/utils/numberOfRoundingModes.h"
 #include "symfpu/core/ite.h"
 #include "symfpu/core/nondet.h"
 
@@ -86,6 +87,8 @@ namespace symfpu {
     };
 
 
+#if SYMFPUPROPISBOOL
+    // Bool version
     class proposition : public nodeWrapper {
     protected :
       bool checkNodeType (const TNode node) {
@@ -125,17 +128,58 @@ namespace symfpu {
       }
 
     };
+#else
+
+    // (_ BitVec 1) version
+    class proposition : public nodeWrapper {
+    protected :
+      bool checkNodeType (const TNode node) {
+	::CVC4::TypeNode tn = node.getType(false);
+	return tn.isBitVector() && tn.getBitVectorSize() == 1;
+      }
+
+      friend ite<proposition, proposition>;   // For ITE
+
+    public : 
+      proposition (const Node n) : nodeWrapper(n) { IPRECONDITION(checkNodeType(node)); }        // Only used within this header so could be friend'd
+      proposition (bool v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(1U, (v?1U:0U)))) { IPRECONDITION(checkNodeType(node)); }
+      proposition (const proposition &old) : nodeWrapper(old) { IPRECONDITION(checkNodeType(node)); }
+      proposition (const nonDetMarkerType &)
+	: nodeWrapper(::CVC4::NodeManager::currentNM()->mkSkolem("nondet_proposition", 
+								 ::CVC4::NodeManager::currentNM()->mkBitVectorType(1),
+								 "created by symfpu")) {  IPRECONDITION(checkNodeType(node)); }
+
+      proposition operator ! (void) const {
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_NOT, this->node));
+      }
+
+      proposition operator && (const proposition &op) const {
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_AND, this->node, op.node));
+      }
+
+      proposition operator || (const proposition &op) const {
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_OR, this->node, op.node));
+      }
+
+      proposition operator == (const proposition &op) const {
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_COMP, this->node, op.node));
+      }
+
+      proposition operator ^ (const proposition &op) const {
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_XOR, this->node, op.node));
+      }
+
+    };
+#endif
 
 
-    // Currently support 5 rounding modes
-    #define NUMRM 5
 
     class roundingMode : public nodeWrapper {
     protected :
       bool checkNodeType (const TNode n) {
 	::CVC4::TypeNode tn = n.getType(false);
 
-	return tn.isBitVector(NUMRM);
+	return tn.isBitVector(SYMFPU_NUMBER_OF_ROUNDING_MODES);
       }
 
       // TODO : make this private again
@@ -145,7 +189,7 @@ namespace symfpu {
       friend ite<proposition, roundingMode>;   // For ITE
 
     public :
-      roundingMode (const unsigned v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(5, v))) {
+      roundingMode (const unsigned v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(SYMFPU_NUMBER_OF_ROUNDING_MODES, v))) {
 	IPRECONDITION((v & v-1) == 0 && v != 0);   // Exactly one bit set
 	IPRECONDITION(checkNodeType(node));
      }
@@ -154,12 +198,12 @@ namespace symfpu {
       // Not necessarily valid on creation
       roundingMode (const nonDetMarkerType &)
 	: nodeWrapper(::CVC4::NodeManager::currentNM()->mkSkolem("nondet_roundingMode", 
-								 ::CVC4::NodeManager::currentNM()->mkBitVectorType(5),
+								 ::CVC4::NodeManager::currentNM()->mkBitVectorType(SYMFPU_NUMBER_OF_ROUNDING_MODES),
 								 "created by symfpu")) {  IPRECONDITION(checkNodeType(node)); }
 
       proposition valid (void) const {
 	::CVC4::NodeManager* nm = ::CVC4::NodeManager::currentNM();
-	Node zero(nm->mkConst(::CVC4::BitVector(NUMRM, (long unsigned int)0)));
+	Node zero(nm->mkConst(::CVC4::BitVector(SYMFPU_NUMBER_OF_ROUNDING_MODES, (long unsigned int)0)));
 
 	// Is there a better encoding of this?
 	return proposition(nm->mkNode(::CVC4::kind::AND, 
@@ -168,7 +212,7 @@ namespace symfpu {
 							    this->node,
 							    nm->mkNode(::CVC4::kind::BITVECTOR_SUB,
 								       this->node,
-								       nm->mkConst(::CVC4::BitVector(NUMRM, (long unsigned int)1)))),
+								       nm->mkConst(::CVC4::BitVector(SYMFPU_NUMBER_OF_ROUNDING_MODES, (long unsigned int)1)))),
 						 zero),
 				      nm->mkNode(::CVC4::kind::NOT,
 						 nm->mkNode(::CVC4::kind::EQUAL,
@@ -177,7 +221,11 @@ namespace symfpu {
       }
 
       proposition operator == (const roundingMode &op) const {
+	#ifdef SYMFPUPROPISBOOL
 	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::EQUAL, this->node, op.node));
+	#else
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_COMP, this->node, op.node));
+	#endif
       }
 
 
@@ -341,23 +389,42 @@ namespace symfpu {
       /*** Comparisons ***/
 
       inline proposition operator == (const bitVector<isSigned> &op) const {
+	#ifdef PROPSYMFPUISBOOL
 	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::EQUAL, this->node, op.node));
+	#else
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_COMP, this->node, op.node));
+	#endif
       }
 
+    protected :
+      inline Node wrapCondition (Node node) const {
+	#ifdef PROPSYMFPUISBOOL
+	return node;
+	#else
+	::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();
+	return nm->mkNode(::CVC4::kind::ITE,
+			  node,
+			  nm->mkConst(::CVC4::BitVector(1U, 1U)),
+			  nm->mkConst(::CVC4::BitVector(1U, 0U)));
+	#endif
+      }
+
+    public : 
+
       inline proposition operator <= (const bitVector<isSigned> &op) const {
-	return proposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ULE : ::CVC4::kind::BITVECTOR_SLE, this->node, op.node));
+	  return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ULE : ::CVC4::kind::BITVECTOR_SLE, this->node, op.node)));
       }
 
       inline proposition operator >= (const bitVector<isSigned> &op) const {
-	return proposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_UGE : ::CVC4::kind::BITVECTOR_SGE, this->node, op.node));
+	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_UGE : ::CVC4::kind::BITVECTOR_SGE, this->node, op.node)));
       }
 
       inline proposition operator < (const bitVector<isSigned> &op) const {
-	return proposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ULT : ::CVC4::kind::BITVECTOR_SLT, this->node, op.node));
+	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ULT : ::CVC4::kind::BITVECTOR_SLT, this->node, op.node)));
       }
 
       inline proposition operator > (const bitVector<isSigned> &op) const {
-	return proposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_UGT : ::CVC4::kind::BITVECTOR_SGT, this->node, op.node));
+	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_UGT : ::CVC4::kind::BITVECTOR_SGT, this->node, op.node)));
       }
 
       /*** Type conversion ***/
@@ -484,7 +551,7 @@ namespace symfpu {
     class floatingPointTypeInfo {
     protected :
       //const ::CVC4::FloatingPointType type;
-      const ::CVC4::TypeNode type;
+      const ::CVC4::TypeNode type; // If is easier to keep it wrapped as then you can make things of this type more easily
 
       friend ite<proposition, floatingPointTypeInfo>;   // For ITE
 
@@ -531,12 +598,29 @@ namespace symfpu {
   };
 
 
+#if 0
 #define CVC4SYMITEDFN(T) template <>					\
     struct ite<cvc4_symbolic::proposition, T> {				\
     static const T iteOp (const cvc4_symbolic::proposition &cond,	\
 			  const T &l,					\
 			  const T &r) {					\
       return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::ITE, cond.getNode(), l.getNode(), r.getNode())); \
+    }									\
+  }
+#endif
+
+#define CVC4SYMITEDFN(T) template <>					\
+    struct ite<cvc4_symbolic::proposition, T> {				\
+    static const T iteOp (const cvc4_symbolic::proposition &cond,	\
+			  const T &l,					\
+			  const T &r) {					\
+      ::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();	\
+      return T(nm->mkNode(::CVC4::kind::ITE,				\
+			  nm->mkNode(::CVC4::kind::EQUAL,		\
+				     cond.getNode(),			\
+				     nm->mkConst(::CVC4::BitVector(1U, 1U))), \
+			  l.getNode(),					\
+			  r.getNode()));				\
     }									\
   }
 

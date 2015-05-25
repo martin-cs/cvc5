@@ -65,7 +65,7 @@ namespace fp {
     if (roundingModeUF == Node::null()) {
       roundingModeUF = nm->mkSkolem("roundingMode_to_BV",
 				    nm->mkFunctionType(nm->roundingModeType(),
-						       nm->mkBitVectorType(NUMRM)),
+						       nm->mkBitVectorType(SYMFPU_NUMBER_OF_ROUNDING_MODES)),
 				    "roundingMode_to_BV",
 				    NodeManager::SKOLEM_EXACT_NAME);
     }
@@ -704,13 +704,7 @@ namespace fp {
 
 
   Node fpConverter::getValue (Valuation &val, TNode var) {
-    // Should be checking if it is a meta-kind variable and one of our types
-    // OR one of our types and kind is not one of our interpretted functions
-    //  isLeaf() should work, apparently
-    Assert((var.getKind() == kind::VARIABLE) ||
-	   (var.getKind() == kind::BOUND_VARIABLE) ||
-	   (var.getKind() == kind::SELECT) ||
-	   (var.getKind() == kind::SKOLEM));
+    Assert(Theory::isLeafOf(var, THEORY_FP));
 
     TypeNode t(var.getType());
 
@@ -750,19 +744,39 @@ namespace fp {
       } else {
 	Node nanValue = val.getModelValue((*i).second.nan.getNode());
 	Assert(nanValue.isConst());
+	#ifdef SYMFPUPROPISBOOL
 	Assert(nanValue.getType().isBoolean());
-	
+	#else
+	Assert(nanValue.getType().isBitVector());	
+	Assert(nanValue.getType().getBitVectorSize() == 1);
+	#endif
+
 	Node infValue = val.getModelValue((*i).second.inf.getNode());
 	Assert(infValue.isConst());
+	#ifdef SYMFPUPROPISBOOL
 	Assert(infValue.getType().isBoolean());
+	#else
+	Assert(infValue.getType().isBitVector());	
+	Assert(infValue.getType().getBitVectorSize() == 1);
+	#endif
 
 	Node zeroValue = val.getModelValue((*i).second.zero.getNode());
 	Assert(zeroValue.isConst());
+	#ifdef SYMFPUPROPISBOOL
 	Assert(zeroValue.getType().isBoolean());
+        #else
+	Assert(zeroValue.getType().isBitVector());	
+	Assert(zeroValue.getType().getBitVectorSize() == 1);
+	#endif
 
 	Node signValue = val.getModelValue((*i).second.sign.getNode());
 	Assert(signValue.isConst());
+	#ifdef SYMFPUPROPISBOOL
 	Assert(signValue.getType().isBoolean());
+	#else
+	Assert(signValue.getType().isBitVector());	
+	Assert(signValue.getType().getBitVectorSize() == 1);
+	#endif
 
 	Node exponentValue = val.getModelValue((*i).second.exponent.getNode());
 	Assert(exponentValue.isConst());
@@ -772,10 +786,24 @@ namespace fp {
 	Assert(significandValue.isConst());
 	Assert(significandValue.getType().isBitVector());
 
-	FloatingPointLiteral fpl(nanValue.getConst<bool>(),
+
+	#ifdef SYMFPUPROPISBOOL
+	#else
+	Node trueBit = NodeManager::currentNM()->mkConst(BitVector(1U,1U));
+	#endif
+
+	FloatingPointLiteral fpl(
+				 #ifdef SYMFPUPROPISBOOL
+				 nanValue.getConst<bool>(),
 				 infValue.getConst<bool>(),
 				 zeroValue.getConst<bool>(),
 				 signValue.getConst<bool>(),
+				 #else
+				 nanValue == trueBit,
+				 infValue == trueBit,
+				 zeroValue == trueBit,
+				 signValue == trueBit,
+				 #endif
 				 exponentValue.getConst<BitVector>(),
 				 significandValue.getConst<BitVector>());
 	return NodeManager::currentNM()->mkConst(FloatingPoint(var.getType().getConst<FloatingPointSize>(), fpl));
