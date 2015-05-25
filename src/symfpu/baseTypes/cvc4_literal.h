@@ -30,6 +30,7 @@
 
 // Symfpu headers
 #include "symfpu/utils/properties.h"
+#include "symfpu/utils/numberOfRoundingModes.h"
 #include "symfpu/core/ite.h"
 
 // CVC4 headers

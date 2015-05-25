@@ -495,6 +495,121 @@ namespace rewrite {
   }
 
 
+  RewriteResponse constantFoldComponentFlag (TNode node, bool) {
+    Kind k = node.getKind();
+   
+    Assert((k == kind::FLOATINGPOINT_COMPONENT_NAN ) ||
+	   (k == kind::FLOATINGPOINT_COMPONENT_INF ) ||
+	   (k == kind::FLOATINGPOINT_COMPONENT_ZERO ) ||
+	   (k == kind::FLOATINGPOINT_COMPONENT_SIGN ));
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      FloatingPoint arg0(node[0].getConst<FloatingPoint>());
+
+      bool result;
+      switch (k) {
+      case kind::FLOATINGPOINT_COMPONENT_NAN :
+	result = arg0.getLiteral().nan;
+	break;
+      case kind::FLOATINGPOINT_COMPONENT_INF :
+	result = arg0.getLiteral().inf;
+	break;
+      case kind::FLOATINGPOINT_COMPONENT_ZERO :
+	result = arg0.getLiteral().zero;
+	break;
+      case kind::FLOATINGPOINT_COMPONENT_SIGN :
+	result = arg0.getLiteral().sign;
+	break;
+      default :
+	Unreachable("Unknown kind used in constantoldComponentFlag");
+	break;
+      }
+
+      BitVector res(1U, (result) ? 1U : 0U);
+
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(res));
+    }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldComponentExponent (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_COMPONENT_EXPONENT);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      FloatingPoint arg0(node[0].getConst<FloatingPoint>());
+
+      // \todo Add a proper interface for this sort of thing to FloatingPoint
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst((BitVector)arg0.getLiteral().exponent));
+    }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldComponentSignificand (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_FLOATINGPOINT) {
+
+      FloatingPoint arg0(node[0].getConst<FloatingPoint>());
+
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst((BitVector)arg0.getLiteral().significand));
+    }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+  RewriteResponse constantFoldRoundingModeBitBlast (TNode node, bool) {
+    Assert(node.getKind() == kind::ROUNDINGMODE_BITBLAST);
+
+    if (constantFoldEnabled &&
+	node[0].getKind() == kind::CONST_ROUNDINGMODE) {
+
+      RoundingMode arg0(node[0].getConst<RoundingMode>());
+      BitVector value;
+  
+      /* \todo fix the numbering of rounding modes so this doesn't need 
+       * to call symfpu at all. */
+      Unimplemented("Constant fold bit-blasted rounding modes.");
+#if 0
+      switch (arg0) {
+      case roundNearestTiesToEven :
+	value = symfpuSymbolic::traits::RNE().getNode().getConst<BitVector>();
+	break;
+	
+      case roundNearestTiesToAway :
+	value = symfpuSymbolic::traits::RNA().getNode().getConst<BitVector>();
+	break;
+	
+      case roundTowardPositive :
+	value = symfpuSymbolic::traits::RTP().getNode().getConst<BitVector>();
+	break;
+	
+      case roundTowardNegative :
+	value = symfpuSymbolic::traits::RTN().getNode().getConst<BitVector>();
+	break;
+	
+      case roundTowardZero :
+	value = symfpuSymbolic::traits::RTZ().getNode().getConst<BitVector>();
+	break;
+	
+      default :
+	Unreachable("Unknown rounding mode");
+	break;
+      }
+#endif
+      return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(value));
+    }
+
+    return RewriteResponse(REWRITE_DONE, node);
+  }
+
+
 }; /* CVC4::theory::fp::rewrite */
 
 RewriteFunction TheoryFpRewriter::preRewriteTable[kind::LAST_KIND]; 
@@ -581,6 +696,8 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
 
 
 
+    // \todo Constant fold as a separate table
+
 
     /* Set up the post-rewrite dispatch table */
     for (unsigned i = 0; i < kind::LAST_KIND; ++i) {
@@ -647,13 +764,13 @@ RewriteFunction TheoryFpRewriter::postRewriteTable[kind::LAST_KIND];
 
 
     /******** Components for bit-blasting ********/
-    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_NAN] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_INF] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_ZERO] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGN] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_EXPONENT] = rewrite::identity;
-    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND] = rewrite::identity;
-    postRewriteTable[kind::ROUNDINGMODE_BITBLAST] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_NAN] = rewrite::constantFoldComponentFlag;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_INF] = rewrite::constantFoldComponentFlag;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_ZERO] = rewrite::constantFoldComponentFlag;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGN] = rewrite::constantFoldComponentFlag;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_EXPONENT] = rewrite::constantFoldComponentExponent;
+    postRewriteTable[kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND] = rewrite::constantFoldComponentSignificand;
+    postRewriteTable[kind::ROUNDINGMODE_BITBLAST] = rewrite::constantFoldRoundingModeBitBlast;
 
 
   }

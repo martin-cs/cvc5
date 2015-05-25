@@ -486,7 +486,11 @@ public :
 
     }
 
+    #ifdef SYMFPUPROPISBOOL
     return nodeManager->booleanType();
+    #else
+    return nodeManager->mkBitVectorType(1);
+    #endif
   }
 };
 
@@ -567,7 +571,7 @@ public :
     }
 
     /* Uses sympfu for the macro. */
-    return nodeManager->mkBitVectorType(5);  // \todo : s/5/NUMRM/
+    return nodeManager->mkBitVectorType(SYMFPU_NUMBER_OF_ROUNDING_MODES);
   }
 };
 

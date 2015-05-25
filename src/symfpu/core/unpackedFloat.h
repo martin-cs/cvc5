@@ -36,6 +36,7 @@
 
 #include "symfpu/utils/common.h"
 #include "symfpu/utils/properties.h"
+#include "symfpu/utils/numberOfRoundingModes.h"
 
 #include "symfpu/core/ite.h"
 #include "symfpu/core/nondet.h"

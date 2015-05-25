@@ -79,21 +79,22 @@ namespace removeToFPGeneric {
 
 
 /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */
-<<<<<<< HEAD
-TheoryFp::TheoryFp(context::Context* c, context::UserContext* u,
-                   OutputChannel& out, Valuation valuation,
-                   const LogicInfo& logicInfo)
-    : Theory(THEORY_FP, c, u, out, valuation, logicInfo),
-  /*
-    notification(*this),
-    equalityEngine(notification, c, "theory::fp::TheoryFp", true);
-  */
-      conv(u),
-      expansionRequested(false)
-{
-  /*
-    // Kinds that are to be handled in the congruence closure
+TheoryFp::TheoryFp(context::Context* c,
+                           context::UserContext* u,
+                           OutputChannel& out,
+                           Valuation valuation,
+                           const LogicInfo& logicInfo) :
+  Theory(THEORY_FP, c, u, out, valuation, logicInfo),
+  #if FPEQ
+  notification(*this),
+  equalityEngine(notification, c, "theory::fp::TheoryFp", true);
+  #endif
+  conv(u),
+  expansionRequested(false) {
 
+  #if FPEQ
+    // Kinds that are to be handled in the congruence closure
+    
     equalityEngine.addFunction(kind::FLOATINGPOINT_ABS);
     equalityEngine.addFunction(kind::FLOATINGPOINT_NEG);
     equalityEngine.addFunction(kind::FLOATINGPOINT_PLUS);
@@ -139,7 +140,7 @@ TheoryFp::TheoryFp(context::Context* c, context::UserContext* u,
     equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND);
     equalityEngine.addFunction(kind::ROUNDINGMODE_BITBLAST);
 
-   */
+   #endif
 
 
 }/* TheoryFp::TheoryFp() */
@@ -166,6 +167,7 @@ Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   }
 }
 
+
 void TheoryFp::convertAndEquateTerm(TNode node) {
   Trace("fp-convertTerm") << "TheoryFp::convertTerm(): " << node << std::endl;
   size_t oldAdditionalAssertions = conv.additionalAssertions.size();
@@ -184,20 +186,46 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
     Node addA = conv.additionalAssertions[oldAdditionalAssertions];
 
     Debug("fp-convertTerm") << "TheoryFp::convertTerm(): additional assertion  " << addA << std::endl;
-    
+
+#ifdef SYMFPUPROPISBOOL    
     d_out->lemma(addA, false, true);
+#else
+    NodeManager *nm = NodeManager::currentNM();
+
+    d_out->lemma(nm->mkNode(kind::EQUAL,
+			    addA,
+			    nm->mkConst(::CVC4::BitVector(1U, 1U))),
+		 false,
+		 true);
+#endif
 
     ++oldAdditionalAssertions;
   }
+
 
 
   // Equate the floating-point atom and the converted one.
   // Also adds the bit-vectors to the bit-vector solver.
   if (node.getType().isBoolean()) {
     if (converted != node) {
-      d_out->lemma(NodeManager::currentNM()->mkNode(kind::IFF, node, converted),
+      Assert(converted.getType().isBitVector());
+
+      NodeManager *nm = NodeManager::currentNM();
+
+#ifdef SYMFPUPROPISBOOL
+      d_out->lemma(nm->mkNode(kind::EQUAL, node, converted),
 		   false,
 		   true);
+#else
+      d_out->lemma(nm->mkNode(kind::EQUAL,
+			      node,
+			      nm->mkNode(kind::EQUAL,
+					 converted,
+					 nm->mkConst(::CVC4::BitVector(1U, 1U)))),
+		   false,
+		   true);
+#endif
+
     } else {
       // Component bits should not be altered.
       // These are the only bits that should be allowed through
@@ -214,6 +242,15 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
 void TheoryFp::preRegisterTerm(TNode node) {
   Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
 
+#if FPEQ
+  // Add to the equality engine
+  if (node.getKind() == kind::EQUAL) {
+    equalityEngine.addTriggerEquality(node);
+  } else {
+    equalityEngine.addTerm(node);
+  }
+#endif
+
   convertAndEquateTerm(node);
   return;
 }
@@ -226,8 +263,19 @@ void TheoryFp::addSharedTerm(TNode node) {
 }
 
 
-
 void TheoryFp::check(Effort level) {
+
+#if FPEQ
+  while(!done()) {
+    // Get all the assertions
+    Assertion assertion = get();
+    TNode fact = assertion.assertion;
+
+    Debug("fp") << "TheoryFp::check(): processing " << fact << std::endl;
+
+
+  }
+#endif
 
   /* Checking should be handled by the bit-vector engine */
   return;
@@ -256,6 +304,28 @@ void TheoryFp::check(Effort level) {
 #endif
 
 }/* TheoryFp::check() */
+
+
+#if FPEQ
+void TheoryFp::setMasterEqualityEngine(eq::EqualityEngine* eq) {
+  equalityEngine.setMasterEqualityEngine(eq);
+}
+
+void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
+  // All things we assert directly (and not via bit-vector) should 
+  // come from the equality engine so this should be sufficient...
+
+  bool polarity = literal.getKind() != kind::NOT;
+  TNode atom = polarity ? literal : literal[0];
+  if (atom.getKind() == kind::EQUAL) {
+    equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions);
+  } else {
+    equalityEngine.explainPredicate(atom, polarity, assumptions);
+  }
+}
+
+#endif
+
 
 
   Node TheoryFp::getModelValue(TNode var) {
@@ -298,7 +368,7 @@ void TheoryFp::check(Effort level) {
 
 	if ((t.isRoundingMode() ||
 	     t.isFloatingPoint()) &&
-	    this->isLeaf(t)) {
+	    this->isLeaf(current)) {
 	  relevantVariables.insert(current);
 	}
 

@@ -32,7 +32,7 @@ namespace fp {
 class TheoryFp : public Theory {
 protected :
   /** Equality engine */
-    /*
+  #if FPEQ
   class NotifyClass : public eq::EqualityEngineNotify {
     protected :
       TheoryFp& theorySolver;
@@ -51,7 +51,7 @@ protected :
   
   NotifyClass notification;
   eq::EqualityEngine equalityEngine;
-  */
+  #endif
 
   /** Bit-blasting conversion */
   fpConverter conv;
@@ -81,6 +81,12 @@ public:
   std::string identify() const {
     return "THEORY_FP";
   }
+
+  #if FPEQ
+  void setMasterEqualityEngine(eq::EqualityEngine* eq);
+
+  void explain(TNode literal, std::vector<TNode> &assumptions);
+  #endif
 
 };/* class TheoryFp */
 
