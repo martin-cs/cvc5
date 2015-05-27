@@ -101,8 +101,6 @@ namespace CVC4 {
    so the headers need to be included here. */
 #include "symfpu/baseTypes/cvc4_literal.h"
 #include "symfpu/core/unpackedFloat.h"
-#include "symfpu/core/packing.h"
-#include "symfpu/core/compare.h"
 
 
 namespace CVC4 {
@@ -148,21 +146,22 @@ namespace CVC4 {
     static FloatingPoint makeInf (const FloatingPointSize &t, bool sign);
     static FloatingPoint makeZero (const FloatingPointSize &t, bool sign);
 
-
-    bool operator ==(const FloatingPoint& fp) const {
-      return ( (t == fp.t) && symfpu::smtlibEqual<symfpuLiteral::traits>(t,fpl,fp.fpl) );
-    }
-
     const FloatingPointLiteral & getLiteral (void) const {
       return this->fpl;
     }
+
+    // Gives the corresponding IEEE-754 transfer format
+    BitVector pack (void) const;
+
 
     FloatingPoint absolute (void) const;
     FloatingPoint negate (void) const;
     FloatingPoint plus (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint sub (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint mult (const RoundingMode &rm, const FloatingPoint &arg) const;
+    FloatingPoint fma (const RoundingMode &rm, const FloatingPoint &arg1, const FloatingPoint &arg2) const;
 
+    bool operator ==(const FloatingPoint& fp) const;
     bool operator <= (const FloatingPoint &arg) const;
     bool operator < (const FloatingPoint &arg) const;
 
@@ -180,13 +179,11 @@ namespace CVC4 {
 
 
   struct CVC4_PUBLIC FloatingPointHashFunction {
-    inline size_t operator() (const FloatingPoint& fp) const {
+    size_t operator() (const FloatingPoint& fp) const {
       FloatingPointSizeHashFunction fpshf;
       BitVectorHashFunction bvhf;
-
-      BitVector bv(symfpu::pack<symfpuLiteral::traits>(fp.t,fp.getLiteral()));
-
-      return fpshf(fp.t) ^ bvhf(bv);
+      
+      return fpshf(fp.t) ^ bvhf(fp.pack());
     }
   }; /* struct FloatingPointHashFunction */
 
@@ -288,7 +285,7 @@ namespace CVC4 {
 
   inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) CVC4_PUBLIC;
   inline std::ostream& operator <<(std::ostream& os, const FloatingPoint& fp) {
-    BitVector bv(symfpu::pack<symfpuLiteral::traits>(fp.t,fp.getLiteral()));
+    BitVector bv(fp.pack());
 
     unsigned largestSignificandBit = fp.t.significand() - 2; // -1 for -inclusive, -1 for hidden
     unsigned largestExponentBit = (fp.t.exponent() - 1) + (largestSignificandBit + 1);

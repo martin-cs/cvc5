@@ -312,6 +312,20 @@ namespace constantFold {
     return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.mult(rm, arg2)));
   }
 
+  RewriteResponse fma (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_FMA);
+    Assert(node.getNumChildren() == 4);
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg1(node[1].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[2].getConst<FloatingPoint>());
+    FloatingPoint arg3(node[3].getConst<FloatingPoint>());
+    
+    Assert(arg1.t == arg2.t);
+    Assert(arg1.t == arg3.t);
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.fma(rm, arg2, arg3)));
+  }
 
   RewriteResponse equal (TNode node, bool isPreRewrite) {
     Assert(node.getKind() == kind::EQUAL);
@@ -685,7 +699,11 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 
     /* Set up the post-rewrite constant fold table */
     for (unsigned i = 0; i < kind::LAST_KIND; ++i) {
-      constantFoldTable[i] = rewrite::notFP;
+      // Note that this is identity, not notFP
+      // Constant folding is called after post-rewrite
+      // So may have to deal with cases of things being
+      // re-written to non-floating-point sorts (i.e. true).
+      constantFoldTable[i] = rewrite::identity;
     }
 
     /******** Constants ********/
@@ -705,7 +723,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_SUB] = rewrite::removed;
     constantFoldTable[kind::FLOATINGPOINT_MULT] = constantFold::mult;
     constantFoldTable[kind::FLOATINGPOINT_DIV] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_FMA] = rewrite::identity;
+    constantFoldTable[kind::FLOATINGPOINT_FMA] = constantFold::fma;
     constantFoldTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_REM] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_RTI] = rewrite::identity;
