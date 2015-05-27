@@ -703,7 +703,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_NEG] = constantFold::neg;
     constantFoldTable[kind::FLOATINGPOINT_PLUS] = constantFold::plus;
     constantFoldTable[kind::FLOATINGPOINT_SUB] = rewrite::removed;
-    constantFoldTable[kind::FLOATINGPOINT_MULT] = constantFold::Mult;
+    constantFoldTable[kind::FLOATINGPOINT_MULT] = constantFold::mult;
     constantFoldTable[kind::FLOATINGPOINT_DIV] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_FMA] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
@@ -729,9 +729,9 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_ISPOS] = constantFold::isPositive;
 
     /******** Conversions ********/
-    constantFoldTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = rewrite::convertFromIEEEBitVectorLiteral;
-    constantFoldTable[kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT] = rewrite::constantConvert;
-    constantFoldTable[kind::FLOATINGPOINT_TO_FP_REAL] = rewrite::convertFromRealLiteral;
+    constantFoldTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = constantFold::convertFromIEEEBitVectorLiteral;
+    constantFoldTable[kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT] = constantFold::constantConvert;
+    constantFoldTable[kind::FLOATINGPOINT_TO_FP_REAL] = constantFold::convertFromRealLiteral;
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_GENERIC] = rewrite::removed;
