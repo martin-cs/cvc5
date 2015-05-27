@@ -61,14 +61,14 @@ template <class t>
  }
 
 template <class t>
-  unpackedFloat<t> multiply (const typename t::fpt &format,
-			     const typename t::rm &roundingMode,
-			     const unpackedFloat<t> &left,
-			     const unpackedFloat<t> &right) {
+  unpackedFloat<t> arithmeticMultiply (const typename t::fpt &format,
+				       const unpackedFloat<t> &left,
+				       const unpackedFloat<t> &right) {
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
   typedef typename t::ubv ubv;
   typedef typename t::sbv sbv;
+  typedef typename t::fpt fpt;
 
   PRECONDITION(left.valid(format));
   PRECONDITION(right.valid(format));
@@ -113,6 +113,30 @@ template <class t>
   
   // Put back together
   unpackedFloat<t> multiplyResult(multiplySign, alignedExponent, alignedSignificand);
+
+  
+  fpt extendedFormat(format.exponentWidth() + 1, format.significandWidth() * 2);
+  POSTCONDITION(multiplyResult.valid(extendedFormat));
+
+  return multiplyResult;
+ }
+
+
+// Put it all together...
+template <class t>
+  unpackedFloat<t> multiply (const typename t::fpt &format,
+			     const typename t::rm &roundingMode,
+			     const unpackedFloat<t> &left,
+			     const unpackedFloat<t> &right) {
+  typedef typename t::bwt bwt;
+  typedef typename t::prop prop;
+  typedef typename t::ubv ubv;
+  typedef typename t::sbv sbv;
+
+  PRECONDITION(left.valid(format));
+  PRECONDITION(right.valid(format));
+
+  unpackedFloat<t> multiplyResult(arithmeticMultiply(format, left, right));
   
   unpackedFloat<t> roundedMultiplyResult(rounder(format, roundingMode, multiplyResult));
   
@@ -122,7 +146,6 @@ template <class t>
 
   return result;
  }
-
 
 
 }

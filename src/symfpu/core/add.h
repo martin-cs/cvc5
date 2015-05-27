@@ -92,19 +92,17 @@ template <class t>
   /*
    * 1. Compute the normal / subnormal case.
    * 2. Round to the format.
-   * 3. Then have a function that takes the uf generated and adds the
-   *    other conditions.
    *
    * This allows multiple versions of the first phase to be used and
    * the first phase to be used for other things (e.g. FMA).
    */
 
  template <class t>
-   unpackedFloat<t> add (const typename t::fpt &format,
-			 const typename t::rm &roundingMode,
-			 const unpackedFloat<t> &left,
-			 const unpackedFloat<t> &right,
-			 const typename t::prop &isAdd) {
+   unpackedFloat<t> arithmeticAdd (const typename t::fpt &format,
+				   const typename t::rm &roundingMode,
+				   const unpackedFloat<t> &left,
+				   const unpackedFloat<t> &right,
+				   const typename t::prop &isAdd) {
    // Optimisation : add a flag which assumes that left and right are in exponent order
    
    typedef typename t::bwt bwt;
@@ -218,9 +216,9 @@ template <class t>
 
    // Near path : Round
    // Optimisation : share the rounder with the far path, or specialise
+   // maybe move the rounder out to a separate phase
    unpackedFloat<t> nearPathResult(resultSign, extendedLargerExponent, nearSum.contract(1));
    unpackedFloat<t> roundedNearPathResult(rounder(format, roundingMode, nearPathResult));
-
 
 
 
@@ -239,13 +237,35 @@ template <class t>
 					   ITE(nearNoCancel,
 					       roundedNearPathResult,
 					       cancellation.normaliseUp(format)))));
+   
+   POSTCONDITION(additionResult.valid(format));
+   
+   return additionResult;
+ }
+
+ template <class t>
+   unpackedFloat<t> add (const typename t::fpt &format,
+			 const typename t::rm &roundingMode,
+			 const unpackedFloat<t> &left,
+			 const unpackedFloat<t> &right,
+			 const typename t::prop &isAdd) {
+   // Optimisation : add a flag which assumes that left and right are in exponent order
+   
+   typedef typename t::bwt bwt;
+   typedef typename t::prop prop;
+   typedef typename t::ubv ubv;
+   typedef typename t::sbv sbv;
+   
+   PRECONDITION(left.valid(format));
+   PRECONDITION(right.valid(format));
+
+   unpackedFloat<t> additionResult(arithmeticAdd(format, roundingMode, left, right, isAdd));
    unpackedFloat<t> result(addAdditionSpecialCases(format, roundingMode, left, right, additionResult, isAdd));
    
    POSTCONDITION(result.valid(format));
    
    return result;
  }
-
 
 }
 

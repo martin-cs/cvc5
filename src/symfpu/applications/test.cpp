@@ -889,6 +889,8 @@ int main (int argc, char **argv) {
     {             "add",        no_argument,  &(binaryFunctionTests[1].enable),  1 },
     {        "subtract",        no_argument,  &(binaryFunctionTests[2].enable),  1 },
     {              NULL,                  0,                              NULL,  0 }
+    // TODO : add FMA support
+
   }; 
 
   bool parseOptions = true;
