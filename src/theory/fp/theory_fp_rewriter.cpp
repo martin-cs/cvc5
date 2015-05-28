@@ -699,7 +699,11 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 
     /* Set up the post-rewrite constant fold table */
     for (unsigned i = 0; i < kind::LAST_KIND; ++i) {
-      constantFoldTable[i] = rewrite::notFP;
+      // Note that this is identity, not notFP
+      // Constant folding is called after post-rewrite
+      // So may have to deal with cases of things being
+      // re-written to non-floating-point sorts (i.e. true).
+      constantFoldTable[i] = rewrite::identity;
     }
 
     /******** Constants ********/
