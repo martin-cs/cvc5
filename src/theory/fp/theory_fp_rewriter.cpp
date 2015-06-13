@@ -12,12 +12,12 @@
  **
  ** \brief [[ Rewrite rules for floating point theories. ]]
  **
- ** \todo [[ Constant folding
- **          Push negations up through arithmetic operators (include max and min? maybe not due to +0/-0)
+ ** \todo [[ Single argument constant propagate / simplify
+             Push negations through arithmetic operators (include max and min? maybe not due to +0/-0)
  **          classifications to normal tests (maybe)
  **          (= x (fp.neg x)) --> (isNaN x)
  **          (fp.eq x (fp.neg x)) --> (isZero x)   (previous and reorganise should be sufficient)
- **          (fp.eq x const) --> various = depending on const 
+ **          (fp.eq x const) --> various = depending on const
  **          (fp.abs (fp.neg x)) --> (fp.abs x)
  **          (fp.isPositive (fp.neg x)) --> (fp.isNegative x)
  **          (fp.isNegative (fp.neg x)) --> (fp.isPositive x)
@@ -27,6 +27,7 @@
  **          A -> castB -> castC  -->  A -> castC if A <= B <= C
  **          A -> castB -> castA  -->  A if A <= B
  **          promotion converts can ignore rounding mode
+ **          Samuel Figuer results
  **       ]]
  **/
 
