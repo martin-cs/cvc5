@@ -57,8 +57,14 @@
  *
  * - add a 'non-deterministic rounding' mode for underapproximation.
  *
- * - add a early underflow / overflow for cases that rounding does not
- *   effect.  This will allow the complex cases to be abstracted out.
+ * - add a 'round-to-odd' mode
+ *
+ * - Rather than increment and re-align, take all but the top bit of the
+ *   significand, concatinate on to the exponent and then increment.
+ *   This is effectively using the ordering trick for packed rounding.
+ *
+ * - The sticky bit should be a flag rather than concatinated on to the
+ *   number to make arithmetic reasoning easier.
  *
  * - Specialised rounders
  *    Additive
@@ -68,7 +74,8 @@
  *      subnormals.
  *     No need to check for underflow to zero for similar reasons.
  *     The rounder for the near path can be even more specialised as 
- *      the sticky bit is always 1 and it can't overflow.
+ *      the sticky bit is always 0 and it can't overflow.
+ *     Can only overflow if it is an effective add.
  *
  *    Multiplicative
  *     May be able to increment without overflow.
@@ -91,9 +98,9 @@
 namespace symfpu {
 
 template <class t>
-  unpackedFloat<t> rounder (const typename t::fpt &format,
-			    const typename t::rm &roundingMode,
-			    const unpackedFloat<t> &uf) {
+  unpackedFloat<t> customRounder (const typename t::fpt &format,
+				  const typename t::rm &roundingMode,
+				  const unpackedFloat<t> &uf) {
 
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
@@ -129,18 +136,23 @@ template <class t>
   // the code that calls the rounder constructing uf from parts.
   PRECONDITION(!uf.getNaN());
   PRECONDITION(!uf.getInf());
-  PRECONDITION(!uf.getZero());
+  //PRECONDITION(!uf.getZero());   // The safe choice of default values means this should work OK
 
 
 
-  // Optimisation : early underflow is correct in almost all cases
-  //                only need to round if:
+  /*** Early underflow and overflow detection ***/
+  bwt exponentExtension(expWidth - targetExponentWidth);
+  prop earlyOverflow(exp > unpackedFloat<t>::maxNormalExponent(format).extend(exponentExtension));
+  prop earlyUnderflow(exp < unpackedFloat<t>::minSubnormalExponent(format).extend(exponentExtension).decrement());
+  // Optimisation : if the precondition on sigWidth and targetSignificandWidth is removed
+  //                then can change to:
   //                   exponent >= minSubnormalExponent - 1
   //                && sigWidth > targetSignificandBits
 
 
+
   /*** Normal or subnormal rounding? ***/
-  prop normalRounding(exp >= unpackedFloat<t>::minNormalExponent(format).extend(expWidth - targetExponentWidth));
+  prop normalRounding(exp >= unpackedFloat<t>::minNormalExponent(format).extend(exponentExtension));
 
 
   /*** Round to correct significand. ***/
@@ -153,7 +165,7 @@ template <class t>
   
 
   // For subnormals, locating the guard and stick bits is a bit more involved
-  sbv subnormalAmount(unpackedFloat<t>::maxSubnormalExponent(format).extend(expWidth - targetExponentWidth) - exp);
+  sbv subnormalAmount(unpackedFloat<t>::maxSubnormalExponent(format).extend(exponentExtension) - exp);
   prop belowLimit(subnormalAmount <= sbv::zero(expWidth));    // Not subnormal
   prop aboveLimit(subnormalAmount >= sbv(expWidth, targetSignificandWidth));  // Will underflow
   sbv subnormalShift(ITE((belowLimit || aboveLimit), sbv::zero(expWidth), subnormalAmount));
@@ -174,6 +186,7 @@ template <class t>
   ubv incrementedSignificand(extractedSignificand.modularIncrement());
   prop incrementedSignificandOverflow(incrementedSignificand.isAllZeros());
   // Optimisation : conditional increment
+  // Optimisation : use top bit of significand to increment the exponent
 
   ubv correctedIncrementedSignificand(ITE(!incrementedSignificandOverflow,
 					  incrementedSignificand,
@@ -232,8 +245,12 @@ template <class t>
 
 
   /*** Underflow and overflow ***/
-  prop overflow(correctedExponent > unpackedFloat<t>::maxNormalExponent(format).extend(currentExponentWidth - targetExponentWidth));
-  prop underflow(correctedExponent < unpackedFloat<t>::minSubnormalExponent(format).extend(currentExponentWidth - targetExponentWidth));
+  prop computedOverflow(correctedExponent > unpackedFloat<t>::maxNormalExponent(format).extend(currentExponentWidth - targetExponentWidth));
+  prop computedUnderflow(correctedExponent < unpackedFloat<t>::minSubnormalExponent(format).extend(currentExponentWidth - targetExponentWidth));
+
+  // So that ITE abstraction works...
+  prop overflow(ITE(earlyOverflow, prop(true), computedOverflow));
+  prop underflow(ITE(earlyUnderflow, prop(true), computedUnderflow));
 
   // On overflow either return inf or max
   prop returnInf(roundingMode == t::RNE() || 
@@ -257,16 +274,27 @@ template <class t>
   unpackedFloat<t> min(uf.getSign(), unpackedFloat<t>::minSubnormalExponent(format), unpackedFloat<t>::leadingOne(targetSignificandWidth));
   unpackedFloat<t> zero(unpackedFloat<t>::makeZero(format, uf.getSign()));
   
-  unpackedFloat<t> result(ITE(underflow,
-			      ITE(returnZero, zero, min),
-			      ITE(overflow,
-				  ITE(returnInf, inf, max),
-				  roundedResult)));
+  unpackedFloat<t> result(ITE(uf.getZero(), 
+			      zero,
+			      ITE(underflow,
+				  ITE(returnZero, zero, min),
+				  ITE(overflow,
+				      ITE(returnInf, inf, max),
+				      roundedResult))));
 
   POSTCONDITION(result.valid(format));
 
   return result;
  }
+
+
+template <class t>
+  unpackedFloat<t> rounder (const typename t::fpt &format,
+			    const typename t::rm &roundingMode,
+			    const unpackedFloat<t> &uf) {
+  return customRounder(format, roundingMode, uf);
+ }
+
 
 }
 

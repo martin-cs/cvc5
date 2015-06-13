@@ -66,18 +66,20 @@ namespace symfpu {
    // Rounding mode doesn't matter as this is a strict extension
    unpackedFloat<t> extendedAddArgument(convert(format, extendedFormat, t::RTZ(), addArgument));
 
-   // TODO : round to correct format
    unpackedFloat<t> additionResult(arithmeticAdd(extendedFormat, roundingMode, multiplyResult, extendedAddArgument, prop(true)));
 
+   unpackedFloat<t> roundedResult(rounder(format, roundingMode, additionResult));
+
+   // multiplyResult is in extended format
+   // It is not zero, inf or NaN so it only matters when addArgument is zero when it would be returned
    unpackedFloat<t> result(addAdditionSpecialCases(format,
 						   roundingMode,
-						   multiplyResult, // TODO : Format is wrong but note there are no special cases for this.
+						   multiplyResult, // TODO : Format is wrong
 						   addArgument,
-						   addMultiplySpecialCases(
-									   format,
+						   addMultiplySpecialCases(format,
 									   leftMultiply,
 									   rightMultiply,
-									   additionResult),
+									   roundedResult),
 						   prop(true)));
    
    POSTCONDITION(result.valid(format));
