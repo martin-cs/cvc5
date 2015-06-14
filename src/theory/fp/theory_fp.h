@@ -4,6 +4,7 @@
 #define __CVC4__THEORY__FP__THEORY_FP_H
 
 #include "theory/theory.h"
+#include "theory/uf/equality_engine.h"
 
 #include "theory/fp/fp_converter.h"
 
@@ -15,7 +16,6 @@ namespace fp {
 class TheoryFp : public Theory {
 protected :
   /** Equality engine */
-  #if FPEQ
   class NotifyClass : public eq::EqualityEngineNotify {
     protected :
       TheoryFp& theorySolver;
@@ -31,10 +31,11 @@ protected :
     void eqNotifyPostMerge(TNode t1, TNode t2) { }
     void eqNotifyDisequal(TNode t1, TNode t2, TNode reason) { }
   };
-  
+  friend NotifyClass;
+
   NotifyClass notification;
   eq::EqualityEngine equalityEngine;
-  #endif
+  Node conflictNode;
 
   /** Bit-blasting conversion */
   fpConverter conv;
@@ -65,11 +66,9 @@ public:
     return "THEORY_FP";
   }
 
-  #if FPEQ
   void setMasterEqualityEngine(eq::EqualityEngine* eq);
 
   void explain(TNode literal, std::vector<TNode> &assumptions);
-  #endif
 
 };/* class TheoryFp */
 
