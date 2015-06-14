@@ -85,62 +85,58 @@ TheoryFp::TheoryFp(context::Context* c,
                            Valuation valuation,
                            const LogicInfo& logicInfo) :
   Theory(THEORY_FP, c, u, out, valuation, logicInfo),
-  #if FPEQ
   notification(*this),
-  equalityEngine(notification, c, "theory::fp::TheoryFp", true);
-  #endif
+  equalityEngine(notification, c, "theory::fp::TheoryFp", true),
+  conflictNode(Node::null()),
   conv(u),
   expansionRequested(false) {
 
-  #if FPEQ
     // Kinds that are to be handled in the congruence closure
     
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ABS);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_NEG);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_PLUS);
-    //equalityEngine.addFunction(kind::FLOATINGPOINT_SUB); // Removed
-    equalityEngine.addFunction(kind::FLOATINGPOINT_MULT);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_DIV);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_FMA);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_SQRT);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_REM);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_RTI);
-    // equalityEngine.addFunction(kind::FLOATINGPOINT_MIN); // Care needed w.r.t. +/-0
-    // equalityEngine.addFunction(kind::FLOATINGPOINT_MAX);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ABS);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_NEG);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_PLUS);
+    //equalityEngine.addFunctionKind(kind::FLOATINGPOINT_SUB); // Removed
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MULT);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_DIV);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_FMA);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_SQRT);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_REM);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_RTI);
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MIN); // Care needed w.r.t. +/-0
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MAX);
 
-    // equalityEngine.addFunction(kind::FLOATINGPOINT_EQ); // Removed
-    equalityEngine.addFunction(kind::FLOATINGPOINT_LEQ);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_LT);
-    // equalityEngine.addFunction(kind::FLOATINGPOINT_GEQ); // Removed
-    // equalityEngine.addFunction(kind::FLOATINGPOINT_GT); // Removed
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISN);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISSN);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISZ);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISINF);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISNAN);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISNEG);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_ISPOS);
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_EQ); // Removed
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_LEQ);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_LT);
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_GEQ); // Removed
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_GT); // Removed
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISN);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISSN);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISZ);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISINF);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISNAN);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISNEG);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISPOS);
 
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR_OP);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT_OP);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_REAL_OP);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR_OP);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR_OP);
-    // equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_GENERIC_OP); // Needed in parsing, should be rewritten away
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_REAL_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR_OP);
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_GENERIC_OP); // Needed in parsing, should be rewritten away
 
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_UBV_OP);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_SBV_OP);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_REAL);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_UBV_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_SBV_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_REAL);
 
-    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_NAN);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_INF);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_ZERO);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_SIGN);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_EXPONENT);
-    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND);
-    equalityEngine.addFunction(kind::ROUNDINGMODE_BITBLAST);
-
-   #endif
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_NAN);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_INF);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_ZERO);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_SIGN);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_EXPONENT);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND);
+    equalityEngine.addFunctionKind(kind::ROUNDINGMODE_BITBLAST);
 
 
 }/* TheoryFp::TheoryFp() */
@@ -151,7 +147,7 @@ Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << std::endl;
 
   if (!this->expansionRequested) {
-    lr.widenLogic(THEORY_UF);
+    //    lr.widenLogic(THEORY_UF); // No longer needed
     lr.widenLogic(THEORY_BV);
     this->expansionRequested = true;
   }
@@ -242,14 +238,12 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
 void TheoryFp::preRegisterTerm(TNode node) {
   Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
 
-#if FPEQ
   // Add to the equality engine
   if (node.getKind() == kind::EQUAL) {
     equalityEngine.addTriggerEquality(node);
   } else {
     equalityEngine.addTerm(node);
   }
-#endif
 
   convertAndEquateTerm(node);
   return;
@@ -258,6 +252,13 @@ void TheoryFp::preRegisterTerm(TNode node) {
 void TheoryFp::addSharedTerm(TNode node) {
   Trace("fp-addSharedTerm") << "TheoryFp::addSharedTerm(): " << node << std::endl;
 
+  // Add to the equality engine
+  if (node.getKind() == kind::EQUAL) {
+    equalityEngine.addTriggerEquality(node);
+  } else {
+    equalityEngine.addTerm(node);
+  }
+
   convertAndEquateTerm(node);
   return;
 }
@@ -265,17 +266,32 @@ void TheoryFp::addSharedTerm(TNode node) {
 
 void TheoryFp::check(Effort level) {
 
-#if FPEQ
   while(!done()) {
     // Get all the assertions
     Assertion assertion = get();
     TNode fact = assertion.assertion;
 
+    if (conflictNode != Node::null()) {
+      Debug("fp") << "TheoryFp::check(): conflict detected " << conflictNode << std::endl;
+
+      d_out->conflict(conflictNode);
+      conflictNode = Node::null();
+      return;
+    }
+
     Debug("fp") << "TheoryFp::check(): processing " << fact << std::endl;
 
+    // Only handle equalities; the rest should be handled by
+    // the bit-vector theory
+    if (fact.getKind() == kind::EQUAL) {
+      Debug("fp-eq") << "TheoryFp::check(): adding equality " << fact << std::endl;
+      equalityEngine.assertEquality(fact, true, fact);
 
+    } else if (fact.getKind() == kind::NOT && fact[0].getKind() == kind::EQUAL) {
+      Debug("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0] << std::endl;
+      equalityEngine.assertEquality(fact[0], false, fact);
+    }
   }
-#endif
 
   /* Checking should be handled by the bit-vector engine */
   return;
@@ -306,7 +322,6 @@ void TheoryFp::check(Effort level) {
 }/* TheoryFp::check() */
 
 
-#if FPEQ
 void TheoryFp::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   equalityEngine.setMasterEqualityEngine(eq);
 }
@@ -324,7 +339,6 @@ void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
   }
 }
 
-#endif
 
 
 
@@ -396,6 +410,71 @@ void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
     return;
   }
 
+
+  bool TheoryFp::NotifyClass::eqNotifyTriggerEquality(TNode equality, bool value) {
+    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerEquality(): call back as equality" << equality << " is " << value << std::endl;
+
+    if (value) {
+      theorySolver.d_out->propagate(equality);
+    } else {
+      theorySolver.d_out->propagate(equality.notNode());
+    }
+
+    return true;
+  }
+
+  bool TheoryFp::NotifyClass::eqNotifyTriggerPredicate(TNode predicate, bool value) {
+    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerPredicate(): call back as predicate" << predicate << " is " << value << std::endl;
+
+    if (value) {
+      theorySolver.d_out->propagate(predicate);
+    } else {
+      theorySolver.d_out->propagate(predicate.notNode());
+    }
+
+    return true;
+  }
+
+  bool TheoryFp::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value) {
+    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerTermEquality(): call back as " << t1 << (value ? " = " : " != ") << t2 << std::endl;
+
+    if (value) {
+      theorySolver.d_out->propagate(t1.eqNode(t2));
+    } else {
+      theorySolver.d_out->propagate(t1.eqNode(t2).notNode());
+    }
+
+    return true;
+  }
+
+  void TheoryFp::NotifyClass::eqNotifyConstantTermMerge(TNode t1, TNode t2) {
+    Debug("fp-eq") << "TheoryFp::eqNotifyConstantTermMerge(): call back as " << t1 << " = " << t2 << std::endl;
+
+    std::vector<TNode> assumptions;
+    theorySolver.equalityEngine.explainEquality(t1, t2, true, assumptions);
+
+    Node conflict;
+    if (assumptions.size() == 0) {
+      conflict = NodeManager::currentNM()->mkConst<bool>(true);
+
+    } else if (assumptions.size() == 1) {
+      conflict = assumptions[0];
+
+    } else {
+      // \todo see bv::utils::flattenAnd
+
+      NodeBuilder<> conjunction(kind::AND);
+      for (std::vector<TNode>::const_iterator it = assumptions.begin();
+	   it != assumptions.end();
+	   ++it) {
+	conjunction << *it;
+      }
+
+      conflict = conjunction;
+    }
+
+    theorySolver.conflictNode = conflict;
+  }
 
 
 }/* CVC4::theory::fp namespace */
