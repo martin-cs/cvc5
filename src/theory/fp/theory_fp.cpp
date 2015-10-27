@@ -283,14 +283,27 @@ void TheoryFp::check(Effort level) {
 
     // Only handle equalities; the rest should be handled by
     // the bit-vector theory
-    if (fact.getKind() == kind::EQUAL) {
-      Debug("fp-eq") << "TheoryFp::check(): adding equality " << fact << std::endl;
-      equalityEngine.assertEquality(fact, true, fact);
 
-    } else if (fact.getKind() == kind::NOT && fact[0].getKind() == kind::EQUAL) {
-      Debug("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0] << std::endl;
-      equalityEngine.assertEquality(fact[0], false, fact);
+    bool negated = fact.getKind() == kind::NOT;
+    TNode predicate = negated ? fact[0] : fact;
+
+    if (predicate.getKind() == kind::EQUAL) {
+      if (negated) {
+	Debug("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0] << std::endl;
+	equalityEngine.assertEquality(predicate, false, fact);
+	
+      } else {
+	Debug("fp-eq") << "TheoryFp::check(): adding equality " << fact << std::endl;
+	equalityEngine.assertEquality(predicate, true, fact);
+      }
+    } else {
+      if (equalityEngine.isFunctionKind(predicate.getKind())) {
+	Debug("fp-eq") << "TheoryFp::check(): adding predicate " << predicate << " is " << !negated << std::endl;
+	equalityEngine.assertPredicate(predicate, !negated, fact);
+      }
     }
+
+
   }
 
   /* Checking should be handled by the bit-vector engine */

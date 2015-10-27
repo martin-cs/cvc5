@@ -45,6 +45,51 @@ namespace CVC4 {
 namespace theory {
 namespace fp {
 
+#if 0
+  // Test that the basic operations provided by the back-ends are
+  // equivalent
+  static testOperations (unsigned width) {
+
+    Assert(width < 32);
+
+    // Unsigned
+    unsigned limit = (1 << width) - 1;
+    for (unsigned i = 0; i <= limit; ++i) {
+      for (unsigned j = 0; j <= limit; ++j) {
+	simpleExecutable::traits::ubv first(i);
+	simpleExecutable::traits::ubv second(i);
+
+	// Compute results of operation
+
+	// The same for the other ones
+	// convert!
+      }
+    }
+
+
+  }
+#endif
+
+  static void testMultiply (void) {
+    symfpuSymbolic::fpt format(8,24);
+
+    symfpuSymbolic::rm rne(symfpuSymbolic::traits::RNE());
+
+    Node one(NodeManager::currentNM()->mkConst(BitVector(32, 0x3f800000U)));
+    symfpuSymbolic::ubv oneUBV(one);
+    symfpuSymbolic::uf oneUF(symfpu::unpack<symfpuSymbolic::traits>(format, oneUBV));
+	     
+
+    // 0b00000000010110001000010000010001
+    Node two(NodeManager::currentNM()->mkConst(BitVector(32, 0x00588411U)));
+    symfpuSymbolic::ubv twoUBV(two);
+    symfpuSymbolic::uf twoUF(symfpu::unpack<symfpuSymbolic::traits>(format, twoUBV));
+
+    symfpuSymbolic::uf mult(symfpu::multiply<symfpuSymbolic::traits>(format, rne, oneUF, twoUF));
+
+    return;
+  }
+
 
   fpConverter::fpConverter (context::UserContext* user) :
     f(user), r(user), b(user), u(user), s(user), 
@@ -52,7 +97,9 @@ namespace fp {
     NaNMap(user), infMap(user), zeroMap(user),
     signMap(user), exponentMap(user), significandMap(user),
     additionalAssertions(user)
-  {}
+  {
+    //    testMultiply();
+  }
 
 
 
