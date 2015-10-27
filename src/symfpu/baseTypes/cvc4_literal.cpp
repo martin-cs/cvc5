@@ -137,7 +137,9 @@ namespace symfpu {
 					bitVector<isSigned>::one(this->getWidth())));
       
       
-      return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op)) | stickyBit;
+      // This seems to not follow the contract for this method
+      // return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op)) | stickyBit;
+      return stickyBit;
     }
 
 

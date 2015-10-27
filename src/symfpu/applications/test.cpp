@@ -41,7 +41,7 @@
 
 /*** Test Vector Generation ***/
 
-#define NUMBER_OF_FLOAT_TESTS 121
+#define NUMBER_OF_FLOAT_TESTS 124
 static float floatTestValue [NUMBER_OF_FLOAT_TESTS] = {
   0x0p+0f, -0x0p+0f,                        // Zeros
   0x1p+0f, -0x1p+0f,                        // Ones
@@ -123,7 +123,10 @@ static float floatTestValue [NUMBER_OF_FLOAT_TESTS] = {
    0x1.0p-1,                   // Half for a laugh
    0x1.000002p-75f,            // To test rounding on multiply
    0x1.0p-75f,
-   0x1.8p+0f                   // Carry in to top bit of fraction when half is added
+   0x1.8p+0f,                  // Carry in to top bit of fraction when half is added
+  0x1.fffffep+125f,            // Hunt a specific bug
+   0x1.fffffep+126f,
+   0x1.8p+1f
 };
 
 float getTestValue (uint64_t index) {

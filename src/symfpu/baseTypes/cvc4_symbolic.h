@@ -47,6 +47,11 @@
 #include "util/bitvector.h"
 #include "util/cvc4_assert.h"
 
+#ifdef SYMBOLIC_EVAL
+// Define to allow symbolic expressions (over constant values) to be debugged
+#include "theory/rewriter.h"
+#endif
+
 #ifndef SYMFPU_CVC4_SYMBOLIC
 #define SYMFPU_CVC4_SYMBOLIC
 
@@ -72,8 +77,13 @@ namespace symfpu {
       // TODO : move to inheriting from Node rather than including it
       Node node;
 
+#ifdef SYMBOLIC_EVAL
+      nodeWrapper (const Node n) : node(::CVC4::theory::Rewriter::rewrite(n)) {}
+      nodeWrapper (const nodeWrapper &old) : node(::CVC4::theory::Rewriter::rewrite(old.node)) {}
+#else
       nodeWrapper (const Node n) : node(n) {}
       nodeWrapper (const nodeWrapper &old) : node(old.node) {}
+#endif
 
     public :
       const Node getNode (void) const {
@@ -358,9 +368,10 @@ namespace symfpu {
 					  bitVector<isSigned>::zero(this->getWidth()),
 					  bitVector<isSigned>::one(this->getWidth())));
 
-	bitVector<isSigned> shifted(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ASHR, this->node, op.node));
-    
-	return shifted | stickyBit;
+	// This seems to not follow the contract for this method
+	//bitVector<isSigned> shifted(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ASHR, this->node, op.node));
+	//return shifted | stickyBit;
+	return stickyBit;
       }
 
 
@@ -412,19 +423,19 @@ namespace symfpu {
     public : 
 
       inline proposition operator <= (const bitVector<isSigned> &op) const {
-	  return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ULE : ::CVC4::kind::BITVECTOR_SLE, this->node, op.node)));
+	  return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLE : ::CVC4::kind::BITVECTOR_ULE, this->node, op.node)));
       }
 
       inline proposition operator >= (const bitVector<isSigned> &op) const {
-	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_UGE : ::CVC4::kind::BITVECTOR_SGE, this->node, op.node)));
+	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGE : ::CVC4::kind::BITVECTOR_UGE, this->node, op.node)));
       }
 
       inline proposition operator < (const bitVector<isSigned> &op) const {
-	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ULT : ::CVC4::kind::BITVECTOR_SLT, this->node, op.node)));
+	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLT : ::CVC4::kind::BITVECTOR_ULT, this->node, op.node)));
       }
 
       inline proposition operator > (const bitVector<isSigned> &op) const {
-	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_UGT : ::CVC4::kind::BITVECTOR_SGT, this->node, op.node)));
+	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGT : ::CVC4::kind::BITVECTOR_UGT, this->node, op.node)));
       }
 
       /*** Type conversion ***/
