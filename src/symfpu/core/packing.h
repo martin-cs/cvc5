@@ -80,6 +80,10 @@ namespace symfpu {
     unpackedFloat<t> ufNormal(sign, biasedExponent, significandWithLeadingOne);
     unpackedFloat<t> ufSubnormalBase(sign, unpackedFloat<t>::minNormalExponent(format), significandWithLeadingZero);
 
+    // Optimisation : right shift the significand by one if subnormal
+    //                and then set the carry in when you add to the exponent.
+    //                May be sufficient to just assert that it has a leading zero
+
     // Splice together
     unpackedFloat<t> uf(ITE(isNaN,
 			    unpackedFloat<t>::makeNaN(format),
