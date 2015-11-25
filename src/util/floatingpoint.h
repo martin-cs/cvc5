@@ -62,6 +62,25 @@ namespace CVC4 {
       return (e == fps.e) && (s == fps.s);
     }
 
+
+    // Helper functions for symfpu
+    inline unsigned exponentWidth (void) const {
+      return this->exponent();
+    }
+    inline unsigned significandWidth (void) const {
+      return this->significand();
+    }
+
+    inline unsigned packedWidth(void) const {
+      return this->exponentWidth() + this->significandWidth();
+    }
+    inline unsigned packedExponentWidth(void) const {
+      return this->exponentWidth();
+    }
+    inline unsigned packedSignificandWidth(void) const {
+      return this->significandWidth() - 1;
+    }
+
   }; /* class FloatingPointSize */
 
   struct CVC4_PUBLIC FloatingPointSizeHashFunction {
