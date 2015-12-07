@@ -46,56 +46,47 @@
 
 namespace symfpu {
   namespace simpleExecutable {
+
     
-    // Internal versions -- for use in this namespace only
-    void iprecondition (const bool b);
-    void ipostcondition (const bool b);
-    void iinvariant (const bool b);
+    // Must be able to contain the number of bit used in the bit-vector type to avoid overflow
+    typedef uint32_t bitWidthType;
 
+    // We can use bools for propositions
+    typedef bool proposition;
 
-    // Must be larger than the number of bit used in the bit-vector type to avoid overflow
-    typedef uint8_t bitWidthType;
+    // Forwards definitions
+    class roundingMode;
+    class floatingPointTypeInfo;
+    template <class T> class bitVector;
 
-
-    // Separate from bit-vectors so that C++ typing is more helpful
-    class proposition {
-    private :
-      bool value;
-
+    
+    // This is the class that is used as a template argument
+    class traits {
     public :
-      proposition(bool v) : value(v) {}
-      proposition(const proposition &old) : value(old.value) {} 
+      typedef bitWidthType bwt;
+      typedef roundingMode rm;
+      typedef floatingPointTypeInfo fpt;
+      typedef proposition prop;
+      typedef bitVector< int64_t> sbv;
+      typedef bitVector<uint64_t> ubv;
 
-      proposition operator! (void) const {
-	return proposition(!this->value);
-      }
+      static roundingMode RNE(void);
+      static roundingMode RNA(void);
+      static roundingMode RTP(void);
+      static roundingMode RTN(void);
+      static roundingMode RTZ(void);
 
-      proposition operator&& (const proposition &op) const {
-	return proposition(this->value && op.value);
-      }
-
-      proposition operator|| (const proposition &op) const {
-	return proposition(this->value || op.value);
-      }
-
-      proposition operator == (const proposition &op) const {
-	return proposition(this->value == op.value);
-      }
-
-      proposition operator ^ (const proposition &op) const {
-	return proposition(this->value ^ op.value);
-      }
-
-      // Not appropriate in all instantiations
-      bool toBool () const {
-	return this->value;
-      }
-
-      //IPRECONDITION(trueCase.width() == falseCase.width());
+      // As prop == bool only one set of these is needed
+      inline static void precondition(const bool b) { assert(b); return; }
+      inline static void postcondition(const bool b) { assert(b); return; }
+      inline static void invariant(const bool b) { assert(b); return; }
 
     };
 
+    // To simplify the property macros
+    typedef traits t;
 
+    
     
     class roundingMode {
     private :
@@ -114,16 +105,12 @@ namespace symfpu {
 	return proposition(this->value == op.value);
       }
 
-      // Only for executable
+      // Only for executable back-ends
       int getValue (void) const {
 	return this->value;
       }
     };
     
-
-
-
-
 
 
     template <typename T> struct modifySignedness;
@@ -175,9 +162,9 @@ namespace symfpu {
       // Ideally should protect but is used in subnormal rounding
       bitVector (const bitWidthType w, const T v) : width(w), value(v)
       {
-	IPRECONDITION(width <= bitVector<T>::maxWidth()); 
-	IPRECONDITION(0 < width); 
-	IPRECONDITION(bitVector<T>::isRepresentable(w,v));
+	PRECONDITION(width <= bitVector<T>::maxWidth()); 
+	PRECONDITION(0 < width); 
+	PRECONDITION(bitVector<T>::isRepresentable(w,v));
       }
 
       bitVector (const bitVector<T> &old) : width(old.width), value(old.value) {}
@@ -195,7 +182,7 @@ namespace symfpu {
       
       // Would it be better to not have this and only have copy?
       bitVector<T> & operator= (const bitVector<T> &op) {
-	IPRECONDITION(op.width == this->width);
+	PRECONDITION(op.width == this->width);
 	
 	this->value = op.value;
 	
@@ -212,50 +199,55 @@ namespace symfpu {
       inline proposition isAllOnes() const {return proposition(((~this->value) & nOnes(this->width)) == 0);}
       inline proposition isAllZeros() const {return proposition(this->value == 0);}
 
-      
+      static bitVector<T> maxValue (const bitWidthType &w);
 
       /*** Operators ***/
       // Need to inline the operations where possible
       inline bitVector<T> operator << (uint64_t s) const {
-	IPRECONDITION(s <= this->width);
+	PRECONDITION(s <= this->width);
 	return bitVector<T>(this->width, this->value << s);
       }
 
       inline bitVector<T> operator << (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
-	IPRECONDITION(op.value >= 0 && op.value < this->width);
+	PRECONDITION(this->width == op.width);
+	PRECONDITION(op.value >= 0 && op.value < this->width);
 	return bitVector<T>(this->width, this->value << op.value);
       }
 
       inline bitVector<T> operator >> (uint64_t s) const {
-	IPRECONDITION(s <= this->width);
+	PRECONDITION(s <= this->width);
 	return bitVector<T>(this->width, this->value >> s);
       }
 
       inline bitVector<T> operator >> (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
-	IPRECONDITION(op.value >= 0 && op.value < this->width);
+	PRECONDITION(this->width == op.width);
+	PRECONDITION(op.value >= 0 && op.value < this->width);
 	return bitVector<T>(this->width, this->value >> op.value);
       }
 
       inline bitVector<T> operator | (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return bitVector<T>(this->width, this->value | op.value);
       }
 
       inline bitVector<T> operator & (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return bitVector<T>(this->width, this->value & op.value);
       }
 
       inline bitVector<T> operator + (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return bitVector<T>(this->width, this->value + op.value);
       }
 
       inline bitVector<T> operator - (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return bitVector<T>(this->width, this->value - op.value);
+      }
+
+      inline bitVector<T> operator * (const bitVector<T> &op) const {
+	PRECONDITION(this->width == op.width);
+	return bitVector<T>(this->width, this->value * op.value);
       }
 
       bitVector<T> operator - (void) const;
@@ -291,49 +283,31 @@ namespace symfpu {
 
 
 
-      /*** Expanding operations ***/
-
-      inline bitVector<T> expandingAdd (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
-	return bitVector<T>(this->width + 1, this->value + op.value);
-      }
-
-      inline bitVector<T> expandingSubtract (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
-	return bitVector<T>(this->width + 1, this->value - op.value);
-      }
-
-      inline bitVector<T> expandingMultiply (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
-	return bitVector<T>(this->width * 2, this->value * op.value);
-      }
-
-
 
       /*** Comparisons ***/
 
       inline proposition operator == (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return proposition(this->value == op.value);
       }
 
       inline proposition operator <= (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return proposition(this->value <= op.value);
       }
 
       inline proposition operator >= (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return proposition(this->value >= op.value);
       }
 
       inline proposition operator < (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return proposition(this->value < op.value);
       }
 
       inline proposition operator > (const bitVector<T> &op) const {
-	IPRECONDITION(this->width == op.width);
+	PRECONDITION(this->width == op.width);
 	return proposition(this->value > op.value);
       }
 
@@ -348,14 +322,14 @@ namespace symfpu {
       /*** Bit hacks ***/
 
       inline bitVector<T> extend (bitWidthType extension) const {
-	IPRECONDITION(this->width + extension <= bitVector<T>::maxWidth());
+	PRECONDITION(this->width + extension <= bitVector<T>::maxWidth());
 
 	// No extension needed, even in the signed case as already correctly represented
 	return bitVector<T>(this->width + extension, this->value);
       }
 
       inline bitVector<T> contract (bitWidthType reduction) const {
-	IPRECONDITION(this->width > reduction);
+	PRECONDITION(this->width > reduction);
 
 	return bitVector<T>(this->width - reduction, this->value);
       }
@@ -366,7 +340,7 @@ namespace symfpu {
       }
 
       inline bitVector<T> matchWidth (const bitVector<T> &op) const {
-	IPRECONDITION(this->width <= op.width);
+	PRECONDITION(this->width <= op.width);
 	return this->extend(op.width - this->width);
       }
 
@@ -394,8 +368,8 @@ namespace symfpu {
       
     public :
       floatingPointTypeInfo (bitWidthType eb, bitWidthType sb) : exponentBits(eb), significandBits(sb) {
-	IPRECONDITION(eb > 1);
-	IPRECONDITION(sb > 1);
+	PRECONDITION(eb > 1);
+	PRECONDITION(sb > 1);
       }
       
       floatingPointTypeInfo (const floatingPointTypeInfo &old) : 
@@ -418,40 +392,17 @@ namespace symfpu {
 
       
     };
-
-
-
     
-    // Wrap up the types into one template parameter
-    class traits {
-    public :
-      typedef bitWidthType bwt;
-      typedef roundingMode rm;
-      typedef floatingPointTypeInfo fpt;
-      typedef proposition prop;
-      typedef bitVector< int64_t> sbv;
-      typedef bitVector<uint64_t> ubv;
 
-      static roundingMode RNE(void);
-      static roundingMode RNA(void);
-      static roundingMode RTP(void);
-      static roundingMode RTN(void);
-      static roundingMode RTZ(void);
-
-      static void precondition(const prop &p) { iprecondition(p.toBool()); return; }
-      static void postcondition(const prop &p) { ipostcondition(p.toBool()); return; }
-      static void invariant(const prop &p) { iinvariant(p.toBool()); return; }
-    };
-
-  }; 
+  }
 
 
 #define SEITEDFN(T) template <>						\
-    struct ite<simpleExecutable::proposition, T> {			\
-    static const T & iteOp (const simpleExecutable::proposition &cond,	\
+    struct ite<simpleExecutable::traits::prop, T> {			\
+    static const T & iteOp (const simpleExecutable::traits::prop &cond,	\
 			    const T &l,					\
 			    const T &r) {				\
-      if (cond.toBool()) {						\
+      if (cond) {							\
 	return l;							\
       } else {								\
 	return r;							\
@@ -463,13 +414,13 @@ namespace symfpu {
   SEITEDFN(simpleExecutable::traits::prop);
 
 #define SEITEDFNW(T) template <>					\
-    struct ite<simpleExecutable::proposition, T> {			\
-    static const T & iteOp (const simpleExecutable::proposition &cond,	\
+    struct ite<simpleExecutable::traits::prop, T> {			\
+    static const T & iteOp (const simpleExecutable::traits::prop &cond,	\
 			    const T &l,					\
 			    const T &r) {				\
       assert(l.getWidth() == r.getWidth());				\
 									\
-      if (cond.toBool()) {						\
+      if (cond) {							\
 	return l;							\
       } else {								\
 	return r;							\
@@ -481,7 +432,7 @@ namespace symfpu {
   SEITEDFNW(simpleExecutable::traits::ubv);
 
 
-};
+}
 
 
 

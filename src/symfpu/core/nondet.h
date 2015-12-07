@@ -38,6 +38,6 @@ namespace symfpu {
   typedef struct _nonDetMarkerType {} nonDetMarkerType;
   extern const nonDetMarkerType NONDET;
 
-};
+}
 
 #endif

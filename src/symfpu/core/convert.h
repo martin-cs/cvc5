@@ -43,9 +43,9 @@ unpackedFloat<t> convert (const typename t::fpt &sourceFormat,
   PRECONDITION(input.valid(sourceFormat));
 
   typedef typename t::bwt bwt;
-  typedef typename t::prop prop;
-  typedef typename t::ubv ubv;
-  typedef typename t::sbv sbv;
+  //typedef typename t::prop prop;
+  //typedef typename t::ubv ubv;
+  //typedef typename t::sbv sbv;
 
   // increased includes equality
   bool exponentIncreased = unpackedFloat<t>::exponentWidth(sourceFormat) <= unpackedFloat<t>::exponentWidth(targetFormat);

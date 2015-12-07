@@ -54,6 +54,6 @@ namespace symfpu {
     return ite<prop, data>::iteOp(c, l, r);
   }
 
-};
+}
 
 #endif

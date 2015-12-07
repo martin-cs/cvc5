@@ -48,10 +48,10 @@ namespace symfpu {
 			 const unpackedFloat<t> &rightMultiply,
 			 const unpackedFloat<t> &addArgument) {
    
-   typedef typename t::bwt bwt;
+   //   typedef typename t::bwt bwt;
    typedef typename t::prop prop;
-   typedef typename t::ubv ubv;
-   typedef typename t::sbv sbv;
+   //typedef typename t::ubv ubv;
+   //typedef typename t::sbv sbv;
    typedef typename t::fpt fpt;
   
    PRECONDITION(leftMultiply.valid(format));

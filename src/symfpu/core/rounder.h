@@ -90,6 +90,7 @@
  */
 
 
+#include "symfpu/core/operations.h"
 #include "symfpu/core/unpackedFloat.h"
 
 #ifndef SYMFPU_ROUNDER
@@ -153,7 +154,8 @@ template <class t>
 
   /*** Normal or subnormal rounding? ***/
   prop normalRounding(exp >= unpackedFloat<t>::minNormalExponent(format).extend(exponentExtension));
-
+  probabilityAnnotation<t>(normalRounding, LIKELY);
+  
 
   /*** Round to correct significand. ***/
   ubv extractedSignificand(sig.extract(sigWidth - 1, sigWidth - targetSignificandWidth));
@@ -169,7 +171,8 @@ template <class t>
   prop belowLimit(subnormalAmount <= sbv::zero(expWidth));    // Not subnormal
   prop aboveLimit(subnormalAmount >= sbv(expWidth, targetSignificandWidth));  // Will underflow
   sbv subnormalShift(ITE((belowLimit || aboveLimit), sbv::zero(expWidth), subnormalAmount));
-
+  // Optimisation : collar
+  
   ubv subnormalShiftPrepared(subnormalShift.toUnsigned().extend(targetSignificandWidth - expWidth));
   ubv guardLocation(ubv::one(targetSignificandWidth) << subnormalShiftPrepared);
   ubv stickyMask(guardLocation.decrement());
@@ -229,15 +232,14 @@ template <class t>
 
   // The extend is almost certainly unnecessary (see specialised rounders)
   sbv extendedExponent(exp.extend(1));
-  sbv incrementedExponent(extendedExponent.increment());
 
   prop incrementExponent(ITE(normalRounding,
 			     incrementedSignificandOverflow,
 			     subnormalIncrementedSignificandOverflow)
-			 && roundUp);  // Rare...
-  sbv correctedExponent(ITE(!incrementExponent,
-			    extendedExponent,
-			    incrementedExponent));
+			 && roundUp);
+  probabilityAnnotation<t>(incrementExponent, VERYUNLIKELY);
+  
+  sbv correctedExponent(conditionalIncrement<t>(incrementExponent, extendedExponent));
 
   // This can over and underflow but these values will not be used
   bwt currentExponentWidth(correctedExponent.getWidth());

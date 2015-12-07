@@ -68,7 +68,7 @@ namespace fp {
 
 
   }
-#endif
+
 
   static void testMultiply (void) {
     symfpuSymbolic::fpt format(8,24);
@@ -89,7 +89,8 @@ namespace fp {
 
     return;
   }
-
+#endif
+  
 
   fpConverter::fpConverter (context::UserContext* user) :
     f(user), r(user), b(user), u(user), s(user), 

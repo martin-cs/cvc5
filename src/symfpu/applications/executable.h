@@ -195,7 +195,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isNormal<traits>(format, unpacked));
 
-      return result.toBool();  
+      return result;  
     }
 
     static bool isNormalReference (const fpt &, execBV bv) {
@@ -213,7 +213,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isSubnormal<traits>(format, unpacked));
 
-      return result.toBool();
+      return result;
     }
 
     static bool isSubnormalReference (const fpt &, execBV bv) {
@@ -232,7 +232,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isZero<traits>(format, unpacked));
 
-      return result.toBool();
+      return result;
     }
 
     static bool isZeroReference (const fpt &, execBV bv) {
@@ -250,7 +250,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isInfinite<traits>(format, unpacked));
 
-      return result.toBool();
+      return result;
     }
 
     static bool isInfiniteReference (const fpt &, execBV bv) {
@@ -268,7 +268,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isNaN<traits>(format, unpacked));
 
-      return result.toBool();
+      return result;
     }
 
     static bool isNaNReference (const fpt &, execBV bv) {
@@ -287,7 +287,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isPositive<traits>(format, unpacked));
 
-      return result.toBool();
+      return result;
     }
 
     static bool isPositiveReference (const fpt &, execBV bv) {
@@ -305,7 +305,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::isNegative<traits>(format, unpacked));
 
-      return result.toBool();
+      return result;
     }
 
     static bool isNegativeReference (const fpt &, execBV bv) {
@@ -324,7 +324,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::smtlibEqual<traits>(format, unpacked1, unpacked2));
 
-      return result.toBool();
+      return result;
     }
 
     static bool smtlibEqualReference (const fpt &, execBV bv1, execBV bv2) {
@@ -345,7 +345,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::ieee754Equal<traits>(format, unpacked1, unpacked2));
 
-      return result.toBool();
+      return result;
     }
 
 
@@ -367,7 +367,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::lessThan<traits>(format, unpacked1, unpacked2));
 
-      return result.toBool();
+      return result;
     }
 
     static bool lessThanReference (const fpt &, execBV bv1, execBV bv2) {
@@ -390,7 +390,7 @@ template <class execBV, class execFloat, class traits>
 
       prop result(symfpu::lessThanOrEqual<traits>(format, unpacked1, unpacked2));
 
-      return result.toBool();
+      return result;
     }
 
 

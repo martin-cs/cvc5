@@ -30,6 +30,6 @@
 
 namespace symfpu {
   const nonDetMarkerType NONDET;
-};
+}
 
 
