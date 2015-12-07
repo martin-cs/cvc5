@@ -39,10 +39,19 @@
 **
 */
 
+/*
+** Ideas
+**  Take max of exponents and then only swap the significands rather than full swap.
+**  Collar the exponent difference, convert add to twice the width and thus unify the paths and simplify the shifting.
+*/
+
+
 #include "symfpu/core/unpackedFloat.h"
 #include "symfpu/core/ite.h"
 #include "symfpu/core/rounder.h"
 #include "symfpu/core/sign.h"
+#include "symfpu/core/operations.h"
+
 
 #ifndef SYMFPU_ADD
 #define SYMFPU_ADD
@@ -135,7 +144,7 @@ template <class t>
 
 
    // Compute exponent difference and swap the two arguments if needed
-   sbv initialExponentDifference(left.getExponent().expandingSubtract(right.getExponent()));
+   sbv initialExponentDifference(expandingSubtract<t>(left.getExponent(), right.getExponent()));
    bwt edWidth(initialExponentDifference.getWidth());
    sbv edWidthZero(sbv::zero(edWidth));
    prop orderingCorrect( initialExponentDifference >  edWidthZero ||
@@ -191,6 +200,8 @@ template <class t>
    prop noOverflow(topBit.isAllZeros()); // Only correct if effectiveAdd is set
    prop noCancel(centerBit.isAllOnes());
 
+
+   
    // TODO : Add invariants
 
    ubv alignedSum(ITE(effectiveAdd,
@@ -274,10 +285,10 @@ template <class t>
 			 const typename t::prop &isAdd) {
    // Optimisation : add a flag which assumes that left and right are in exponent order
    
-   typedef typename t::bwt bwt;
-   typedef typename t::prop prop;
-   typedef typename t::ubv ubv;
-   typedef typename t::sbv sbv;
+   //typedef typename t::bwt bwt;
+   //typedef typename t::prop prop;
+   //typedef typename t::ubv ubv;
+   //typedef typename t::sbv sbv;
    
    PRECONDITION(left.valid(format));
    PRECONDITION(right.valid(format));

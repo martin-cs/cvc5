@@ -22,34 +22,25 @@
 ** martin.brain@cs.ox.ac.uk
 ** 07/08/14
 **
-** Macros for specifying invariants in an application specific way.
-** Note that there are two kinds of assertions -- those within a
-** single back-end and those that are used in instruction encodings.
-** The internal assertions take bools and are intended to catch
-** (statically or dynamically) cases where the back-end is not being
-** used correctly.  The main assertions take traits::prop s and are
-** used to document and record assumptions and assertions about the
-** state of the floating-point numbers during execution.  Depending on
-** whether traits::prop are concrete or symbolic, the handling of
-** these may be really quite different.
+** Macros for specifying invariants in a back-end specific way.
+**
+** Note that there are two kinds of assertions.
+**  - Implementation assertions : should be statically or dynamically
+**    resolvable to bools.  Intended to catch cases where the code is
+**    buggy or being used incorrectly.
+**  - Algorithm assertions : should be trait::prop and are used
+**    to document and record properties and assumptions about the
+**    floating-point computation.  Depending on the back-end these may
+**    be concrete or symbolic and thus handled in different ways.
 **
 */
-
-#include <assert.h>
 
 #ifndef SYMFPU_PROPERTIES
 #define SYMFPU_PROPERTIES
 
-// For use within the implementation of one base type
-#define IPRECONDITION(X) iprecondition(X)
-#define IPOSTCONDITION(X) ipostcondition(X)
-#define IINVARIANT(X) iinvariant(X)
-
-// For use in anything that is templated by base type traits
 #define PRECONDITION(X) t::precondition(X)
 #define POSTCONDITION(X) t::postcondition(X)
 #define INVARIANT(X) t::invariant(X)
-
 
 #endif
 

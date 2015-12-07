@@ -1,21 +1,4 @@
 /*
-** Copyright (C) 2015 Martin Brain
-** 
-** This program is free software: you can redistribute it and/or modify
-** it under the terms of the GNU General Public License as published by
-** the Free Software Foundation, either version 3 of the License, or
-** (at your option) any later version.
-** 
-** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-** GNU General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public License
-** along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** cvc4_literal.cpp
 **
 ** Martin Brain
@@ -27,17 +10,18 @@
 **
 */
 
-#include "util/floatingpoint.h"   // cvc4_literal needs this but can't include it or it will create a loop
+// cvc4_literal.h needs definition from util/floatingpoint.h and is included in the middle of it
+#include "util/floatingpoint.h"
 #include "symfpu/baseTypes/cvc4_literal.h"
+
 
 namespace symfpu {
   namespace cvc4_literal {
 
-    void iprecondition (const bool b) { Assert(b); }
-    void ipostcondition (const bool b) { Assert(b); }
-    void iinvariant (const bool b) { Assert(b); }
+    // To simplify the property macros
+    typedef traits t;
 
-
+    
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::one (const bitWidthType &w) { return bitVector<isSigned>(w,1); }
 
@@ -53,10 +37,27 @@ namespace symfpu {
     proposition bitVector<isSigned>::isAllZeros() const {return (*this == bitVector<isSigned>::zero(this->getWidth()));}
 
 
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::maxValue (const bitWidthType &w) {
+      if (isSigned) {
+	CVC4BV base(w-1, 0U);
+	return bitVector<true>((~base).zeroExtend(1));
+      } else {
+	return bitVector<false>::allOnes(w);
+      }
+    }
+
+
+    template <>
+    bitVector<false> bitVector<false>::maxValue (const bitWidthType &w) {
+      return bitVector<false>::allOnes(w);
+    }
+
+
     /*** Operators ***/
     template <bool isSigned>    
     bitVector<isSigned> bitVector<isSigned>::operator << (unsigned s) const {
-      IPRECONDITION(s <= this->getWidth());
+      PRECONDITION(s <= this->getWidth());
       return this->CVC4BV::leftShift(CVC4BV(this->getWidth(),s));
     }
 
@@ -68,14 +69,14 @@ namespace symfpu {
 
     template <>    
     bitVector<true> bitVector<true>::operator >> (uint64_t s) const {
-      IPRECONDITION(s <= this->getWidth());
+      PRECONDITION(s <= this->getWidth());
       
       return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
     }
 
     template <>
     bitVector<false> bitVector<false>::operator >> (uint64_t s) const {
-      IPRECONDITION(s <= this->getWidth());
+      PRECONDITION(s <= this->getWidth());
       
       return this->CVC4BV::logicalRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
     }
@@ -147,7 +148,7 @@ namespace symfpu {
     // No overflow checking so these are the same as other operations
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::modularLeftShift (uint64_t s) const {
-      IPRECONDITION(s <= this->getWidth());
+      PRECONDITION(s <= this->getWidth());
       return *this << s;
     }
 
@@ -245,7 +246,7 @@ namespace symfpu {
 
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::contract (bitWidthType reduction) const {
-      IPRECONDITION(this->getWidth() > reduction);
+      PRECONDITION(this->getWidth() > reduction);
 
       return this->extract((this->getWidth() - 1) - reduction, 0);
     }
@@ -265,7 +266,7 @@ namespace symfpu {
 
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::matchWidth (const bitVector<isSigned> &op) const {
-      IPRECONDITION(this->getWidth() <= op.getWidth());
+      PRECONDITION(this->getWidth() <= op.getWidth());
       return this->extend(op.getWidth() - this->getWidth());
     }
 
@@ -278,7 +279,7 @@ namespace symfpu {
     // Inclusive of end points, thus if the same, extracts just one bit
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::extract(bitWidthType upper, bitWidthType lower) const {
-      IPRECONDITION(upper >= lower);
+      PRECONDITION(upper >= lower);
       return this->CVC4BV::extract(upper, lower);
     }
 
@@ -288,32 +289,6 @@ namespace symfpu {
       return tmp;
     }
 
-
-
-    /*** Expanding operations ***/
-    template <bool isSigned>
-    bitVector<isSigned> bitVector<isSigned>::expandingAdd (const bitVector<isSigned> &op) const {
-      bitVector<isSigned> x((*this).extend(1));
-      bitVector<isSigned> y(     op.extend(1));
-
-      return x + y;
-    }
-
-    template <bool isSigned>
-    bitVector<isSigned> bitVector<isSigned>::expandingSubtract (const bitVector<isSigned> &op) const {
-      bitVector<isSigned> x((*this).extend(1));
-      bitVector<isSigned> y(     op.extend(1));
-
-      return x - y;
-    }
-
-    template <bool isSigned>
-    bitVector<isSigned> bitVector<isSigned>::expandingMultiply (const bitVector<isSigned> &op) const {
-      bitVector<isSigned> x((*this).extend(this->getWidth()));
-      bitVector<isSigned> y(     op.extend(this->getWidth()));
-
-      return x * y;
-    }
 
 
     // Explicit instantiation

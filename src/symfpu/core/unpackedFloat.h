@@ -40,6 +40,7 @@
 
 #include "symfpu/core/ite.h"
 #include "symfpu/core/nondet.h"
+#include "symfpu/core/operations.h"
 
 // For debugging only
 #include <iostream>
@@ -245,9 +246,8 @@ namespace symfpu {
 
     // The amount needed to normalise the number
     inline sbv getSubnormalAmount(const fpt &format) const {
-      return ITE(this->inSubnormalRange(format),
-		 minNormalExponent(format) - exponent,
-		 sbv::zero(exponent.getWidth()) );
+      return max<t>(minNormalExponent(format) - exponent,
+		    sbv::zero(exponent.getWidth()));
     }
 
     inline prop isPositiveInf (void) const {

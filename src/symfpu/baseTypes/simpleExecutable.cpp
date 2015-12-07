@@ -37,11 +37,6 @@
 namespace symfpu {
   namespace simpleExecutable {
 
-    void iprecondition (const bool b) { assert(b); return; }
-    void ipostcondition (const bool b) { assert(b); return; }
-    void iinvariant (const bool b) { assert(b); return; }
-
-    
 
     // This would all be much easier if C++ allowed partial specialisation of member templates...
 
@@ -65,7 +60,29 @@ namespace symfpu {
     uint64_t bitVector<uint64_t>::makeRepresentable (const bitWidthType w, const uint64_t v) {
       return v & bitVector<uint64_t>::nOnes(w);
     }
-  
+
+    template <>
+    int64_t bitVector<int64_t>::makeRepresentable (const bitWidthType w, const int64_t v) {
+      if (v <= ((1LL << (w - 1)) - 1) && (-(1LL << (w - 1)) <= v)) {
+	return v;
+      } else {
+	return 0;
+      }
+    }
+
+    
+    template <>
+    bitVector<int64_t> bitVector<int64_t>::maxValue (const bitWidthType &w) {
+      PRECONDITION(w != 1);
+      return bitVector<int64_t>(w, (1ULL << (w - 1)) - 1);
+    }
+    
+    template <>
+    bitVector<uint64_t> bitVector<uint64_t>::maxValue (const bitWidthType &w) {
+      PRECONDITION(w != 1);
+      return bitVector<uint64_t>(w, (1ULL << w) - 1);
+    }
+    
 
     template <>
     bitVector<int64_t> bitVector<int64_t>::operator- (void) const {
@@ -113,7 +130,7 @@ namespace symfpu {
 
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::signExtendRightShift (const bitVector<uint64_t> &op) const {
-      IPRECONDITION(this->width == op.width);
+      PRECONDITION(this->width == op.width);
       return bitVector<uint64_t>(this->width,
 				 bitVector<uint64_t>::makeRepresentable(this->width, 
 									stickyRightShift(true, this->width, this->value, op.value)));
@@ -121,7 +138,7 @@ namespace symfpu {
 
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::rightShiftStickyBit (const bitVector<uint64_t> &op) const {
-      IPRECONDITION(this->width == op.width);
+      PRECONDITION(this->width == op.width);
       return bitVector<uint64_t>(this->width,
 				 stickyRightShift(false, this->width, this->value, op.value));
     }
@@ -129,7 +146,7 @@ namespace symfpu {
 
     template<>
     bitVector<uint64_t> bitVector<uint64_t>::modularLeftShift (uint64_t s) const {
-      IPRECONDITION(s < this->width);
+      PRECONDITION(s < this->width);
       return bitVector<uint64_t>(this->width, 
 				 bitVector<uint64_t>::makeRepresentable(this->width, this->value << s));
     }
@@ -146,8 +163,8 @@ namespace symfpu {
     // Only instantiated for unsigned
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::extract(bitWidthType upper, bitWidthType lower) const {
-      IPRECONDITION(this->width > upper);
-      IPRECONDITION(upper >= lower);
+      PRECONDITION(this->width > upper);
+      PRECONDITION(upper >= lower);
       
       bitWidthType newLength = (upper - lower) + 1;
       
@@ -157,7 +174,7 @@ namespace symfpu {
 
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::append(const bitVector<uint64_t> &op) const {
-      IPRECONDITION(this->width + op.width <= bitVector<uint64_t>::maxWidth());
+      PRECONDITION(this->width + op.width <= bitVector<uint64_t>::maxWidth());
       
       return bitVector<uint64_t>(this->width + op.width, this->value << op.width | op.value);
     }
@@ -177,18 +194,18 @@ namespace symfpu {
 
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::orderEncode (bitWidthType w) const {
-      IPRECONDITION(w <= bitVector<uint64_t>::maxWidth());
+      PRECONDITION(w <= bitVector<uint64_t>::maxWidth());
 
       return bitVector<uint64_t>(w, bitVector<uint64_t>::nOnes((this->value > w) ? w : this->value));
     }
 
     
 
-    roundingMode traits::RNE (void) { return roundingMode(FE_TONEAREST); };
-    roundingMode traits::RNA (void) { return roundingMode(23); };          // Could be better...
-    roundingMode traits::RTP (void) { return roundingMode(FE_UPWARD); };
-    roundingMode traits::RTN (void) { return roundingMode(FE_DOWNWARD); };
-    roundingMode traits::RTZ (void) { return roundingMode(FE_TOWARDZERO); };
+    roundingMode traits::RNE (void) { return roundingMode(FE_TONEAREST); }
+    roundingMode traits::RNA (void) { return roundingMode(23); }          // Could be better...
+    roundingMode traits::RTP (void) { return roundingMode(FE_UPWARD); }
+    roundingMode traits::RTN (void) { return roundingMode(FE_DOWNWARD); }
+    roundingMode traits::RTZ (void) { return roundingMode(FE_TOWARDZERO); }
 
-  };
-};
+  }
+}

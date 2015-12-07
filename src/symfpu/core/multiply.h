@@ -29,6 +29,7 @@
 #include "symfpu/core/unpackedFloat.h"
 #include "symfpu/core/ite.h"
 #include "symfpu/core/rounder.h"
+#include "symfpu/core/operations.h"
 
 #ifndef SYMFPU_MULTIPLY
 #define SYMFPU_MULTIPLY
@@ -77,19 +78,19 @@ template <class t>
   prop multiplySign(left.getSign() ^ right.getSign());
 
   // Add up exponents
-  sbv exponentSum(left.getExponent().expandingAdd(right.getExponent()));
+  sbv exponentSum(expandingAdd<t>(left.getExponent(),right.getExponent()));
   // Optimisation : do this late and use the increment as a carry in
 
   sbv min(unpackedFloat<t>::minSubnormalExponent(format));
   sbv max(unpackedFloat<t>::maxNormalExponent(format));
-  INVARIANT(min.expandingAdd(min) <= exponentSum);
-  INVARIANT(exponentSum <= max.expandingAdd(max));
+  INVARIANT(expandingAdd<t>(min,min) <= exponentSum);
+  INVARIANT(exponentSum <= expandingAdd<t>(max, max));
   // Optimisation : use the if-then-lazy-else to avoid multiplying for underflow and overflow
   //                subnormal * subnormal does not need to be evaluated
 
 
   // Multiply the significands
-  ubv significandProduct(left.getSignificand().expandingMultiply(right.getSignificand()));
+  ubv significandProduct(expandingMultiply<t>(left.getSignificand(), right.getSignificand()));
   // Optimisation : low bits are not needed apart from the guard and sticky bits
   // Optimisation : top bits accurately predict whether re-alignment is needed
 
@@ -98,17 +99,16 @@ template <class t>
   ubv nextBit(significandProduct.extract(spWidth - 2, spWidth - 2));
 
   // Alignment of inputs means at least one of the two MSB is 1
-  // i.e. [1,2) * [1,2) = [1,4)
+  //  i.e. [1,2) * [1,2) = [1,4)
+  // topBitSet is the likely case
   prop topBitSet(topBit.isAllOnes());
   INVARIANT(topBitSet || nextBit.isAllOnes());
+  probabilityAnnotation<t>(topBitSet, LIKELY);
   
 
   // Re-align
-  sbv incrementExponentSum(exponentSum + sbv::one(exponentSum.getWidth()));  // Will not overflow
-  sbv alignedExponent(ITE(topBitSet, incrementExponentSum, exponentSum));
-  
-  ubv shiftedSignificandProduct(significandProduct.modularLeftShift(1));     // Will not loose information
-  ubv alignedSignificand(ITE(topBitSet, significandProduct, shiftedSignificandProduct));
+  sbv alignedExponent(conditionalIncrement<t>(topBitSet, exponentSum)); // Will not overflow as previously expanded
+  ubv alignedSignificand(conditionalLeftShiftOne<t>(!topBitSet, significandProduct)); // Will not loose information
 
   
   // Put back together
@@ -128,10 +128,10 @@ template <class t>
 			     const typename t::rm &roundingMode,
 			     const unpackedFloat<t> &left,
 			     const unpackedFloat<t> &right) {
-  typedef typename t::bwt bwt;
-  typedef typename t::prop prop;
-  typedef typename t::ubv ubv;
-  typedef typename t::sbv sbv;
+  //typedef typename t::bwt bwt;
+  //typedef typename t::prop prop;
+  //typedef typename t::ubv ubv;
+  //typedef typename t::sbv sbv;
 
   PRECONDITION(left.valid(format));
   PRECONDITION(right.valid(format));
