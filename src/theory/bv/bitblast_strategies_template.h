@@ -822,6 +822,86 @@ void DefaultRotateLeftBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) 
 }
 
 
+template <class T>
+void DefaultSMaxBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultSMaxBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_SMAX &&
+          res_bits.size() == 0 &&
+          node.getNumChildren() == 2);
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+
+  T slt = sLessThanBB(a, b, false);
+  unsigned size = utils::getSize(node);
+  for (unsigned i = 0; i < size; ++i) {
+    bits.push_back(mkIte<T>(slt, b[i], a[i]));
+  }
+}
+
+template <class T>
+void DefaultSMinBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultSMinBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_SMIN &&
+          res_bits.size() == 0 &&
+          node.getNumChildren() == 2);
+
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+
+  T sle = sLessThanBB(a, b, true);
+  unsigned size = utils::getSize(node);
+  for (unsigned i = 0; i < size; ++i) {
+    bits.push_back(mkIte<T>(sle, a[i], b[i]));
+  }
+}
+
+template <class T>
+void DefaultCountZeroBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultCountZeroBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_COUNT_ZERO &&
+          res_bits.size() == 0);
+  
+  Unimplemented(); 
+}
+
+template <class T>
+void DefaultReverseBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultReverseBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_REVERSE &&
+          res_bits.size() == 0);
+  std::vector<T> a;
+  bb->bbTerm(node[0], a);
+  
+  int size = utils::getSize(node);
+  for (int i = 0 i < size; ++i) {
+    bits[i] = a[size - i - 1];
+  }
+  if(Debug.isOn("bitvector-bb")) {
+    Debug("bitvector-bb") << "with bits: " << toString(bits)  << "\n";
+  }
+}
+
+template <class T>
+void DefaultUnaryEncodeBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultUnaryEncodeBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_UNARY_ENCODE &&
+          res_bits.size() == 0);
+  
+  Unimplemented(); 
+}
+
+
+
+
+
+
 }
 }
 }

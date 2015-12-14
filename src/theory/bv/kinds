@@ -54,6 +54,7 @@ operator BITVECTOR_UREM 2 "unsigned remainder from truncating division of two bi
 operator BITVECTOR_SDIV 2 "2's complement signed division"
 operator BITVECTOR_SREM 2 "2's complement signed remainder (sign follows dividend)"
 operator BITVECTOR_SMOD 2 "2's complement signed remainder (sign follows divisor)"
+
 # total division kinds
 operator BITVECTOR_UDIV_TOTAL 2 "unsigned division of two bit-vectors, truncating towards 0 (defined to be the all-ones bit pattern, if divisor is 0)"
 operator BITVECTOR_UREM_TOTAL 2 "unsigned remainder from truncating division of two bit-vectors (defined to be equal to the dividend, if divisor is 0)"
@@ -76,6 +77,13 @@ operator BITVECTOR_REDAND 1 "bit-vector redand"
 operator BITVECTOR_EAGER_ATOM 1 "formula to be treated as a bv atom via eager bit-blasting (internal-only symbol)"
 operator BITVECTOR_ACKERMANIZE_UDIV 1 "term to be treated as a variable; used for eager bit-blasting Ackermann expansion of bvudiv (internal-only symbol)"
 operator BITVECTOR_ACKERMANIZE_UREM 1 "term to be treated as a variable; used for eager bit-blasting Ackermann expansion of bvurem (internal-only symbol)"
+
+# special kinds for floating-point bit-blasting
+operator BITVECTOR_SMAX 2 "signed max of two bit-vectors"
+operator BITVECTOR_SMIN 2 "signed min of two bit-vectors"
+operator BITVECTOR_COUNT_ZERO 1 "counting leading zeroes in bit-vector"
+operator BITVECTOR_REVERSE 1 "reverse the bits in a bit-vector"
+operator BITVECTOR_UNARY_ENCODE 2 "takes a bit-vector x and returns the unary encoding of x"
 
 constant BITVECTOR_BITOF_OP \
 	::CVC4::BitVectorBitOf \
@@ -192,5 +200,10 @@ typerule BITVECTOR_SIGN_EXTEND ::CVC4::theory::bv::BitVectorExtendTypeRule
 
 typerule BITVECTOR_TO_NAT ::CVC4::theory::bv::BitVectorConversionTypeRule
 typerule INT_TO_BITVECTOR ::CVC4::theory::bv::BitVectorConversionTypeRule
+
+typerule BITVECTOR_SMAX ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
+typerule BITVECTOR_SMIN ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
+typerule BITVECTOR_COUNT_ZERO ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
+typerule BITVECTOR_UNARY_ENCODE ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
 
 endtheory

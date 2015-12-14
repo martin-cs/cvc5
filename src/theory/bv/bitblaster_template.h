@@ -396,6 +396,12 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_SIGN_EXTEND ]  = DefaultSignExtendBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_ROTATE_RIGHT ] = DefaultRotateRightBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_ROTATE_LEFT ]  = DefaultRotateLeftBB<T>;
+  // bb strategies for floating point operations
+  d_termBBStrategies [ kind::BITVECTOR_SMAX ]  = DefaultSMaxBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_SMIN ]  = DefaultSMinBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_COUNT_ZERO ]  = DefaultCountZeroBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_REVERSE ]  = DefaultReverseBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_UNARY_ENCODE ]  = DefaultUnaryEncodeBB<T>;
 }
 
 template <class T>
