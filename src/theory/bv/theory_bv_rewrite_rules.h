@@ -94,6 +94,11 @@ enum RewriteRuleId {
   EvalNeg,
   EvalSlt,
   EvalSle,
+  EvalSMax,
+  EvalSMin,
+  EvalCountZero,
+  EvalReverse,
+  EvalUnaryEncode,
 
   /// simplification rules
   /// all of these rules decrease formula size
@@ -138,6 +143,9 @@ enum RewriteRuleId {
   SltZero, 
   ZeroUlt,
   MergeSignExtend,
+
+  SMaxId,
+  SMinId,
   
   /// normalization rules
   ExtractBitwise,
@@ -301,6 +309,13 @@ inline std::ostream& operator << (std::ostream& out, RewriteRuleId ruleId) {
   case UltPlusOne: out << "UltPlusOne"; return out;
   case ConcatToMult: out << "ConcatToMult"; return out;
   case IsPowerOfTwo: out << "IsPowerOfTwo"; return out;
+  case EvalSMax: out << "EvalSMax"; return out;
+  case EvalSMin: out << "EvalSMin"; return out;
+  case EvalCountZero: out << "EvalCountZero"; return out;
+  case EvalReverse: out << "EvalReverse"; return out;
+  case EvalUnaryEncode: out << "EvalUnaryEncode"; return out;
+  case SMaxId: out << "SMaxId"; return out;
+  case SMinId: out << "SMinId"; return out;
   default:
     Unreachable();
   }
@@ -528,6 +543,13 @@ struct AllRewriteRules {
   RewriteRule<IsPowerOfTwo> rule121;
   RewriteRule<RedorEliminate> rule122;
   RewriteRule<RedandEliminate> rule123;
+  RewriteRule<EvalSMax> rule124;
+  RewriteRule<EvalSMin> rule125;
+  RewriteRule<EvalCountZero> rule126;
+  RewriteRule<EvalReverse> rule127;
+  RewriteRule<EvalUnaryEncode> rule128;
+  RewriteRule<SMaxId> rule129;
+  RewriteRule<SMinId> rule130;
 };
 
 template<> inline

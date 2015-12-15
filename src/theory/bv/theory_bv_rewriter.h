@@ -83,6 +83,12 @@ class TheoryBVRewriter {
   static RewriteResponse RewriteBVToNat(TNode node, bool prerewrite = false);
   static RewriteResponse RewriteIntToBV(TNode node, bool prerewrite = false);
 
+  static RewriteResponse RewriteSMax(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteSMin(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteCountZero(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteReverse(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteUnaryEncode(TNode node, bool prerewrite = false);
+  
 public:
 
   static RewriteResponse postRewrite(TNode node);

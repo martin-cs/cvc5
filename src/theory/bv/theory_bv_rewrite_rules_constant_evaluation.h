@@ -419,6 +419,105 @@ Node RewriteRule<EvalEquals>::apply(TNode node) {
 
 }
 
+template<> inline
+bool RewriteRule<EvalSMax>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_SMAX &&
+          utils::isBVGroundTerm(node));
+}
+
+template<> inline
+Node RewriteRule<EvalSMax>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalSMax>(" << node << ")" << std::endl;
+  BitVector a = node[0].getConst<BitVector>();
+  BitVector b = node[1].getConst<BitVector>();
+
+  BitVector res = a < b ? b : a;
+  return utils::mkConst(res);
+}
+
+template<> inline
+bool RewriteRule<EvalSMin>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_SMIN &&
+          utils::isBVGroundTerm(node));
+}
+
+template<> inline
+Node RewriteRule<EvalSMin>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalSMin>(" << node << ")" << std::endl;
+  
+  BitVector a = node[0].getConst<BitVector>();
+  BitVector b = node[1].getConst<BitVector>();
+
+  BitVector res = a < b ? a : b;
+  return utils::mkConst(res);
+}
+
+template<> inline
+bool RewriteRule<EvalCountZero>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_COUNT_ZERO &&
+          utils::isBVGroundTerm(node));
+}
+
+template<> inline
+Node RewriteRule<EvalCountZero>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalCountZero>(" << node << ")" << std::endl;
+  BitVector a = node[0].getConst<BitVector>();
+  unsigned size = utils::getSize(node);
+  for(unsigned i = 0; i < size; ++i) {
+    if (a.isBitSet(size - i - 1))
+      return utils::mkConst(BitVector(size, i));
+  }
+  return utils::mkConst(BitVector(size, size));
+}
+
+template<> inline
+bool RewriteRule<EvalReverse>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_REVERSE&&
+          utils::isBVGroundTerm(node));
+}
+
+template<> inline
+Node RewriteRule<EvalReverse>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalReverse>(" << node << ")" << std::endl;
+  BitVector a = node[0].getConst<BitVector>();
+  unsigned size = utils::getSize(node);
+  BitVector res(size, 0u);
+
+  for (unsigned i = 0; i < size; ++i) {
+    if (a.isBitSet(i))
+      res.setBit(size - i + 1);
+  }
+  return utils::mkConst(res);
+}
+
+template<> inline
+bool RewriteRule<EvalUnaryEncode>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_UNARY_ENCODE &&
+          utils::isBVGroundTerm(node));
+}
+
+template<> inline
+Node RewriteRule<EvalUnaryEncode>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalUnaryEncode>(" << node << ")" << std::endl;
+  BitVector a = node[0].getConst<BitVector>();
+  Integer val = a.getValue();
+
+  unsigned size = utils::getSize(node);
+  BitVector res(size, 0u);
+
+  if (val >= Integer(size))
+    return utils::mkOnes(size);
+
+  unsigned i = 0;
+  while (Integer(i) < val) {
+    res.setBit(i);
+    ++i;
+  }
+  
+  return utils::mkConst(res);
+}
+
+
 
 }
 }

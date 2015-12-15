@@ -602,38 +602,18 @@ void DefaultShlBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   bb->bbTerm(node[0], a);
   bb->bbTerm(node[1], b);
 
-  // check for b < log2(n)
+  leftShiftBB(a, b, mkFalse<T>(), res);
+
   unsigned size = utils::getSize(node);
-  unsigned log2_size = std::ceil(log2((double)size));
   Node a_size = utils::mkConst(BitVector(size, size)); 
   Node b_ult_a_size_node = utils::mkNode(kind::BITVECTOR_ULT, node[1], a_size);
   // ensure that the inequality is bit-blasted
   bb->bbAtom(b_ult_a_size_node); 
   T b_ult_a_size = bb->getBBAtom(b_ult_a_size_node);
-  std::vector<T> prev_res;
-  res = a; 
-  // we only need to look at the bits bellow log2_a_size
-  for(unsigned s = 0; s < log2_size; ++s) {
-    // barrel shift stage: at each stage you can either shift by 2^s bits
-    // or leave the previous stage untouched
-    prev_res = res; 
-    unsigned threshold = pow(2, s); 
-    for(unsigned i = 0; i < a.size(); ++i) {
-      if (i < threshold) {
-        // if b[s] is true then we must have shifted by at least 2^b bits so
-        // all bits bellow 2^s will be 0, otherwise just use previous shift value
-        res[i] = mkIte(b[s], mkFalse<T>(), prev_res[i]);
-      } else {
-        // if b[s]= 0, use previous value, otherwise shift by threshold  bits
-        Assert(i >= threshold); 
-        res[i] = mkIte(b[s], prev_res[i-threshold], prev_res[i]); 
-      }
-    }
-  }
-  prev_res = res;
+
   for (unsigned i = 0; i < b.size(); ++i) {
     // this is fine  because b_ult_a_size has been bit-blasted
-    res[i] = mkIte(b_ult_a_size, prev_res[i], mkFalse<T>()); 
+    res[i] = mkIte(b_ult_a_size, res[i], mkFalse<T>()); 
   }
   
   if(Debug.isOn("bitvector-bb")) {
@@ -827,7 +807,7 @@ void DefaultSMaxBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::DefaultSMaxBB "
                      << node << "\n";
   Assert (node.getKind() == kind::BITVECTOR_SMAX &&
-          res_bits.size() == 0 &&
+          bits.size() == 0 &&
           node.getNumChildren() == 2);
   std::vector<T> a, b;
   bb->bbTerm(node[0], a);
@@ -845,7 +825,7 @@ void DefaultSMinBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::DefaultSMinBB "
                      << node << "\n";
   Assert (node.getKind() == kind::BITVECTOR_SMIN &&
-          res_bits.size() == 0 &&
+          bits.size() == 0 &&
           node.getNumChildren() == 2);
 
   std::vector<T> a, b;
@@ -864,9 +844,35 @@ void DefaultCountZeroBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::DefaultCountZeroBB "
                      << node << "\n";
   Assert (node.getKind() == kind::BITVECTOR_COUNT_ZERO &&
-          res_bits.size() == 0);
-  
-  Unimplemented(); 
+          bits.size() == 0);
+
+  unsigned size = utils::getSize(node);
+
+  std::vector<T> a;
+  bb->bbTerm(node[0], a);
+
+  // TODO something more intelligent
+
+  mkConstBits(0, size, bits);
+
+  // zeroes[i] = the top i bits are all 0
+  std::vector<T> zeroes;
+  zeroes.push_back(mkNot(a[size - 1]));
+
+  for (int i = size - 2; i >= 0; --i) {
+    zeroes.push_back(mkAnd(zeroes[size - i - 2], mkNot(a[i])));
+  }
+
+  mkConstBits(0, size, bits);
+
+  std::vector<T> temp(size);
+  for(unsigned i = 1; i < size ; ++i) {
+    T is_i = mkAnd(zeroes[i], a[size - i - 1]);
+    mkConstBits(i, size, temp);
+    for (unsigned j = 0; j < size; ++j) {
+      bits[j] = mkIte(is_i, temp[j], bits[j]);
+    }
+  }
 }
 
 template <class T>
@@ -874,12 +880,12 @@ void DefaultReverseBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::DefaultReverseBB "
                      << node << "\n";
   Assert (node.getKind() == kind::BITVECTOR_REVERSE &&
-          res_bits.size() == 0);
+          bits.size() == 0);
   std::vector<T> a;
   bb->bbTerm(node[0], a);
   
   int size = utils::getSize(node);
-  for (int i = 0 i < size; ++i) {
+  for (int i = 0; i < size; ++i) {
     bits[i] = a[size - i - 1];
   }
   if(Debug.isOn("bitvector-bb")) {
@@ -888,13 +894,34 @@ void DefaultReverseBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
 }
 
 template <class T>
-void DefaultUnaryEncodeBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+void DefaultUnaryEncodeBB (TNode node, std::vector<T>& res, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::DefaultUnaryEncodeBB "
                      << node << "\n";
   Assert (node.getKind() == kind::BITVECTOR_UNARY_ENCODE &&
-          res_bits.size() == 0);
+          res.size() == 0);
+  // what to do if doesn't fit?
+  unsigned size = utils::getSize(node);
+
+  std::vector<T> a;
+  bb->bbTerm(node[0], a);
+  std::vector<T> temp;
+  mkConstBits(0, size, temp);
+
+  leftShiftBB(temp, a, mkTrue<T>(), res);
+
+  Node a_size = utils::mkConst(BitVector(size, size)); 
+  Node a_ult_size_node = utils::mkNode(kind::BITVECTOR_ULT, node[0], a_size);
+  // ensure that the inequality is bit-blasted
+  bb->bbAtom(a_ult_size_node); 
+  T a_ult_size = bb->getBBAtom(a_ult_size_node);
+  for (unsigned i = 0; i < size; ++i) {
+    // this is fine  because a_ult_a_size has been bit-blasted
+    res[i] = mkIte(a_ult_size, res[i], mkTrue<T>()); 
+  }
   
-  Unimplemented(); 
+  if(Debug.isOn("bitvector-bb")) {
+    Debug("bitvector-bb") << "with bits: " << toString(res)  << "\n";
+  }
 }
 
 

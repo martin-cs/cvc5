@@ -281,6 +281,8 @@ public:
   }
 };/* class BitVectorConversionTypeRule */
 
+
+
 class CardinalityComputer {
 public:
   inline static Cardinality computeCardinality(TypeNode type) {
