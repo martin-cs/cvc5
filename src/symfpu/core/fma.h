@@ -69,17 +69,44 @@ namespace symfpu {
    unpackedFloat<t> additionResult(arithmeticAdd(extendedFormat, roundingMode, multiplyResult, extendedAddArgument, prop(true)));
 
    unpackedFloat<t> roundedResult(rounder(format, roundingMode, additionResult));
-
-   // multiplyResult is in extended format
-   // It is not zero, inf or NaN so it only matters when addArgument is zero when it would be returned
-   unpackedFloat<t> result(addAdditionSpecialCases(format,
-						   roundingMode,
-						   multiplyResult, // TODO : Format is wrong
-						   addArgument,
-						   addMultiplySpecialCases(format,
+     
+   // Note that multiplyResult.getSign() != roundedResult.getSign() in rare cases
+   // the multiply special cases use the sign for zeros and infinities, thus the sign of the
+   // result of the multiplication is needed (i.e. the xor of the sign of left and right multiply)
+   // (-small, +inf, large) should trigger this as the desired result is -inf
+   // but roundedResult.getSign() is positive.
+   unpackedFloat<t> roundedResultWithMultiplyCases(addMultiplySpecialCases(format,
 									   leftMultiply,
 									   rightMultiply,
-									   roundedResult),
+									   multiplyResult.getSign(),
+									   roundedResult));
+
+   
+   // One disadvantage to having a flag for zero and default exponents and significands for zero
+   // that are not (min, 0) is that the x + 0 case has to be handled by the addition special cases.
+   // This means that you need the value of x, rounded to the correct format.
+   // multiplyResult is in extended format, thus we have to use a second rounder just for this case.
+   // It is not zero, inf or NaN so it only matters when addArgument is zero when it would be returned.
+
+   unpackedFloat<t> roundedMultiplyResult(rounder(format, roundingMode, multiplyResult));
+   // Optimisation : Try ITE before rounding so that only one rounder is needed
+
+
+   // To make matters more awkward, we also need to apply the multiplicative special cases so that
+   // (x*0) + y is correctly handled by the addition special cases.  Without applying the
+   // multiplicative ones, (x*0) would not be correctly flagged as 0.
+   unpackedFloat<t> roundedMultiplyResultWithMultiplyCases(addMultiplySpecialCases(format,
+										   leftMultiply,
+										   rightMultiply,
+										   multiplyResult.getSign(),
+										   roundedMultiplyResult));
+   // Optimisation : consolidate the special cases and verify against this
+   
+   unpackedFloat<t> result(addAdditionSpecialCases(format,
+						   roundingMode,
+						   roundedMultiplyResultWithMultiplyCases,
+						   addArgument,
+						   roundedResultWithMultiplyCases,
 						   prop(true)));
    
    POSTCONDITION(result.valid(format));
