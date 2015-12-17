@@ -36,10 +36,12 @@
 
 namespace symfpu {
 
+  // sign == multiplyResult.getSign() normally but not for FMA, thus an argument is needed
 template <class t>
   unpackedFloat<t> addMultiplySpecialCases (const typename t::fpt &format,
 					    const unpackedFloat<t> &left,
 					    const unpackedFloat<t> &right,
+					    const typename t::prop &sign,
 					    const unpackedFloat<t> &multiplyResult) {
   typedef typename t::prop prop;
 
@@ -55,9 +57,9 @@ template <class t>
   return ITE(isNan,
 	     unpackedFloat<t>::makeNaN(format),
 	     ITE(isInf,
-		 unpackedFloat<t>::makeInf(format, multiplyResult.getSign()),
+		 unpackedFloat<t>::makeInf(format, sign),
 		 ITE(isZero,
-		     unpackedFloat<t>::makeZero(format, multiplyResult.getSign()),
+		     unpackedFloat<t>::makeZero(format, sign),
 		     multiplyResult)));
  }
 
@@ -140,7 +142,7 @@ template <class t>
   
   unpackedFloat<t> roundedMultiplyResult(rounder(format, roundingMode, multiplyResult));
   
-  unpackedFloat<t> result(addMultiplySpecialCases(format, left, right, roundedMultiplyResult));
+  unpackedFloat<t> result(addMultiplySpecialCases(format, left, right, roundedMultiplyResult.getSign(), roundedMultiplyResult));
 
   POSTCONDITION(result.valid(format));
 
