@@ -21,6 +21,8 @@
 #include "expr/node.h"
 #include "theory/bv/bitblast_utils.h"
 #include "theory/bv/theory_bv_utils.h"
+#include "theory/bv/generated_encodings.h"
+
 #include <ostream>
 #include <cmath>
 namespace CVC4 {
@@ -821,6 +823,21 @@ void DefaultSMaxBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
 }
 
 template <class T>
+void OptimalSMaxBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultSMaxBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_SMAX &&
+          bits.size() == 0 &&
+          node.getNumChildren() == 2);
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+
+  optimalSMax(a, b, bits, bb->getCnfStream());
+}
+
+
+template <class T>
 void DefaultSMinBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   Debug("bitvector") << "theory::bv::DefaultSMinBB "
                      << node << "\n";
@@ -837,6 +854,20 @@ void DefaultSMinBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
   for (unsigned i = 0; i < size; ++i) {
     bits.push_back(mkIte<T>(sle, a[i], b[i]));
   }
+}
+
+template <class T>
+void OptimalSMinBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultSMinBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_SMIN &&
+          bits.size() == 0 &&
+          node.getNumChildren() == 2);
+  std::vector<T> a, b;
+  bb->bbTerm(node[0], a);
+  bb->bbTerm(node[1], b);
+
+  optimalSMin(a, b, bits, bb->getCnfStream());
 }
 
 template <class T>
