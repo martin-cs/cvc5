@@ -115,14 +115,45 @@ namespace symfpu {
     return ITE(op1 <= op2, op1, op2);
   }
 
+  template <class t, class bv>
+  inline bv collar(const bv &op, const bv &lower, const bv &upper) {
+    return ITE(op < lower,
+	       lower,
+	       ITE(upper < op,
+		   upper,
+		   op));
+  }
+
 
   /*** Unary/Binary operations ***/
-  /*
+  template <class t, class bv, class prop, class bwt>
+  inline bv countLeadingZerosRec (const bv &op, const bwt position, const prop &allPreceedingZeros) {
+    typename t::bwt w(op.getWidth());
+    
+    PRECONDITION(0 <= position && position < w);
+    
+    bv bit(op.extract(position, position));
+    
+    prop isLeadingOne(allPreceedingZeros && (bit.isAllOnes()));
+    prop continuingZero(allPreceedingZeros && (bit.isAllZeros()));
+
+    if (position == 0) {
+      return ITE(isLeadingOne, bv(w, w - 1), bv(w, w));
+    } else {
+      return ITE(isLeadingOne,
+		 bv(w, w - (position + 1)),
+		 countLeadingZerosRec<t>(op, position - 1, continuingZero));
+    }
+  }
+  
   template <class t, class bv>
   inline bv countLeadingZeros (const bv &op) {
+    typedef typename t::bwt bwt;
+    typedef typename t::prop prop;    
+    bwt w(op.getWidth());
 
+    return countLeadingZerosRec<t>(op, w - 1, prop(true));
   }
-  */
   
   // This is sort of the opposite of count trailing 1's (a.k.a. clz(reverse(not(x))) )
   template <class t, class bv>

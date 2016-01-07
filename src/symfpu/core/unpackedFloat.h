@@ -293,6 +293,23 @@ namespace symfpu {
 
     // Moves the leading 1 up to the correct position, adjusting the
     // exponent as required.
+    unpackedFloat<t> normaliseUp (const fpt &/*format*/) const {
+      PRECONDITION(!(nan || inf || zero));  // Should not be attempting to normalise these.
+
+      ubv alignAmount(countLeadingZeros<t>(this->significand));
+      
+      ubv alignedSignificand(this->significand << alignAmount);
+
+      sbv signedAlignAmount(alignAmount.extract(this->exponent.getWidth() - 1,0).toSigned());
+      // May loose data / be incorrect for very small exponents and very large significands
+      sbv correctedExponent(this->exponent - signedAlignAmount);
+
+      // Optimisation : could do zero detection here but at the moment this is not needed
+      return unpackedFloat<t>(this->sign, correctedExponent, alignedSignificand);
+    }
+
+    
+#if 0
     unpackedFloat<t> normaliseUp (const fpt &format) const {
       PRECONDITION(!(nan || inf || zero));  // Should not be attempting to normalise these.
 
@@ -319,7 +336,7 @@ namespace symfpu {
 
       return working;
     }
-
+#endif
 
 
     // Is a well formed unpacked struct of the given format?
