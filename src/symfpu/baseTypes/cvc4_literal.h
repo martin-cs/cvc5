@@ -162,13 +162,13 @@ namespace symfpu {
       bitVector<isSigned> increment () const;
       bitVector<isSigned> decrement () const;
       bitVector<isSigned> signExtendRightShift (const bitVector<isSigned> &op) const;
-      bitVector<isSigned> rightShiftStickyBit (const bitVector<isSigned> &op) const;
 
 
       /*** Modular opertaions ***/
       // No overflow checking so these are the same as other operations
       bitVector<isSigned> modularLeftShift (const bitVector<isSigned> &op) const;
       bitVector<isSigned> modularIncrement () const;
+      bitVector<isSigned> modularDecrement () const;
       bitVector<isSigned> modularAdd (const bitVector<isSigned> &op) const;
       bitVector<isSigned> modularNegate () const;
 
@@ -200,9 +200,6 @@ namespace symfpu {
 
       // Inclusive of end points, thus if the same, extracts just one bit
       bitVector<isSigned> extract(bitWidthType upper, bitWidthType lower) const;
-
-      bitVector<isSigned> orderEncode (bitWidthType w) const;
-
 
     };
   };

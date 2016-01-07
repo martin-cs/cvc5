@@ -252,7 +252,6 @@ namespace symfpu {
       }
 
       bitVector<T> signExtendRightShift (const bitVector<T> &op) const;
-      bitVector<T> rightShiftStickyBit (const bitVector<T> &op) const;
 
 
       /*** Modular opertaions ***/
@@ -261,6 +260,11 @@ namespace symfpu {
       inline bitVector<T> modularIncrement () const {
 	return bitVector<T>(this->width, 
 			    bitVector<T>::makeRepresentable(this->width, this->value + 1));
+      }
+      
+      inline bitVector<T> modularDecrement () const {
+	return bitVector<T>(this->width, 
+			    bitVector<T>::makeRepresentable(this->width, this->value - 1));
       }
 
       inline bitVector<T> modularAdd (const bitVector<T> &op) const {
@@ -340,8 +344,6 @@ namespace symfpu {
 
       // Inclusive of end points, thus if the same, extracts just one bit
       bitVector<T> extract(bitWidthType upper, bitWidthType lower) const;
-
-      bitVector<T> orderEncode (bitWidthType w) const;
 
       // Only meaningful for executable implementations
       T contents (void) const { return this->value; }

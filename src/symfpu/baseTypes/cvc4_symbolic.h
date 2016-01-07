@@ -391,16 +391,6 @@ namespace symfpu {
 	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ASHR, this->node, op.node));
       }
 
-      bitVector<isSigned> rightShiftStickyBit (const bitVector<isSigned> &op) const {
-	bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) & *this).isAllZeros(),
-					  bitVector<isSigned>::zero(this->getWidth()),
-					  bitVector<isSigned>::one(this->getWidth())));
-
-	// This seems to not follow the contract for this method
-	//bitVector<isSigned> shifted(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ASHR, this->node, op.node));
-	//return shifted | stickyBit;
-	return stickyBit;
-      }
 
 
       /*** Modular opertaions ***/
@@ -411,6 +401,10 @@ namespace symfpu {
 
       inline bitVector<isSigned> modularIncrement () const {
 	return this->increment();
+      }
+
+      inline bitVector<isSigned> modularDecrement () const {
+	return this->decrement();
       }
 
       inline bitVector<isSigned> modularAdd (const bitVector<isSigned> &op) const {
@@ -523,9 +517,6 @@ namespace symfpu {
 	return bitVector<isSigned>(construct);
       }
 
-      bitVector<isSigned> orderEncode (bitWidthType w) const {
-	return (bitVector<isSigned>::one(w) << this->resize(w)).decrement();
-      }
 
 
 

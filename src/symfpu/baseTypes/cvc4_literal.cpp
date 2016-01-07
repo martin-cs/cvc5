@@ -125,17 +125,6 @@ namespace symfpu {
       return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op));
     }
 
-    template <bool isSigned>
-    bitVector<isSigned> bitVector<isSigned>::rightShiftStickyBit (const bitVector<isSigned> &op) const {
-      bitVector<isSigned> stickyBit(ITE((op.orderEncode(this->getWidth()) & *this).isAllZeros(),
-					bitVector<isSigned>::zero(this->getWidth()),
-					bitVector<isSigned>::one(this->getWidth())));
-      
-      
-      // This seems to not follow the contract for this method
-      // return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(),op)) | stickyBit;
-      return stickyBit;
-    }
 
 
     /*** Modular opertaions ***/
@@ -148,6 +137,11 @@ namespace symfpu {
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::modularIncrement () const {
       return this->increment();
+    }
+    
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::modularDecrement () const {
+      return this->decrement();
     }
 
     template <bool isSigned>
@@ -275,13 +269,6 @@ namespace symfpu {
       PRECONDITION(upper >= lower);
       return this->CVC4BV::extract(upper, lower);
     }
-
-    template <bool isSigned>
-    bitVector<isSigned> bitVector<isSigned>::orderEncode (bitWidthType w) const {
-      bitVector<isSigned> tmp((bitVector<isSigned>::one(w + 1) << this->resize(w + 1)).decrement().contract(1));
-      return tmp;
-    }
-
 
 
     // Explicit instantiation

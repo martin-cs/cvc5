@@ -136,14 +136,6 @@ namespace symfpu {
 									stickyRightShift(true, this->width, this->value, op.value)));
     }
 
-    template <>
-    bitVector<uint64_t> bitVector<uint64_t>::rightShiftStickyBit (const bitVector<uint64_t> &op) const {
-      PRECONDITION(this->width == op.width);
-      return bitVector<uint64_t>(this->width,
-				 stickyRightShift(false, this->width, this->value, op.value));
-    }
-
-
     template<>
     bitVector<uint64_t> bitVector<uint64_t>::modularLeftShift (const bitVector<uint64_t> &op) const {
       PRECONDITION(this->width == op.width);
@@ -193,14 +185,6 @@ namespace symfpu {
       return bitVector<uint64_t>(this->width, (*((uint64_t *)&this->value)) & bitVector<int64_t>::nOnes(this->width));
     }
 
-    template <>
-    bitVector<uint64_t> bitVector<uint64_t>::orderEncode (bitWidthType w) const {
-      PRECONDITION(w <= bitVector<uint64_t>::maxWidth());
-
-      return bitVector<uint64_t>(w, bitVector<uint64_t>::nOnes((this->value > w) ? w : this->value));
-    }
-
-    
 
     roundingMode traits::RNE (void) { return roundingMode(FE_TONEAREST); }
     roundingMode traits::RNA (void) { return roundingMode(23); }          // Could be better...

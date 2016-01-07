@@ -161,12 +161,24 @@ namespace symfpu {
   inline bv orderEncode (const bv &op) {
     typename t::bwt w(op.getWidth());
     
-    PRECONDITION(bv::zero(w) <= op && op <= bv(w, w));
+    //PRECONDITION(bv::zero(w) <= op && op <= bv(w, w)); // Not needed as using modular shift
 
-    bv tmp((bv::one(w + 1) << op.resize(w + 1)).decrement().contract(1));
+    bv tmp((bv::one(w + 1).modularLeftShift(op.resize(w + 1))).modularDecrement().extract(w-1,0));
     return tmp;
   }
- 
+
+
+  /*** Custom shifts ***/
+  // 1 if and only if the right shift moves at least one 1 out of the word
+  template <class t, class bv>
+  inline bv rightShiftStickyBit (const bv &op, const bv &shift) {
+    bv stickyBit(ITE((orderEncode<t>(shift) & op).isAllZeros(),
+		     bv::zero(op.getWidth()),
+		     bv::one(op.getWidth())));
+    
+    return stickyBit;
+  }
+  
 }
 
 #endif

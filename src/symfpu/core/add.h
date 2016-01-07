@@ -206,7 +206,7 @@ template <class t>
 
 
    ubv negatedAlignedSmaller(negatedSmaller.signExtendRightShift(shiftAmount));
-   ubv shiftedStickyBit(negatedSmaller.rightShiftStickyBit(shiftAmount));  // Have to separate otherwise align up may convert it to the guard bit
+   ubv shiftedStickyBit(rightShiftStickyBit<t>(negatedSmaller, shiftAmount));  // Have to separate otherwise align up may convert it to the guard bit
 
    // Far path : Sum and re-align
    ubv sum(lsig.modularAdd(negatedAlignedSmaller));
