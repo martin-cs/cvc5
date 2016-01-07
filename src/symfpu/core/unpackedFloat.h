@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2015 Martin Brain
+** Copyright (C) 2016 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -218,6 +218,7 @@ namespace symfpu {
       return (one << (format.exponentWidth() - 1)) - one;
     }
 
+    
     static sbv maxNormalExponent(const fpt &format) {
       return bias(format);
     }
@@ -234,6 +235,8 @@ namespace symfpu {
       return maxSubnormalExponent(format) - sbv(exponentWidth(format),(significandWidth(format) - 2));
     } 
 
+    
+    
     inline prop inNormalRange(const fpt &format) const {
       return ((minNormalExponent(format) <= exponent) &&
 	      (exponent <= maxNormalExponent(format)));
@@ -244,6 +247,13 @@ namespace symfpu {
 	      (exponent <= maxSubnormalExponent(format)));
     }
 
+    inline prop inNormalOrSubnormalRange(const fpt &format) const {
+      return ((minSubnormalExponent(format) <= exponent) &&
+	      (exponent <= maxNormalExponent(format)));
+    }
+
+
+    
     // The amount needed to normalise the number
     inline sbv getSubnormalAmount(const fpt &format) const {
       return max<t>(minNormalExponent(format) - exponent,
@@ -316,12 +326,67 @@ namespace symfpu {
     // The format is needed to ensure that subnormals are correct.
     // This invariant does not hold at all points in the code!
     prop valid(const fpt &format) const {
+
       bwt exWidth = exponentWidth(format);
       bwt sigWidth = significandWidth(format);
 
       PRECONDITION((exWidth == exponent.getWidth()) &&
 		   (sigWidth == significand.getWidth()));
 
+      // At most one flag is true
+      prop atMostOneFlag(!(nan && inf) && !(nan && zero) && !(inf && zero));
+
+      // If one flag is true then exponent and significand are defaults
+      prop oneFlag(nan || inf || zero);
+      prop exponentIsDefault(defaultExponent(format) == exponent);
+      prop significandIsDefault(defaultSignificand(format) == significand);
+      prop flagImpliesDefaultExponent(!oneFlag || exponentIsDefault);
+      prop flagImpliesDefaultSignificand(!oneFlag || significandIsDefault);
+
+      // NaN has sign = 0
+      prop NaNImpliesSignFalse(!nan || !sign);
+
+      // Exponent is in range
+      prop exponentInRange(inNormalOrSubnormalRange(format));
+
+      // Has a leading one
+      prop hasLeadingOne(!(leadingOne(unpackedFloat<t>::significandWidth(format)) & significand).isAllZeros());
+
+      // Subnormal numbers require an additional check to make sure they
+      // do not have an unrepresentable amount of significand bits.
+      sbv subnormalAmount(this->getSubnormalAmount(format));
+      INVARIANT((sbv::zero(exWidth) <= subnormalAmount) &&
+		(subnormalAmount <= sbv(exWidth,sigWidth)));
+
+      // Invariant implies this following steps do not loose data
+      ubv mask(orderEncode<t>(subnormalAmount.toUnsigned().matchWidth(significand)));
+
+      prop correctlyAbbreviated((mask & significand).isAllZeros());
+
+      prop subnormalImpliesTrailingZeros(!inSubnormalRange(format) || correctlyAbbreviated);
+
+      
+      return (atMostOneFlag &&
+	      (flagImpliesDefaultExponent && flagImpliesDefaultSignificand) &&
+	      NaNImpliesSignFalse &&
+	      exponentInRange &&
+	      hasLeadingOne &&
+	      subnormalImpliesTrailingZeros);
+    }
+
+      
+
+      /* Older version
+       * Correct but replaced with a version which gives more propagation friendly assertions.
+       */
+#if 0
+    prop valid(const fpt &format) const {
+
+      bwt exWidth = exponentWidth(format);
+      bwt sigWidth = significandWidth(format);
+
+      PRECONDITION((exWidth == exponent.getWidth()) &&
+		   (sigWidth == significand.getWidth()));
 
       prop hasLeadingOne(!(leadingOne(unpackedFloat<t>::significandWidth(format)) & significand).isAllZeros());
 
@@ -354,8 +419,11 @@ namespace symfpu {
       prop ZeroCase(!nan && !inf &&  zero && exponentIsDefault && significandIsDefault);
 
       return (NaNCase || InfCase || ZeroCase || normalCase || subnormalCase);
-    }
 
+    }
+#endif
+
+    
     // Just for debugging
     void print (void) const {
       std::cerr << "nan : " << this->nan << '\t'

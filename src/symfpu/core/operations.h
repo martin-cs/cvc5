@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2015 Martin Brain
+** Copyright (C) 2016 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -116,7 +116,25 @@ namespace symfpu {
   }
 
 
-  // TODO : count leading zeros
+  /*** Unary/Binary operations ***/
+  /*
+  template <class t, class bv>
+  inline bv countLeadingZeros (const bv &op) {
+
+  }
+  */
+  
+  // This is sort of the opposite of count trailing 1's (a.k.a. clz(reverse(not(x))) )
+  template <class t, class bv>
+  inline bv orderEncode (const bv &op) {
+    typename t::bwt w(op.getWidth());
+    
+    PRECONDITION(bv::zero(w) <= op && op <= bv(w, w));
+
+    bv tmp((bv::one(w + 1) << op.resize(w + 1)).decrement().contract(1));
+    return tmp;
+  }
+ 
 }
 
 #endif

@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2015 Martin Brain
+** Copyright (C) 2016 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -39,10 +39,28 @@
 **
 */
 
+/* Another way of dividing up the functionality is by output exponent:
+** R denotes that this is possible via rounding up and incrementing the exponent
+**
+** Case       A. max(l,r) + 1,    B. max(l,r)    C. max(l,r) - 1      D. max(l,r) - k       E. zero
+** Eff. Add      Y                   Y
+**  diff = 0     Y, sticky 0 
+**  diff = 1     Y, sticky 0         Y, sticky 0
+**  diff : [2,p] decreasing prob., R Y
+**  diff > p     R                   Y
+**
+** Eff. Sub                          Y              Y                    Y, exact              Y, exact
+**  diff = 0                                        Y, exact             prob. drop with k     low prob.
+**  diff = 1                         Y, sticky 0    Y, exact             prob. drop with k
+**  diff : [2,p]                     Y, R           decreasing prob.
+**  diff > p                         Y, R           low prob.
+**
+*/
+
 /*
 ** Ideas
-**  Take max of exponents and then only swap the significands rather than full swap.
-**  Collar the exponent difference, convert add to twice the width and thus unify the paths and simplify the shifting.
+**  Optimisation : Take max of exponents and then only swap the significands rather than full swap.
+**  Optimisation : Collar the exponent difference, convert add to twice the width and thus unify the paths and simplify the shifting.
 */
 
 
