@@ -203,11 +203,6 @@ namespace symfpu {
 
       /*** Operators ***/
       // Need to inline the operations where possible
-      inline bitVector<T> operator << (uint64_t s) const {
-	PRECONDITION(s <= this->width);
-	return bitVector<T>(this->width, this->value << s);
-      }
-
       inline bitVector<T> operator << (const bitVector<T> &op) const {
 	PRECONDITION(this->width == op.width);
 	PRECONDITION(op.value >= 0);
@@ -215,11 +210,6 @@ namespace symfpu {
 	// This part ^^^^^^^^^^^^^^^^^^^ should really be here but it saves
 	// adding code to normaliseUp which really isn't needed (in two ways).
 	return bitVector<T>(this->width, this->value << op.value);
-      }
-
-      inline bitVector<T> operator >> (uint64_t s) const {
-	PRECONDITION(s <= this->width);
-	return bitVector<T>(this->width, this->value >> s);
       }
 
       inline bitVector<T> operator >> (const bitVector<T> &op) const {
@@ -269,7 +259,7 @@ namespace symfpu {
 
 
       /*** Modular opertaions ***/
-      bitVector<T> modularLeftShift (uint64_t s) const;
+      bitVector<T> modularLeftShift (const bitVector<T> &op) const;
 
       inline bitVector<T> modularIncrement () const {
 	return bitVector<T>(this->width, 

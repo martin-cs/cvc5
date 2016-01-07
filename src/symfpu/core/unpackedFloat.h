@@ -109,7 +109,7 @@ namespace symfpu {
     static ubv defaultSignificand(const fpt &fmt) {
       bwt significandWidth = unpackedFloat<t>::significandWidth(fmt);
 
-      return ubv::one(significandWidth) << (significandWidth - 1);
+      return ubv::one(significandWidth) << ubv(significandWidth, (significandWidth - 1));
     }
 
 
@@ -213,9 +213,10 @@ namespace symfpu {
     // sbv's to make their use easier and to avoid concerns of overflow.
 
     static sbv bias(const fpt &format) {
-      sbv one(sbv::one(exponentWidth(format)));
+      bwt w(exponentWidth(format));
+      sbv one(sbv::one(w));
 
-      return (one << (format.exponentWidth() - 1)) - one;
+      return (one << sbv(w,(format.exponentWidth() - 1))) - one;
     }
 
     
@@ -272,11 +273,11 @@ namespace symfpu {
 
     // Likewise, this is a convenience function
     static ubv leadingOne(const bwt sigWidth) {
-      return ubv::one(sigWidth) << (sigWidth - 1);
+      return ubv::one(sigWidth) << ubv(sigWidth, (sigWidth - 1));
     }
 
     static ubv nanPattern(const bwt sigWidth) {
-      return ubv::one(sigWidth) << (sigWidth - 1); // For a qNaN, change for sNaN
+      return ubv::one(sigWidth) << ubv(sigWidth, (sigWidth - 1)); // For a qNaN, change for sNaN
     }
 
 
@@ -287,7 +288,7 @@ namespace symfpu {
 			      this->zero,
 			      this->sign,
 			      this->exponent.extend(expExtension),
-			      this->significand.extend(sigExtension) << sigExtension);
+			      this->significand.extend(sigExtension) << ubv((this->significand.getWidth() + sigExtension), sigExtension));
     }
 
 

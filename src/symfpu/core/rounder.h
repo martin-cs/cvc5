@@ -196,7 +196,7 @@ template <class t>
 					  unpackedFloat<t>::leadingOne(unpackedFloat<t>::significandWidth(format))));
 
 
-  ubv incrementAmount(guardLocation.modularLeftShift(1)); // Overflows (safely) in the case of rounding up to the least subnormal.
+  ubv incrementAmount(guardLocation.modularLeftShift(ubv::one(guardLocation.getWidth()))); // Overflows (safely) in the case of rounding up to the least subnormal.
   ubv mask(guardLocation | stickyMask);
   ubv maskedSignificand(extractedSignificand & ~mask);
 

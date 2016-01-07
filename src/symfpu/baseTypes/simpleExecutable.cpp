@@ -145,10 +145,10 @@ namespace symfpu {
 
 
     template<>
-    bitVector<uint64_t> bitVector<uint64_t>::modularLeftShift (uint64_t s) const {
-      PRECONDITION(s < this->width);
+    bitVector<uint64_t> bitVector<uint64_t>::modularLeftShift (const bitVector<uint64_t> &op) const {
+      PRECONDITION(this->width == op.width);
       return bitVector<uint64_t>(this->width, 
-				 bitVector<uint64_t>::makeRepresentable(this->width, this->value << s));
+				 bitVector<uint64_t>::makeRepresentable(this->width, this->value << op.value));
     }
 
 

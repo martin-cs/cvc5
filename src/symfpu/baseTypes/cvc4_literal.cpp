@@ -72,33 +72,10 @@ namespace symfpu {
 
 
     /*** Operators ***/
-    template <bool isSigned>    
-    bitVector<isSigned> bitVector<isSigned>::operator << (unsigned s) const {
-      PRECONDITION(s <= this->getWidth());
-      return this->CVC4BV::leftShift(CVC4BV(this->getWidth(),s));
-    }
-
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::operator << (const bitVector<isSigned> &op) const {
       return this->CVC4BV::leftShift(op);
     }
-
-
-    template <>    
-    bitVector<true> bitVector<true>::operator >> (uint64_t s) const {
-      PRECONDITION(s <= this->getWidth());
-      
-      return this->CVC4BV::arithRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
-    }
-
-    template <>
-    bitVector<false> bitVector<false>::operator >> (uint64_t s) const {
-      PRECONDITION(s <= this->getWidth());
-      
-      return this->CVC4BV::logicalRightShift(CVC4BV(this->getWidth(), (long unsigned int)s));
-    }
-
-
 
     template <>
     bitVector<true> bitVector<true>::operator >> (const bitVector<true> &op) const {
@@ -164,9 +141,8 @@ namespace symfpu {
     /*** Modular opertaions ***/
     // No overflow checking so these are the same as other operations
     template <bool isSigned>
-    bitVector<isSigned> bitVector<isSigned>::modularLeftShift (uint64_t s) const {
-      PRECONDITION(s <= this->getWidth());
-      return *this << s;
+    bitVector<isSigned> bitVector<isSigned>::modularLeftShift (const bitVector<isSigned> &op) const {
+      return *this << op;
     }
 
     template <bool isSigned>

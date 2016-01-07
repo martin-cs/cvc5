@@ -225,10 +225,10 @@ template <class t>
    ubv alignedSum(ITE(effectiveAdd,
 		      ITE(noOverflow,
 			  sum,
-			  (sum >> 1) | (sum & ubv::one(sumWidth))),  // Cheap sticky right shift
+			  (sum >> ubv::one(sumWidth)) | (sum & ubv::one(sumWidth))),  // Cheap sticky right shift
 		      ITE(noCancel,
 			  sum,
-			  sum.modularLeftShift(1)))); // In the case when this looses data, the result is not used
+			  sum.modularLeftShift(ubv::one(sumWidth))))); // In the case when this looses data, the result is not used
 
    sbv extendedLargerExponent(larger.getExponent().extend(1));  // So that increment and decrement don't overflow
    sbv correctedExponent(ITE(effectiveAdd,
@@ -247,7 +247,7 @@ template <class t>
 
    // Near path : Align
    prop exponentDifferenceAllZeros(exponentDifference.isAllZeros());
-   ubv nearAlignedSmaller(ITE(exponentDifferenceAllZeros, ssig, ssig >> 1));
+   ubv nearAlignedSmaller(ITE(exponentDifferenceAllZeros, ssig, ssig >> ubv::one(ssig.getWidth())));
 
 
    // Near path : Sum and realign

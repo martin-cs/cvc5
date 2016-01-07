@@ -344,20 +344,8 @@ namespace symfpu {
 
       
       /*** Operators ***/
-      inline bitVector<isSigned> operator << (unsigned s) const {
-	PRECONDITION(s <= this->getWidth());
-	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SHL, this->node, ::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(this->getWidth(), s))));
-      }
-
       inline bitVector<isSigned> operator << (const bitVector<isSigned> &op) const {
 	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SHL, this->node, op.node));
-      }
-
-      inline bitVector<isSigned> operator >> (uint64_t s) const {
-	PRECONDITION(s <= this->getWidth());
-	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_ASHR : ::CVC4::kind::BITVECTOR_LSHR,
-								  this->node,
-									    ::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(this->getWidth(), (long unsigned int)s))));
       }
 
       inline bitVector<isSigned> operator >> (const bitVector<isSigned> &op) const {
@@ -417,9 +405,8 @@ namespace symfpu {
 
       /*** Modular opertaions ***/
       // No overflow checking so these are the same as other operations
-      inline bitVector<isSigned> modularLeftShift (uint64_t s) const {
-	PRECONDITION(s <= this->getWidth());
-	return *this << s;
+      inline bitVector<isSigned> modularLeftShift (const bitVector<isSigned> &op) const {
+	return *this << op;
       }
 
       inline bitVector<isSigned> modularIncrement () const {

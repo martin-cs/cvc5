@@ -81,9 +81,10 @@ namespace symfpu {
 
   template <class t, class bv, class prop>
   inline bv conditionalLeftShiftOne (const prop &p, const bv &b) {
-    PRECONDITION(!p || (b.extract(b.getWidth() - 1, b.getWidth() - 1).isAllZeros()));
+    typename t::bwt w(b.getWidth());
+    PRECONDITION(!p || (b.extract(w - 1, w - 1).isAllZeros()));
 
-    bv shifted(b.modularLeftShift(1ULL));
+    bv shifted(b.modularLeftShift(bv::one(w)));
     return bv(ITE(p, shifted, b));
   }
 

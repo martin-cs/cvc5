@@ -135,9 +135,7 @@ namespace symfpu {
 
       
       /*** Operators ***/
-      bitVector<isSigned> operator << (unsigned s) const;
       bitVector<isSigned> operator << (const bitVector<isSigned> &op) const;
-      bitVector<isSigned> operator >> (uint64_t s) const;
       bitVector<isSigned> operator >> (const bitVector<isSigned> &op) const;
 
 
@@ -169,7 +167,7 @@ namespace symfpu {
 
       /*** Modular opertaions ***/
       // No overflow checking so these are the same as other operations
-      bitVector<isSigned> modularLeftShift (uint64_t s) const;
+      bitVector<isSigned> modularLeftShift (const bitVector<isSigned> &op) const;
       bitVector<isSigned> modularIncrement () const;
       bitVector<isSigned> modularAdd (const bitVector<isSigned> &op) const;
       bitVector<isSigned> modularNegate () const;
