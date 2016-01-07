@@ -205,10 +205,7 @@ namespace symfpu {
       // Need to inline the operations where possible
       inline bitVector<T> operator << (const bitVector<T> &op) const {
 	PRECONDITION(this->width == op.width);
-	PRECONDITION(op.value >= 0);
-	PRECONDITION(this->value == 0 || op.value < this->width);
-	// This part ^^^^^^^^^^^^^^^^^^^ should really be here but it saves
-	// adding code to normaliseUp which really isn't needed (in two ways).
+	PRECONDITION(op.value >= 0 && op.value < this->width);
 	return bitVector<T>(this->width, this->value << op.value);
       }
 

@@ -148,7 +148,8 @@ namespace symfpu {
     bitVector<uint64_t> bitVector<uint64_t>::modularLeftShift (const bitVector<uint64_t> &op) const {
       PRECONDITION(this->width == op.width);
       return bitVector<uint64_t>(this->width, 
-				 bitVector<uint64_t>::makeRepresentable(this->width, this->value << op.value));
+				 bitVector<uint64_t>::makeRepresentable(this->width,
+									(op.value >= this->width) ? 0ULL : this->value << op.value));
     }
 
 

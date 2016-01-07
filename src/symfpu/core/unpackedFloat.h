@@ -299,7 +299,7 @@ namespace symfpu {
 
       ubv alignAmount(countLeadingZeros<t>(this->significand));
       
-      ubv alignedSignificand(this->significand << alignAmount);
+      ubv alignedSignificand(this->significand.modularLeftShift(alignAmount)); // CLZ means data is not lost
 
       sbv signedAlignAmount(alignAmount.extract(this->exponent.getWidth() - 1,0).toSigned());
       // May loose data / be incorrect for very small exponents and very large significands
