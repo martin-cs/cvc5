@@ -113,6 +113,7 @@ namespace symfpu {
 
     public :
       bitVector (const bitWidthType w, const unsigned v) : CVC4BV(w,v) {}
+      bitVector (const proposition &p) : CVC4BV(1,p ? 1U : 0U) {}
       bitVector (const bitVector<isSigned> &old) : CVC4BV(old) {}
       bitVector (const CVC4BV &old) : CVC4BV(old) {}
 

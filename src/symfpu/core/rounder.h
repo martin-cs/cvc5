@@ -57,7 +57,7 @@
  *
  * - add a 'non-deterministic rounding' mode for underapproximation.
  *
- * - add a 'round-to-odd' mode
+ * - add 'round-to-odd' and 'round-away-from-zero' mode
  *
  * - Rather than increment and re-align, take all but the top bit of the
  *   significand, concatinate on to the exponent and then increment.
@@ -100,6 +100,223 @@ namespace symfpu {
 
 template <class t>
   unpackedFloat<t> customRounder (const typename t::fpt &format,
+				  const typename t::rm &roundingMode,
+				  const unpackedFloat<t> &uf) {
+
+  typedef typename t::bwt bwt;
+  typedef typename t::prop prop;
+  typedef typename t::ubv ubv;
+  typedef typename t::sbv sbv;
+
+  //PRECONDITION(uf.valid(format));
+  // Not a precondition because
+  //  1. Exponent and significand may be extended.
+  //  2. Their values may also be outside of the correct range.
+  //
+  // However some thing do hold:
+  //  1. Leading bit of the significant is 1   (if you want to get a meaningful answer)
+  //     (if not, a cancellation on the near path of add can cause
+  //      this, but the result will not be used, so it can be incorrect)
+  ubv psig(uf.getSignificand());
+  bwt sigWidth(psig.getWidth());
+  //PRECONDITION(psig.extract(sigWidth-1, sigWidth-1).isAllOnes());
+  ubv sig(psig | unpackedFloat<t>::leadingOne(sigWidth));
+
+  //  2. Must have round and sticky bits
+  bwt targetSignificandWidth(unpackedFloat<t>::significandWidth(format));
+  PRECONDITION(sigWidth >= targetSignificandWidth + 2);
+
+  //  3. Must have at least enough exponent bits
+  sbv exp(uf.getExponent());
+  bwt expWidth(exp.getWidth());
+  bwt targetExponentWidth(unpackedFloat<t>::exponentWidth(format));
+  PRECONDITION(expWidth >= targetExponentWidth);
+
+  // Also, do not round special values.
+  // Note that this relies on these having default values and 
+  // the code that calls the rounder constructing uf from parts.
+  PRECONDITION(!uf.getNaN());
+  PRECONDITION(!uf.getInf());
+  //PRECONDITION(!uf.getZero());   // The safe choice of default values means this should work OK
+
+
+
+  /*** Early underflow and overflow detection ***/
+  bwt exponentExtension(expWidth - targetExponentWidth);
+  prop earlyOverflow(exp > unpackedFloat<t>::maxNormalExponent(format).extend(exponentExtension));
+  prop earlyUnderflow(exp < unpackedFloat<t>::minSubnormalExponent(format).extend(exponentExtension).decrement());
+  // Optimisation : if the precondition on sigWidth and targetSignificandWidth is removed
+  //                then can change to:
+  //                   exponent >= minSubnormalExponent - 1
+  //                && sigWidth > targetSignificandBits
+  probabilityAnnotation<t>(earlyOverflow, UNLIKELY);  // (over,under)flows are generally rare events
+  probabilityAnnotation<t>(earlyUnderflow, UNLIKELY);
+  
+
+
+  /*** Normal or subnormal rounding? ***/
+  prop normalRounding(exp >= unpackedFloat<t>::minNormalExponent(format).extend(exponentExtension));
+  probabilityAnnotation<t>(normalRounding, LIKELY);
+  
+
+  /*** Round to correct significand. ***/
+  ubv extractedSignificand(sig.extract(sigWidth - 1, sigWidth - targetSignificandWidth).extend(1)); // extended to catch the overflow
+
+  // Normal guard and sticky bits
+  bwt guardBitPosition(sigWidth - (targetSignificandWidth + 1));
+  prop guardBit(sig.extract(guardBitPosition, guardBitPosition).isAllOnes());
+
+  prop stickyBit(!sig.extract(guardBitPosition - 1,0).isAllZeros());
+  
+
+  // For subnormals, locating the guard and stick bits is a bit more involved
+  //sbv subnormalAmount(uf.getSubnormalAmount(format)); // Catch is, uf isn't in the given format, so this doesn't work
+  sbv subnormalAmount(max<t>(unpackedFloat<t>::minNormalExponent(format).matchWidth(exp) - exp,
+			     sbv::zero(exp.getWidth())));
+  INVARIANT((subnormalAmount < sbv(expWidth, sigWidth - 1)) || earlyUnderflow);
+  
+  ubv subnormalShiftPrepared(subnormalAmount.toUnsigned().matchWidth(extractedSignificand));
+  
+  ubv subnormalMask(orderEncode<t>(subnormalShiftPrepared)); // Invariant implies this if all ones, it will not be used
+  ubv subnormalIncrementAmount(subnormalMask.modularIncrement()); // The only case when this looses info is earlyUnderflow
+  INVARIANT(!subnormalIncrementAmount.isAllZeros() || earlyUnderflow);
+  ubv subnormalStickyMask(subnormalMask >> ubv::one(targetSignificandWidth + 1)); // +1 as the exponent is extended
+  ubv subnormalGuardLocation(subnormalMask & (~subnormalStickyMask));
+
+  
+  prop subnormalGuardBit(!(extractedSignificand & subnormalGuardLocation).isAllZeros());
+  prop subnormalStickyBit(guardBit || stickyBit || 
+			  !((extractedSignificand & subnormalStickyMask).isAllZeros()));
+
+  
+
+  // Have to choose the right one dependent on rounding mode
+  prop choosenGuardBit(ITE(normalRounding, guardBit, subnormalGuardBit));
+  prop choosenStickyBit(ITE(normalRounding, stickyBit, subnormalStickyBit));
+  
+  prop significandEven(ITE(normalRounding,
+			   extractedSignificand.extract(0,0).isAllZeros(),
+			   ((extractedSignificand & subnormalIncrementAmount).isAllZeros())));
+  prop roundUpRNE(roundingMode == t::RNE() && choosenGuardBit && (choosenStickyBit || !significandEven));
+  prop roundUpRNA(roundingMode == t::RNA() && choosenGuardBit);
+  prop roundUpRTP(roundingMode == t::RTP() && !uf.getSign() && (choosenGuardBit || choosenStickyBit));
+  prop roundUpRTN(roundingMode == t::RTN() &&  uf.getSign() && (choosenGuardBit || choosenStickyBit));
+  prop roundUpRTZ(roundingMode == t::RTZ() && prop(false));
+  prop roundUp(roundUpRNE || roundUpRNA || roundUpRTP || roundUpRTN || roundUpRTZ);
+
+
+  // Perform the increment as needed
+  ubv subnormalMaskedSignificand(extractedSignificand & (~subnormalMask));
+  ubv leadingOne(unpackedFloat<t>::leadingOne(targetSignificandWidth));
+  // Not actually true, consider minSubnormalExponent - 1 : not an early underfow and empty significand
+  //INVARIANT(!(subnormalMaskedSignificand & leadingOne).isAllZeros() ||
+  //          earlyUnderflow); // This one really matters, it means only the early underflow path is wrong
+  
+
+  // Convert the round up flag to a mask
+  ubv normalRoundUpAmount(ubv(roundUp).matchWidth(extractedSignificand));
+  ubv subnormalRoundUpMask(ubv(roundUp).append(ubv::zero(targetSignificandWidth)).signExtendRightShift(ubv(targetSignificandWidth + 1, targetSignificandWidth)));
+  ubv subnormalRoundUpAmount(subnormalRoundUpMask & subnormalIncrementAmount);
+  
+  ubv rawRoundedSignificand((ITE(normalRounding,
+				 extractedSignificand,
+				 subnormalMaskedSignificand)
+			     +
+			     ITE(normalRounding,
+				 normalRoundUpAmount,
+				 subnormalRoundUpAmount)));
+  
+  // We might have lost the leading one, if so, re-add and note that we need to increment the significand
+  prop significandOverflow(rawRoundedSignificand.extract(targetSignificandWidth, targetSignificandWidth).isAllOnes());
+  INVARIANT(!(significandOverflow && !roundUp));
+  
+  ubv extractedRoundedSignificand(rawRoundedSignificand.extract(targetSignificandWidth - 1, 0));
+  ubv roundedSignificand(extractedRoundedSignificand | leadingOne);
+  INVARIANT(!significandOverflow || extractedRoundedSignificand.isAllZeros());
+
+  
+
+
+  /*** Round to correct exponent. ***/
+
+  // The extend is almost certainly unnecessary (see specialised rounders)
+  sbv extendedExponent(exp.extend(1));
+
+  prop incrementExponent(roundUp && significandOverflow);  // The roundUp is implied but kept for signal forwarding
+  probabilityAnnotation<t>(incrementExponent, VERYUNLIKELY);
+  
+  sbv correctedExponent(conditionalIncrement<t>(incrementExponent, extendedExponent));
+
+  // Track overflows and underflows
+  sbv maxNormal(unpackedFloat<t>::maxNormalExponent(format).matchWidth(correctedExponent));
+  sbv minSubnormal(unpackedFloat<t>::minSubnormalExponent(format).matchWidth(correctedExponent));
+  
+  prop computedOverflow(correctedExponent > maxNormal);
+  prop computedUnderflow(correctedExponent < minSubnormal);
+  probabilityAnnotation<t>(computedOverflow, UNLIKELY);
+  probabilityAnnotation<t>(computedUnderflow, UNLIKELY);
+
+  prop lateOverflow(!earlyOverflow && computedOverflow);
+  prop lateUnderflow(!earlyUnderflow && computedUnderflow);
+  probabilityAnnotation<t>(lateOverflow, VERYUNLIKELY);
+  probabilityAnnotation<t>(lateUnderflow, VERYUNLIKELY);
+  
+  sbv correctedExponentInRange(collar<t>(correctedExponent, minSubnormal, maxNormal));
+
+  
+  // This can over and underflow but these values will not be used
+  bwt currentExponentWidth(correctedExponentInRange.getWidth());
+  sbv roundedExponent(correctedExponentInRange.contract(currentExponentWidth - targetExponentWidth));
+
+
+  
+
+  /*** Underflow and overflow ***/
+
+  // So that ITE abstraction works...
+  prop overflow(ITE(lateOverflow, prop(true), earlyOverflow));
+  prop underflow(ITE(lateUnderflow, prop(true), earlyUnderflow));
+
+  // On overflow either return inf or max
+  prop returnInf(roundingMode == t::RNE() || 
+		 roundingMode == t::RNA() ||
+		 (roundingMode == t::RTP() && !uf.getSign()) ||
+		 (roundingMode == t::RTN() &&  uf.getSign()));
+  probabilityAnnotation<t>(returnInf, LIKELY);  // Inf is more likely than max in most application scenarios
+
+  // On underflow either return 0 or minimum subnormal
+  prop returnZero(roundingMode == t::RNE() || 
+		  roundingMode == t::RNA() ||
+		  roundingMode == t::RTZ() ||
+		  (roundingMode == t::RTP() &&  uf.getSign()) ||
+		  (roundingMode == t::RTN() && !uf.getSign()));
+  probabilityAnnotation<t>(returnZero, LIKELY);   // 0 is more likely than min in most application scenarios
+
+
+  
+  /*** Reconstruct ***/
+  unpackedFloat<t> roundedResult(uf.getSign(), roundedExponent, roundedSignificand);
+
+  unpackedFloat<t> inf(unpackedFloat<t>::makeInf(format, uf.getSign()));
+  unpackedFloat<t> max(uf.getSign(), unpackedFloat<t>::maxNormalExponent(format), ubv::allOnes(targetSignificandWidth));
+  unpackedFloat<t> min(uf.getSign(), unpackedFloat<t>::minSubnormalExponent(format), unpackedFloat<t>::leadingOne(targetSignificandWidth));
+  unpackedFloat<t> zero(unpackedFloat<t>::makeZero(format, uf.getSign()));
+  
+  unpackedFloat<t> result(ITE(uf.getZero(), 
+			      zero,
+			      ITE(underflow,
+				  ITE(returnZero, zero, min),
+				  ITE(overflow,
+				      ITE(returnInf, inf, max),
+				      roundedResult))));
+
+  POSTCONDITION(result.valid(format));
+
+  return result;
+ }
+
+template <class t>
+unpackedFloat<t> originalRounder (const typename t::fpt &format,
 				  const typename t::rm &roundingMode,
 				  const unpackedFloat<t> &uf) {
 
@@ -288,7 +505,6 @@ template <class t>
 
   return result;
  }
-
 
 template <class t>
   unpackedFloat<t> rounder (const typename t::fpt &format,

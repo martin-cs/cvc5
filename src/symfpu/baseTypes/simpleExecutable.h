@@ -167,6 +167,8 @@ namespace symfpu {
 	PRECONDITION(bitVector<T>::isRepresentable(w,v));
       }
 
+      bitVector (const proposition &p) : width(1), value(p) {}
+      
       bitVector (const bitVector<T> &old) : width(old.width), value(old.value) {}
       
       // Constructors

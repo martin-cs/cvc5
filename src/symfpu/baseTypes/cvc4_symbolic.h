@@ -299,6 +299,42 @@ namespace symfpu {
     protected :
       typedef typename signedToLiteralType<isSigned>::literalType literalType;
 
+      inline Node boolNodeToBV(Node node) const {
+	Assert(node.getType().isBoolean());
+	::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();
+	return nm->mkNode(::CVC4::kind::ITE,
+			  node,
+			  nm->mkConst(::CVC4::BitVector(1U, 1U)),
+			  nm->mkConst(::CVC4::BitVector(1U, 0U)));	
+      }
+
+      inline Node BVToBoolNode(Node node) const {
+	Assert(node.getType().isBitVector());
+	Assert(node.getType().getBitVectorSize() == 1);
+	::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();
+	return nm->mkNode(::CVC4::kind::EQUAL,
+			  node,
+			  nm->mkConst(::CVC4::BitVector(1U, 1U)));
+      }
+
+      inline Node fromProposition (Node node) const {
+	#ifdef PROPSYMFPUISBOOL
+	return boolNodeToBV(node);
+	#else
+	return node;
+	#endif
+      }
+
+      inline Node toProposition (Node node) const {
+	#ifdef PROPSYMFPUISBOOL
+	return node;
+	#else
+	return boolNodeToBV(node);
+	#endif
+      }
+
+
+      
       // TODO : make this private again
     public :
 
@@ -316,6 +352,7 @@ namespace symfpu {
 
     public :
       bitVector (const bitWidthType w, const unsigned v) : nodeWrapper(::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(w, v))) { PRECONDITION(checkNodeType(node)); }
+      bitVector (const proposition &p) : nodeWrapper(fromProposition(p.getNode())) {}
       bitVector (const bitVector<isSigned> &old) : nodeWrapper(old) {  PRECONDITION(checkNodeType(node)); }
       bitVector (const nonDetMarkerType &, const unsigned v)
 	: nodeWrapper(::CVC4::NodeManager::currentNM()->mkSkolem("nondet_bitVector", 
@@ -421,42 +458,31 @@ namespace symfpu {
       /*** Comparisons ***/
 
       inline proposition operator == (const bitVector<isSigned> &op) const {
-	#ifdef PROPSYMFPUISBOOL
-	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::EQUAL, this->node, op.node));
-	#else
-	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_COMP, this->node, op.node));
-	#endif
-      }
-
-    protected :
-      inline Node wrapCondition (Node node) const {
-	#ifdef PROPSYMFPUISBOOL
-	return node;
-	#else
 	::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();
-	return nm->mkNode(::CVC4::kind::ITE,
-			  node,
-			  nm->mkConst(::CVC4::BitVector(1U, 1U)),
-			  nm->mkConst(::CVC4::BitVector(1U, 0U)));
-	#endif
+	
+#ifdef PROPSYMFPUISBOOL
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::EQUAL, this->node, op.node));
+#else
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_COMP, this->node, op.node));
+#endif
       }
 
     public : 
 
       inline proposition operator <= (const bitVector<isSigned> &op) const {
-	  return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLE : ::CVC4::kind::BITVECTOR_ULE, this->node, op.node)));
+	  return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLE : ::CVC4::kind::BITVECTOR_ULE, this->node, op.node)));
       }
 
       inline proposition operator >= (const bitVector<isSigned> &op) const {
-	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGE : ::CVC4::kind::BITVECTOR_UGE, this->node, op.node)));
+	return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGE : ::CVC4::kind::BITVECTOR_UGE, this->node, op.node)));
       }
 
       inline proposition operator < (const bitVector<isSigned> &op) const {
-	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLT : ::CVC4::kind::BITVECTOR_ULT, this->node, op.node)));
+	return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLT : ::CVC4::kind::BITVECTOR_ULT, this->node, op.node)));
       }
 
       inline proposition operator > (const bitVector<isSigned> &op) const {
-	return proposition(wrapCondition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGT : ::CVC4::kind::BITVECTOR_UGT, this->node, op.node)));
+	return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGT : ::CVC4::kind::BITVECTOR_UGT, this->node, op.node)));
       }
 
       /*** Type conversion ***/
