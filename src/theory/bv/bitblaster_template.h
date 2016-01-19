@@ -363,6 +363,8 @@ template <class T> void TBitblaster<T>::initAtomBBStrategies() {
   d_atomBBStrategies [ kind::BITVECTOR_SLE ]   = DefaultSleBB<T>;
   d_atomBBStrategies [ kind::BITVECTOR_SGT ]   = DefaultSgtBB<T>;
   d_atomBBStrategies [ kind::BITVECTOR_SGE ]   = DefaultSgeBB<T>;
+  /// floating point operator 
+  d_atomBBStrategies [ kind::BITVECTOR_BVTOBOOL ] = DefaultBvToBoolBB<T>;
 }
 
 template <class T> void TBitblaster<T>::initTermBBStrategies() {
@@ -406,6 +408,7 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_COUNT_ZERO ]  = DefaultCountZeroBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_REVERSE ]  = DefaultReverseBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_UNARY_ENCODE ]  = DefaultUnaryEncodeBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_BOOLTOBV ] = DefaultBoolToBvBB<T>;
 }
 
 template <class T>

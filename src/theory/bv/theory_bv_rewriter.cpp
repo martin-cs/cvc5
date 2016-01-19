@@ -653,6 +653,21 @@ RewriteResponse TheoryBVRewriter::RewriteUnaryEncode(TNode node, bool prerewrite
   return RewriteResponse(REWRITE_DONE, resultNode);
 }
 
+RewriteResponse TheoryBVRewriter::RewriteBvToBool(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalBvToBool>
+      >::apply(node);
+  
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+RewriteResponse TheoryBVRewriter::RewriteBoolToBv(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalBoolToBv>
+      >::apply(node);
+  
+  return RewriteResponse(REWRITE_DONE, resultNode);
+
+}
 
 RewriteResponse TheoryBVRewriter::IdentityRewrite(TNode node, bool prerewrite) {
   return RewriteResponse(REWRITE_DONE, node); 

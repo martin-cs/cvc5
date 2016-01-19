@@ -170,6 +170,19 @@ T DefaultSgeBB(TNode node, TBitblaster<T>* bb){
 }
 
 
+template <class T>
+T DefaultBvToBoolBB (TNode node, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultBvToBoolBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_BVTOBOOL);
+  std::vector<T> a;
+  bb->bbTerm(node[0], a);
+  Assert (a.size() == 1);
+  return a[0];
+}
+
+
+
 /// Term bitblasting strategies 
 
 /** 
@@ -905,6 +918,18 @@ void DefaultCountZeroBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
     }
   }
 }
+
+template <class T>
+void DefaultBoolToBvBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {
+  Debug("bitvector") << "theory::bv::DefaultBoolToBvBB "
+                     << node << "\n";
+  Assert (node.getKind() == kind::BITVECTOR_BOOLTOBV &&
+          bits.size() == 0);
+  bb->bbAtom(node[0]);
+  T res = bb->getBBAtom(node[0]);
+  bits.push_back(res);
+}
+
 
 template <class T>
 void DefaultReverseBB (TNode node, std::vector<T>& bits, TBitblaster<T>* bb) {

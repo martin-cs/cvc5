@@ -99,7 +99,9 @@ enum RewriteRuleId {
   EvalCountZero,
   EvalReverse,
   EvalUnaryEncode,
-
+  EvalBvToBool,
+  EvalBoolToBv,
+  
   /// simplification rules
   /// all of these rules decrease formula size
   ShlByConst,
@@ -314,6 +316,8 @@ inline std::ostream& operator << (std::ostream& out, RewriteRuleId ruleId) {
   case EvalCountZero: out << "EvalCountZero"; return out;
   case EvalReverse: out << "EvalReverse"; return out;
   case EvalUnaryEncode: out << "EvalUnaryEncode"; return out;
+  case EvalBvToBool: out << "EvalBvToBool"; return out;
+  case EvalBoolToBv: out << "EvalBoolToBv"; return out;
   case SMaxId: out << "SMaxId"; return out;
   case SMinId: out << "SMinId"; return out;
   default:
@@ -550,6 +554,9 @@ struct AllRewriteRules {
   RewriteRule<EvalUnaryEncode> rule128;
   RewriteRule<SMaxId> rule129;
   RewriteRule<SMinId> rule130;
+  RewriteRule<EvalBoolToBv> rule131;
+  RewriteRule<EvalBvToBool> rule132;
+  
 };
 
 template<> inline

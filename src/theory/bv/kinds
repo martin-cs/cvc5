@@ -84,6 +84,8 @@ operator BITVECTOR_SMIN 2 "signed min of two bit-vectors"
 operator BITVECTOR_COUNT_ZERO 1 "counting leading zeroes in bit-vector"
 operator BITVECTOR_REVERSE 1 "reverse the bits in a bit-vector"
 operator BITVECTOR_UNARY_ENCODE 2 "takes a bit-vector x and returns the unary encoding of x"
+operator BITVECTOR_BVTOBOOL 1 "takes a bit-vector of size 1 and returns true if it was one"
+operator BITVECTOR_BOOLTOBV 1 "takes a boolean and returns a bit-vector of size 1"
 
 constant BITVECTOR_BITOF_OP \
 	::CVC4::BitVectorBitOf \
@@ -205,5 +207,7 @@ typerule BITVECTOR_SMAX ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
 typerule BITVECTOR_SMIN ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
 typerule BITVECTOR_COUNT_ZERO ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
 typerule BITVECTOR_UNARY_ENCODE ::CVC4::theory::bv::BitVectorFixedWidthTypeRule
+typerule BITVECTOR_BVTOBOOL ::CVC4::theory::bv::BitVectorBvToBoolTypeRule
+typerule BITVECTOR_BOOLTOBV ::CVC4::theory::bv::BitVectorBoolToBvTypeRule
 
 endtheory

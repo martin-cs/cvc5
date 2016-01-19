@@ -88,6 +88,9 @@ class TheoryBVRewriter {
   static RewriteResponse RewriteCountZero(TNode node, bool prerewrite = false);
   static RewriteResponse RewriteReverse(TNode node, bool prerewrite = false);
   static RewriteResponse RewriteUnaryEncode(TNode node, bool prerewrite = false);
+
+  static RewriteResponse RewriteBvToBool(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteBoolToBv(TNode node, bool prerewrite = false);
   
 public:
 

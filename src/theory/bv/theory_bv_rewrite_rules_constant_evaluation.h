@@ -517,6 +517,38 @@ Node RewriteRule<EvalUnaryEncode>::apply(TNode node) {
   return utils::mkConst(res);
 }
 
+template<> inline
+bool RewriteRule<EvalBvToBool>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_BVTOBOOL &&
+          utils::isBVGroundTerm(node));
+}
+
+template<> inline
+Node RewriteRule<EvalBvToBool>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalBvToBool>(" << node << ")" << std::endl;
+  BitVector a = node[0].getConst<BitVector>();
+  Integer val = a.getValue();
+
+  if (val == 0)
+    return utils::mkFalse();
+  return utils::mkTrue();
+}
+
+template<> inline
+bool RewriteRule<EvalBoolToBv>::applies(TNode node) {
+  return (node.getKind() == kind::BITVECTOR_BOOLTOBV &&
+          node[0].isConst());
+}
+
+template<> inline
+Node RewriteRule<EvalBoolToBv>::apply(TNode node) {
+  Debug("bv-rewrite") << "RewriteRule<EvalBoolToBv>(" << node << ")" << std::endl;
+  if (node[0] == utils::mkTrue())
+    return utils::mkConst(1, 1u);
+  Assert (node[0] == utils::mkFalse());
+  return utils::mkConst(1, 0u);
+}
+
 
 
 }
