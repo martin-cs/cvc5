@@ -611,6 +611,63 @@ RewriteResponse TheoryBVRewriter::RewriteEqual(TNode node, bool prerewrite) {
   }
 }
 
+RewriteResponse TheoryBVRewriter::RewriteSMax(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalSMax>,
+      RewriteRule<SMaxId>
+    >::apply(node);
+
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+
+RewriteResponse TheoryBVRewriter::RewriteSMin(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalSMin>,
+      RewriteRule<SMinId>
+    >::apply(node);
+
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+
+RewriteResponse TheoryBVRewriter::RewriteCountZero(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalCountZero>
+    >::apply(node);
+
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+
+RewriteResponse TheoryBVRewriter::RewriteReverse(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalReverse>
+    >::apply(node);
+
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+
+RewriteResponse TheoryBVRewriter::RewriteUnaryEncode(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalUnaryEncode>
+    >::apply(node);
+
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+
+RewriteResponse TheoryBVRewriter::RewriteBvToBool(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalBvToBool>
+      >::apply(node);
+  
+  return RewriteResponse(REWRITE_DONE, resultNode);
+}
+RewriteResponse TheoryBVRewriter::RewriteBoolToBv(TNode node, bool prerewrite) {
+  Node resultNode = LinearRewriteStrategy
+    < RewriteRule<EvalBoolToBv>
+      >::apply(node);
+  
+  return RewriteResponse(REWRITE_DONE, resultNode);
+
+}
 
 RewriteResponse TheoryBVRewriter::IdentityRewrite(TNode node, bool prerewrite) {
   return RewriteResponse(REWRITE_DONE, node); 
@@ -672,6 +729,12 @@ void TheoryBVRewriter::initializeRewrites() {
 
   d_rewriteTable [ kind::BITVECTOR_TO_NAT ] = RewriteBVToNat;
   d_rewriteTable [ kind::INT_TO_BITVECTOR ] = RewriteIntToBV;
+
+  d_rewriteTable [ kind::BITVECTOR_SMAX ] = RewriteSMax;
+  d_rewriteTable [ kind::BITVECTOR_SMIN ] = RewriteSMin;
+  d_rewriteTable [ kind::BITVECTOR_COUNT_ZERO ] = RewriteCountZero;
+  d_rewriteTable [ kind::BITVECTOR_REVERSE ] = RewriteReverse;
+  d_rewriteTable [ kind::BITVECTOR_UNARY_ENCODE ] = RewriteUnaryEncode;
 }
 
 Node TheoryBVRewriter::eliminateBVSDiv(TNode node) {

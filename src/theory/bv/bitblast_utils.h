@@ -21,6 +21,8 @@
 
 
 #include <ostream>
+#include <cmath>
+
 #include "expr/node.h"
 
 #ifdef CVC4_USE_ABC
@@ -67,7 +69,8 @@ template <class T> T mkAnd(const std::vector<T>& a);
 template <class T> T mkXor(T a, T b);
 template <class T> T mkIff(T a, T b);
 template <class T> T mkIte(T cond, T a, T b);
-
+template <class T> void mkConstBits(unsigned val, unsigned width,
+                                    std::vector<T>& bits);
 
 template <> inline
 Node mkTrue<Node>() {
@@ -130,6 +133,19 @@ Node mkIte<Node>(Node cond, Node a, Node b) {
 /*
  Various helper functions that get called by the bitblasting procedures
  */
+
+
+template <class T>
+inline void mkConstBits(unsigned val, unsigned width, std::vector<T>& res) {
+  for (unsigned i = 0; i < width; ++i) {
+    if(val % 2){
+      res[i] = mkTrue<T>();
+    } else {
+      res[i] = mkFalse<T>(); 
+    }
+    val = val/2;
+  }
+}
 
 template <class T>
 void inline extractBits(const std::vector<T>& b, std::vector<T>& dest, unsigned lo, unsigned hi) {
@@ -275,6 +291,42 @@ T inline sLessThanBB(const std::vector<T>&a, const std::vector<T>& b, bool orEqu
   return res;
 }
 
+/*
+  Left shifts a by b bits filling the empty space with filler
+ */
+template <class T>
+void inline leftShiftBB(const std::vector<T>&a,
+                        const std::vector<T>& b,
+                        T filler,
+                        std::vector<T>& res) {
+
+  // check for b < log2(n)
+  unsigned size = a.size();
+  Assert (a.size() == b.size() &&
+          res.size() == 0);
+  
+  unsigned log2_size = std::ceil(log2((double)size));
+  std::vector<T> prev_res;
+  res = a; 
+  // we only need to look at the bits bellow log2_a_size
+  for(unsigned s = 0; s < log2_size; ++s) {
+    // barrel shift stage: at each stage you can either shift by 2^s bits
+    // or leave the previous stage untouched
+    prev_res = res; 
+    unsigned threshold = pow(2, s); 
+    for(unsigned i = 0; i < a.size(); ++i) {
+      if (i < threshold) {
+        // if b[s] is true then we must have shifted by at least 2^b bits so
+        // all bits bellow 2^s will be 0, otherwise just use previous shift value
+        res[i] = mkIte(b[s], filler, prev_res[i]);
+      } else {
+        // if b[s]= 0, use previous value, otherwise shift by threshold  bits
+        Assert(i >= threshold); 
+        res[i] = mkIte(b[s], prev_res[i-threshold], prev_res[i]); 
+      }
+    }
+  }
+}
 
 }
 }

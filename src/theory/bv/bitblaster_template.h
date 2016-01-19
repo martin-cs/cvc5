@@ -80,6 +80,7 @@ protected:
   typedef void  (*TermBBStrategy) (TNode, Bits&, TBitblaster<T>*);
   typedef T     (*AtomBBStrategy) (TNode, TBitblaster<T>*);
 
+  prop::CnfStream* d_cnf; 
   // caches and mappings
   TermDefMap d_termCache;
   ModelCache d_modelCache;
@@ -113,6 +114,7 @@ public:
    */
   Node getTermModel(TNode node, bool fullModel);
   void invalidateModelCache();
+  virtual prop::CnfStream* getCnfStream() = 0; 
 }; 
 
 
@@ -217,7 +219,8 @@ public:
    * terms cache. 
    * 
    */
-  void clearSolver(); 
+  void clearSolver();
+  prop::CnfStream* getCnfStream() {return d_cnf; }
 private:
 
   class Statistics {
@@ -276,6 +279,7 @@ public:
   bool assertToSat(TNode node, bool propagate = true);
   bool solve();
   void collectModelInfo(TheoryModel* m, bool fullModel);
+  prop::CnfStream* getCnfStream() {return d_cnfStream; }
 };
 
 class BitblastingRegistrar: public prop::Registrar {
@@ -339,7 +343,7 @@ private:
   };
 
   Statistics d_statistics;
-
+  prop::CnfStream* getCnfStream() { Unreachable();  }
 };
 
 
@@ -359,6 +363,8 @@ template <class T> void TBitblaster<T>::initAtomBBStrategies() {
   d_atomBBStrategies [ kind::BITVECTOR_SLE ]   = DefaultSleBB<T>;
   d_atomBBStrategies [ kind::BITVECTOR_SGT ]   = DefaultSgtBB<T>;
   d_atomBBStrategies [ kind::BITVECTOR_SGE ]   = DefaultSgeBB<T>;
+  /// floating point operator 
+  d_atomBBStrategies [ kind::BITVECTOR_BVTOBOOL ] = DefaultBvToBoolBB<T>;
 }
 
 template <class T> void TBitblaster<T>::initTermBBStrategies() {
@@ -396,6 +402,13 @@ template <class T> void TBitblaster<T>::initTermBBStrategies() {
   d_termBBStrategies [ kind::BITVECTOR_SIGN_EXTEND ]  = DefaultSignExtendBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_ROTATE_RIGHT ] = DefaultRotateRightBB<T>;
   d_termBBStrategies [ kind::BITVECTOR_ROTATE_LEFT ]  = DefaultRotateLeftBB<T>;
+  // bb strategies for floating point operations
+  d_termBBStrategies [ kind::BITVECTOR_SMAX ]  = options::bvOptimalMax() ? OptimalSMaxBB<T> :  DefaultSMaxBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_SMIN ]  = options::bvOptimalMin() ? OptimalSMinBB<T> :  DefaultSMinBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_COUNT_ZERO ]  = DefaultCountZeroBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_REVERSE ]  = DefaultReverseBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_UNARY_ENCODE ]  = DefaultUnaryEncodeBB<T>;
+  d_termBBStrategies [ kind::BITVECTOR_BOOLTOBV ] = DefaultBoolToBvBB<T>;
 }
 
 template <class T>

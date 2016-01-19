@@ -65,5 +65,11 @@ expert-option bitvectorQuickXplain --bv-quick-xplain bool :default false
  
 expert-option bvIntroducePow2 --bv-intro-pow2 bool :default false
  introduce bitvector powers of two as a preprocessing pass
+
+expert-option bvOptimalMax --bv-optimal-max bool :default false
+ use propagation-complete bit-blasting of max
+ 
+expert-option bvOptimalMin --bv-optimal-min bool :default false
+ use propagation-complete bit-blasting of min
  
 endmodule

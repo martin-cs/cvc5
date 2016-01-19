@@ -281,6 +281,42 @@ public:
   }
 };/* class BitVectorConversionTypeRule */
 
+class BitVectorBvToBoolTypeRule {
+public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+    throw (TypeCheckingExceptionPrivate) {
+
+    if(check) {
+      TypeNode t = n[0].getType(check);
+
+      if (!t.isBitVector()) {
+        throw TypeCheckingExceptionPrivate(n, "expecting bit-vector term");
+      }
+      if (t.getBitVectorSize() != 1) {
+        throw TypeCheckingExceptionPrivate(n, "expecting bit-vector of size one");
+      }
+    }
+    return nodeManager->booleanType();
+  }
+};/* class BitVectorBvToBoolTypeRule */
+
+class BitVectorBoolToBvTypeRule {
+public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check)
+    throw (TypeCheckingExceptionPrivate) {
+
+    if(check) {
+      TypeNode t = n[0].getType(check);
+
+      if (!t.isBoolean()) {
+        throw TypeCheckingExceptionPrivate(n, "expecting boolean term");
+      }
+    }
+    return nodeManager->mkBitVectorType(1);
+  }
+};/* class BitVectorBoolToBvTypeRule */
+
+
 class CardinalityComputer {
 public:
   inline static Cardinality computeCardinality(TypeNode type) {
