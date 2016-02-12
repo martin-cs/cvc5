@@ -39,27 +39,9 @@
 **
 */
 
-/* Another way of dividing up the functionality is by output exponent:
-** R denotes that this is possible via rounding up and incrementing the exponent
-**
-** Case       A. max(l,r) + 1,    B. max(l,r)    C. max(l,r) - 1      D. max(l,r) - k       E. zero
-** Eff. Add      Y                   Y
-**  diff = 0     Y, sticky 0 
-**  diff = 1     Y, sticky 0         Y, sticky 0
-**  diff : [2,p] decreasing prob., R Y
-**  diff > p     R                   Y
-**
-** Eff. Sub                          Y              Y                    Y, exact              Y, exact
-**  diff = 0                                        Y, exact             prob. drop with k     low prob.
-**  diff = 1                         Y, sticky 0    Y, exact             prob. drop with k
-**  diff : [2,p]                     Y, R           decreasing prob.
-**  diff > p                         Y, R           low prob.
-**
-*/
 
 /*
 ** Ideas
-**  Optimisation : Take max of exponents and then only swap the significands rather than full swap.
 **  Optimisation : Collar the exponent difference, convert add to twice the width and thus unify the paths and simplify the shifting.
 */
 
@@ -139,12 +121,188 @@ template <class t>
 // This is an oddity due to the way that the sign of zero is generated.
 
  template <class t>
-   unpackedFloat<t> arithmeticAdd (const typename t::fpt &format,
-				   const typename t::rm &roundingMode,
-				   const unpackedFloat<t> &left,
-				   const unpackedFloat<t> &right,
-				   const typename t::prop &isAdd) {
-   // Optimisation : add a flag which assumes that left and right are in exponent order
+ struct floatWithCustomRounderInfo {
+   unpackedFloat<t> uf;
+   customRounderInfo<t> known;
+
+ floatWithCustomRounderInfo(const unpackedFloat<t> &_uf, const customRounderInfo<t> &_known) : uf(_uf), known(_known) {}
+ floatWithCustomRounderInfo(const floatWithCustomRounderInfo<t> &old) : uf(old.uf), known(old.known) {}
+ };
+
+ template <class t>
+   floatWithCustomRounderInfo<t> arithmeticAdd (const typename t::fpt &format,
+						const typename t::rm &roundingMode,
+						const unpackedFloat<t> &left,
+						const unpackedFloat<t> &right,
+						const typename t::prop &isAdd,
+						const typename t::prop &knownInCorrectOrder) {
+   
+   typedef typename t::bwt bwt;
+   typedef typename t::fpt fpt;
+   typedef typename t::prop prop;
+   typedef typename t::ubv ubv;
+   typedef typename t::sbv sbv;
+   
+   PRECONDITION(left.valid(format));
+   PRECONDITION(right.valid(format));
+
+   // Work out if an effective subtraction
+   prop effectiveAdd(left.getSign() ^ right.getSign() ^ isAdd);
+   
+   // Compute exponent distance
+   bwt exponentWidth(left.getExponent().getWidth() + 1);
+   sbv maxExponent(max<t,sbv>(left.getExponent().extend(1), right.getExponent().extend(1)));
+   sbv minExponent(min<t,sbv>(left.getExponent().extend(1), right.getExponent().extend(1)));
+   sbv exponentDifference(maxExponent - minExponent);
+   INVARIANT(sbv::zero(exponentWidth) <= exponentDifference);
+   
+   /* Exponent difference and effective add implies a large amount about the output exponent and flags
+   ** R denotes that this is possible via rounding up and incrementing the exponent
+   **
+   ** Case       A. max(l,r) + 1,    B. max(l,r)    C. max(l,r) - 1      D. max(l,r) - k       E. zero
+   ** Eff. Add      Y                   Y
+   **  diff = 0     Y, sticky 0 
+   **  diff = 1     Y, sticky 0, R      Y, sticky 0
+   **  diff : [2,p] decreasing prob., R Y
+   **  diff > p     R                   Y
+   **
+   ** Eff. Sub                          Y              Y                    Y, exact              Y, exact
+   **  diff = 0                                        Y, exact             prob. drop with k     low prob.
+   **  diff = 1                         Y, sticky 0    Y, exact             prob. drop with k
+   **  diff : [2,p]                     Y, R           decreasing prob.
+   **  diff > p                         Y, R           low prob.
+   **
+   */
+   // Optimisation : add 'bypass' invariants that link the final exponent to the input using this.
+   
+   prop diffIsZero(exponentDifference == sbv::zero(exponentWidth));
+   prop diffIsOne(exponentDifference == sbv::one(exponentWidth));
+   prop diffIsGreaterThanPrecision(sbv(exponentWidth, left.getSignificand().getWidth()) < exponentDifference);  // Assumes this is representable
+   prop diffIsTwoToPrecision(!diffIsZero && !diffIsOne && !diffIsGreaterThanPrecision);
+
+   probabilityAnnotation<t,prop>(diffIsZero, UNLIKELY);
+   probabilityAnnotation<t,prop>(diffIsOne, UNLIKELY);
+   probabilityAnnotation<t,prop>(diffIsGreaterThanPrecision, LIKELY);  // In proving if not execution
+   
+   
+   // Rounder flags
+   prop noOverflow(!effectiveAdd);
+   prop noUnderflow(true);
+   //prop exact(); // Need to see if it cancels, see below
+   prop subnormalExact(true);
+   prop noSignificandOverflow((effectiveAdd && diffIsZero) ||
+			      (!effectiveAdd && (diffIsZero || diffIsOne)));
+
+   prop stickyBitIsZero(diffIsZero || diffIsOne);
+
+
+   // Work out ordering
+   prop leftLarger(knownInCorrectOrder ||
+		   (left.getExponent().extend(1) == maxExponent &&
+		    ITE(!diffIsZero,
+			prop(true),
+			left.getSignificand() >= right.getSignificand())));
+
+   // Extend the significands to give room for carry plus guard and sticky bits
+   ubv lsig((ITE(leftLarger, left.getSignificand(), right.getSignificand())).extend(1).append(ubv::zero(2)));
+   ubv ssig((ITE(leftLarger, right.getSignificand(), left.getSignificand())).extend(1).append(ubv::zero(2)));
+
+   prop resultSign(ITE(leftLarger,
+		       left.getSign(),
+		       prop(!isAdd ^ right.getSign())));
+
+   // Extended so no info lost, negate before shift so that sign-extension works
+   ubv negatedSmaller(conditionalNegate<t,ubv,prop>(!effectiveAdd, ssig));
+
+   ubv shiftAmount(exponentDifference.toUnsigned() // Safe as >= 0
+		   .resize(negatedSmaller.getWidth()));  // Safe as long as the significand has more bits than the exponent
+   INVARIANT(exponentWidth <= format.significandWidth());
+
+
+   ubv negatedAlignedSmaller(ITE(sbv(exponentWidth, left.getSignificand().getWidth() + 1) < exponentDifference,   // Fast path the common case, +1 to avoid issues with the guard bit
+				 ITE(effectiveAdd,
+				      ubv::zero(negatedSmaller.getWidth()),
+				     ~ubv::zero(negatedSmaller.getWidth())),				     
+				 negatedSmaller.signExtendRightShift(shiftAmount)));
+   ubv shiftedStickyBit(ITE(diffIsGreaterThanPrecision,
+			    ubv::one(negatedSmaller.getWidth()),
+			    rightShiftStickyBit<t>(negatedSmaller, shiftAmount)));  // Have to separate otherwise align up may convert it to the guard bit
+
+   
+   // Sum and re-align
+   ubv sum(lsig.modularAdd(negatedAlignedSmaller));
+
+   bwt sumWidth(sum.getWidth());
+   ubv topBit(sum.extract(sumWidth - 1, sumWidth - 1));
+   ubv alignedBit(sum.extract(sumWidth - 2, sumWidth - 2));
+   ubv lowerBit(sum.extract(sumWidth - 3, sumWidth - 3));
+
+   
+   prop overflow(!(topBit.isAllZeros()));
+   prop cancel(topBit.isAllZeros() && alignedBit.isAllZeros());
+   prop minorCancel(cancel && lowerBit.isAllOnes());
+   prop majorCancel(cancel && lowerBit.isAllZeros());
+   prop fullCancel(majorCancel && sum.isAllZeros());
+   
+   probabilityAnnotation<t,prop>(overflow, UNLIKELY);
+   probabilityAnnotation<t,prop>(cancel, UNLIKELY);
+   probabilityAnnotation<t,prop>(minorCancel, UNLIKELY);
+   probabilityAnnotation<t,prop>(majorCancel, VERYUNLIKELY);
+   probabilityAnnotation<t,prop>(fullCancel, VERYUNLIKELY);
+
+   INVARIANT(IMPLIES(effectiveAdd && diffIsZero, overflow));
+   INVARIANT(IMPLIES(overflow, effectiveAdd && (!diffIsGreaterThanPrecision))); // That case can only overflow by rounding
+   INVARIANT(IMPLIES(cancel, !effectiveAdd));
+   INVARIANT(IMPLIES(majorCancel, diffIsZero || diffIsOne));
+   
+   probabilityAnnotation<t,prop>(overflow && diffIsTwoToPrecision, UNLIKELY);
+   probabilityAnnotation<t,prop>(cancel && diffIsTwoToPrecision, UNLIKELY);
+   probabilityAnnotation<t,prop>(cancel && diffIsGreaterThanPrecision, VERYUNLIKELY);
+   
+   prop exact(cancel && (diffIsZero || diffIsOne)); // For completeness
+   
+   ubv alignedSum(conditionalLeftShiftOne<t,ubv,prop>(minorCancel,
+						      conditionalRightShiftOne<t,ubv,prop>(overflow, sum)));
+
+   sbv correctedExponent(conditionalDecrement<t,sbv,prop>(minorCancel,
+							  conditionalIncrement<t,sbv,prop>(overflow,maxExponent)));
+
+   // Watch closely...
+   ubv stickyBit(ITE(stickyBitIsZero || majorCancel,
+		     ubv::zero(alignedSum.getWidth()),
+		     (shiftedStickyBit | ITE(!overflow, ubv::zero(1), sum.extract(0,0)).extend(alignedSum.getWidth() - 1))));
+   
+   
+   // Put it back together
+   unpackedFloat<t> sumResult(resultSign, correctedExponent, (alignedSum | stickyBit).contract(1));
+
+   // We return something in an extended format
+   //  *. One extra exponent bit to deal with the 'overflow' case
+   //  *. Two extra significand bits for the guard and sticky bits
+   fpt extendedFormat(format.exponentWidth() + 1, format.significandWidth() + 2);
+   
+   // Deal with the major cancelation case
+   unpackedFloat<t> additionResult(ITE(fullCancel,
+				       unpackedFloat<t>::makeZero(extendedFormat, roundingMode == t::RTN()),
+				       ITE(majorCancel,
+					   sumResult.normaliseUp(extendedFormat),
+					   sumResult)));
+   
+   // Some thought is required here to convince yourself that 
+   // there will be no subnormal values that violate this.
+   // See 'all subnormals generated by addition are exact'
+   // and the extended exponent.
+   POSTCONDITION(additionResult.valid(extendedFormat));
+   
+   return floatWithCustomRounderInfo<t>(additionResult, customRounderInfo<t>(noOverflow, noUnderflow, exact, subnormalExact, noSignificandOverflow));   
+ }
+ 
+ template <class t>
+   unpackedFloat<t> dualPathArithmeticAdd (const typename t::fpt &format,
+					   const typename t::rm &roundingMode,
+					   const unpackedFloat<t> &left,
+					   const unpackedFloat<t> &right,
+					   const typename t::prop &isAdd) {
    
    typedef typename t::bwt bwt;
    typedef typename t::fpt fpt;
@@ -296,24 +454,45 @@ template <class t>
 
 
  template <class t>
+   unpackedFloat<t> dualPathAdd (const typename t::fpt &format,
+				 const typename t::rm &roundingMode,
+				 const unpackedFloat<t> &left,
+				 const unpackedFloat<t> &right,
+				 const typename t::prop &isAdd) {
+   
+   PRECONDITION(left.valid(format));
+   PRECONDITION(right.valid(format));
+
+   unpackedFloat<t> additionResult(dualPathArithmeticAdd(format, roundingMode, left, right, isAdd));
+
+   unpackedFloat<t> roundedAdditionResult(rounder(format, roundingMode, additionResult));
+
+   unpackedFloat<t> result(addAdditionSpecialCases(format, roundingMode, left, right, roundedAdditionResult, isAdd));
+   
+   POSTCONDITION(result.valid(format));
+   
+   return result;
+ }
+
+template <class t>
    unpackedFloat<t> add (const typename t::fpt &format,
 			 const typename t::rm &roundingMode,
 			 const unpackedFloat<t> &left,
 			 const unpackedFloat<t> &right,
 			 const typename t::prop &isAdd) {
-   // Optimisation : add a flag which assumes that left and right are in exponent order
+   // Optimisation : add a flag which assumes that left and right are in the correct order
    
    //typedef typename t::bwt bwt;
-   //typedef typename t::prop prop;
+   typedef typename t::prop prop;
    //typedef typename t::ubv ubv;
    //typedef typename t::sbv sbv;
    
    PRECONDITION(left.valid(format));
    PRECONDITION(right.valid(format));
 
-   unpackedFloat<t> additionResult(arithmeticAdd(format, roundingMode, left, right, isAdd));
+   floatWithCustomRounderInfo<t> additionResult(arithmeticAdd(format, roundingMode, left, right, isAdd, prop(false)));
 
-   unpackedFloat<t> roundedAdditionResult(rounder(format, roundingMode, additionResult));
+   unpackedFloat<t> roundedAdditionResult(customRounder(format, roundingMode, additionResult.uf, additionResult.known));
 
    unpackedFloat<t> result(addAdditionSpecialCases(format, roundingMode, left, right, roundedAdditionResult, isAdd));
    

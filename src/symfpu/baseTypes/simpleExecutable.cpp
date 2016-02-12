@@ -82,6 +82,17 @@ namespace symfpu {
       PRECONDITION(w != 1);
       return bitVector<uint64_t>(w, (1ULL << w) - 1);
     }
+
+    template <>
+    bitVector<int64_t> bitVector<int64_t>::minValue (const bitWidthType &w) {
+      PRECONDITION(w != 1);
+      return bitVector<int64_t>(w, -(1ULL << (w - 1)));
+    }
+    
+    template <>
+    bitVector<uint64_t> bitVector<uint64_t>::minValue (const bitWidthType &w) {
+      return bitVector<uint64_t>(w, 0);
+    }
     
 
     template <>
@@ -89,6 +100,12 @@ namespace symfpu {
       return bitVector<int64_t>(this->width, -this->value);
     }
 
+    // Used in addition
+    template <>
+    bitVector<uint64_t> bitVector<uint64_t>::operator- (void) const {
+      return bitVector<uint64_t>(this->width,
+				 bitVector<uint64_t>::makeRepresentable(this->width, (~this->value) + 1));
+    }
 
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::operator~ (void) const {
@@ -97,6 +114,7 @@ namespace symfpu {
     }
 
 
+    // This is wrong in the signed case as the sign bit it tracks and the sign bit in int64_t are in different places!
     static uint64_t stickyRightShift(const bool value, const bitWidthType width, const uint64_t left, const uint64_t right) {
       //uint64_t bitsInWord = bitVector<uint64_t>::maxWidth();
       uint64_t newValue = left;
@@ -136,12 +154,37 @@ namespace symfpu {
 									stickyRightShift(true, this->width, this->value, op.value)));
     }
 
+    template <>
+    bitVector<int64_t> bitVector<int64_t>::signExtendRightShift (const bitVector<int64_t> &op) const {
+      PRECONDITION(this->width == op.width);
+      PRECONDITION(this->width < CHAR_BIT*sizeof(int64_t));
+
+      int64_t newValue;
+      
+      if (this->value < 0) {
+	newValue = -(-(this->value) >> op.value);
+      } else {
+	newValue = this->value >> op.value;
+      }
+      
+      return bitVector<int64_t>(this->width,
+				bitVector<int64_t>::makeRepresentable(this->width, newValue));
+    }
+
     template<>
     bitVector<uint64_t> bitVector<uint64_t>::modularLeftShift (const bitVector<uint64_t> &op) const {
       PRECONDITION(this->width == op.width);
       return bitVector<uint64_t>(this->width, 
 				 bitVector<uint64_t>::makeRepresentable(this->width,
 									(op.value >= this->width) ? 0ULL : this->value << op.value));
+    }
+
+    template<>
+    bitVector<uint64_t> bitVector<uint64_t>::modularRightShift (const bitVector<uint64_t> &op) const {
+      PRECONDITION(this->width == op.width);
+      return bitVector<uint64_t>(this->width, 
+				 bitVector<uint64_t>::makeRepresentable(this->width,
+									(op.value >= this->width) ? 0ULL : this->value >> op.value));
     }
 
 

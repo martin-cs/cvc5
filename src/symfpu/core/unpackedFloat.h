@@ -305,9 +305,18 @@ namespace symfpu {
       // May loose data / be incorrect for very small exponents and very large significands
       sbv correctedExponent(this->exponent - signedAlignAmount);
 
-      // Optimisation : could do zero detection here but at the moment this is not needed
+      // Optimisation : could move the zero detect version in if used in all cases
       return unpackedFloat<t>(this->sign, correctedExponent, alignedSignificand);
     }
+
+    unpackedFloat<t> normaliseUpDetectZero (const fpt &format) const {
+      unpackedFloat<t> normal(this->normaliseUp(format));
+
+      return ITE(this->significand.isAllZeros(),
+		 unpackedFloat<t>::makeZero(format, this->sign),
+		 normal);
+    }
+
 
     
 #if 0
@@ -339,6 +348,7 @@ namespace symfpu {
     }
 #endif
 
+    
 
     // Is a well formed unpacked struct of the given format?
     // The format is needed to ensure that subnormals are correct.
@@ -358,11 +368,11 @@ namespace symfpu {
       prop oneFlag(nan || inf || zero);
       prop exponentIsDefault(defaultExponent(format) == exponent);
       prop significandIsDefault(defaultSignificand(format) == significand);
-      prop flagImpliesDefaultExponent(!oneFlag || exponentIsDefault);
-      prop flagImpliesDefaultSignificand(!oneFlag || significandIsDefault);
+      prop flagImpliesDefaultExponent(IMPLIES(oneFlag, exponentIsDefault));
+      prop flagImpliesDefaultSignificand(IMPLIES(oneFlag, significandIsDefault));
 
       // NaN has sign = 0
-      prop NaNImpliesSignFalse(!nan || !sign);
+      prop NaNImpliesSignFalse(IMPLIES(nan, !sign));
 
       // Exponent is in range
       prop exponentInRange(inNormalOrSubnormalRange(format));
@@ -381,7 +391,7 @@ namespace symfpu {
 
       prop correctlyAbbreviated((mask & significand).isAllZeros());
 
-      prop subnormalImpliesTrailingZeros(!inSubnormalRange(format) || correctlyAbbreviated);
+      prop subnormalImpliesTrailingZeros(IMPLIES(inSubnormalRange(format), correctlyAbbreviated));
 
       
       return (atMostOneFlag &&
@@ -471,6 +481,6 @@ template <class t>
 
 
 
-};
+}
 
 #endif

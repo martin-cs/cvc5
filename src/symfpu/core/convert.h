@@ -35,10 +35,10 @@
 namespace symfpu {
 
 template <class t>
-unpackedFloat<t> convert (const typename t::fpt &sourceFormat,
-			  const typename t::fpt &targetFormat,
-			  const typename t::rm &roundingMode,
-			  const unpackedFloat<t> &input) {
+unpackedFloat<t> convertFloatToFloat (const typename t::fpt &sourceFormat,
+				      const typename t::fpt &targetFormat,
+				      const typename t::rm &roundingMode,
+				      const unpackedFloat<t> &input) {
 
   PRECONDITION(input.valid(sourceFormat));
 
@@ -82,6 +82,66 @@ unpackedFloat<t> convert (const typename t::fpt &sourceFormat,
   }
 }
 
-};
+
+template <class t>
+  unpackedFloat<t> convertUBVToFloat (const typename t::fpt &targetFormat,
+				      const typename t::rm &roundingMode,
+				      const typename t::ubv &input) {
+
+  typedef typename t::bwt bwt;
+  typedef typename t::prop prop;
+  typedef typename t::ubv ubv;
+  typedef typename t::sbv sbv;
+  typedef typename t::fpt fpt;
+
+  bwt inputWidth(input.getWidth());
+  
+  // Devise an appropriate format 
+  bwt initialExponentWidth(bitsToRepresent<bwt>(inputWidth) + 1); // +1 as unsigned -> signed
+  fpt initialFormat(initialExponentWidth, inputWidth);
+
+  // Build
+  unpackedFloat<t> initial(prop(false), sbv(initialExponentWidth, inputWidth), input);
+  
+  // Normalise
+  unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
+
+  // Round (the conversion will catch the cases where no rounding is needed)
+  return convertFloatToFloat(initialFormat, targetFormat, roundingMode, normalised);
+ }
+
+ 
+template <class t>
+  unpackedFloat<t> convertSBVToFloat (const typename t::fpt &targetFormat,
+				      const typename t::rm &roundingMode,
+				      const typename t::sbv &input) {
+
+  typedef typename t::bwt bwt;
+  typedef typename t::prop prop;
+  typedef typename t::ubv ubv;
+  typedef typename t::sbv sbv;
+  typedef typename t::fpt fpt;
+
+  bwt inputWidth(input.getWidth());
+  
+  // Devise an appropriate format 
+  bwt initialExponentWidth(bitsToRepresent<bwt>(inputWidth) + 1); // +1 as unsigned -> signed
+  fpt initialFormat(initialExponentWidth, inputWidth + 1);        // +1 as signed -> unsigned
+
+  // Work out the sign
+  prop negative(input < sbv::zero(inputWidth));
+
+  // Build
+  unpackedFloat<t> initial(negative, sbv(initialExponentWidth, inputWidth), (abs<t,sbv>(input.extend(1))).toUnsigned());
+  
+  // Normalise
+  unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
+
+  // Round (the conversion will catch the cases where no rounding is needed)
+  return convertFloatToFloat(initialFormat, targetFormat, roundingMode, normalised);
+ }
+
+ 
+}
 
 #endif

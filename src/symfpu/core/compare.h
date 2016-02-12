@@ -77,11 +77,129 @@ namespace symfpu {
   }
   
 
-  
+  // Share the common comparison code between functions
+  // equality == true if the equal case returns true
+  // IEEE-754 semantics for ordering with NaN
+  // (i.e. unordered with everything, not even equal to itself)
+  template <class t>
+    typename t::prop ordering (const typename t::fpt &format, 
+			       const unpackedFloat<t> &left,
+			       const unpackedFloat<t> &right,
+			       const bool equality) {
+
+    typedef typename t::prop prop;
+
+    PRECONDITION(left.valid(format));
+    PRECONDITION(right.valid(format));
+
+    // All comparison with NaN are false
+    prop neitherNaN(!left.getNaN() && !right.getNaN());
+    
+    // Either is an infinity (wrong in the case of NaN but will be corrected)
+    prop infCase( (left.isNegativeInf() && ((equality) ? true : !right.isNegativeInf()) ) ||
+		  (right.isPositiveInf() && ((equality) ? true : !left.isPositiveInf()) ) ||
+		  ((equality) ? (left.getInf() && right.getInf() && left.getSign() == right.getSign()) : false));
+
+
+    // Either is a zero (wrong in the case of NaN but will be corrected)
+    prop zeroCase( ( left.getZero() && !right.getZero() && !right.getSign()) ||
+		   (right.getZero() && !left.getZero()  &&  left.getSign()) ||
+		   ((equality) ? (left.getZero() && right.getZero()) : false) );
+
+
+    // Normal and subnormal case
+    prop normalOrSubnormal(!left.getNaN()  && !right.getNaN() &&
+			   !left.getInf()  && !right.getInf() &&
+			   !left.getZero() && !right.getZero());
+
+    prop negativeLessThanPositive(normalOrSubnormal && left.getSign() && !right.getSign());
+
+    prop exponentNeeded(normalOrSubnormal && left.getSign() == right.getSign());
+    probabilityAnnotation<t>(exponentNeeded, UNLIKELY);
+    
+    prop positiveCase(!left.getSign() && !right.getSign() &&
+		      left.getExponent() < right.getExponent());
+    prop negativeCase( left.getSign() &&  right.getSign() &&
+		      left.getExponent() > right.getExponent());
+
+    
+    prop exponentEqual(left.getExponent() == right.getExponent());
+    
+    prop significandNeeded(exponentNeeded && exponentEqual);
+    probabilityAnnotation<t>(significandNeeded, VERYUNLIKELY);
+
+    prop positiveExEqCase(!left.getSign() && !right.getSign() &&
+			  left.getSignificand() < right.getSignificand());
+    prop negativeExEqCase( left.getSign() &&  right.getSign() &&
+			   left.getSignificand() > right.getSignificand());
+
+    prop positiveExEqCaseEq(!left.getSign() && !right.getSign() &&
+			    left.getSignificand() <= right.getSignificand());
+    prop negativeExEqCaseEq( left.getSign() &&  right.getSign() &&
+			     left.getSignificand() >= right.getSignificand());
+
+    return ITE(!normalOrSubnormal,
+	       neitherNaN && (infCase || zeroCase),
+	       ITE(!exponentNeeded,
+		   negativeLessThanPositive,
+		   ITE(!significandNeeded,
+		       positiveCase || negativeCase,
+		       (equality) ?
+		       positiveExEqCaseEq || negativeExEqCaseEq :
+		       positiveExEqCase || negativeExEqCase)));
+  }
+
+
   template <class t>
     typename t::prop lessThan (const typename t::fpt &format, 
 			       const unpackedFloat<t> &left,
 			       const unpackedFloat<t> &right) {
+    PRECONDITION(left.valid(format));
+    PRECONDITION(right.valid(format));
+
+    return ordering(format, left, right, false);
+  }
+
+  
+  template <class t>
+    typename t::prop lessThanOrEqual (const typename t::fpt &format, 
+				      const unpackedFloat<t> &left,
+				      const unpackedFloat<t> &right) {
+    PRECONDITION(left.valid(format));
+    PRECONDITION(right.valid(format));
+
+    return ordering(format, left, right, true);
+  }
+
+
+  // Note that IEEE-754 says that max(+0,-0) = +/-0 and max(-0,+0) = +/- 0
+  // this will always return the right one.
+  template <class t>
+  unpackedFloat<t> max (const typename t::fpt &format, 
+			const unpackedFloat<t> &left,
+			const unpackedFloat<t> &right) {
+    return ITE(left.getNaN() || ordering(format, left, right, true),
+	       right,
+	       left);
+  }
+
+  // Note that IEEE-754 says that min(+0,-0) = +/-0 and min(-0,+0) = +/- 0
+  // this will always return the left one.
+  template <class t>
+  unpackedFloat<t> min (const typename t::fpt &format, 
+			const unpackedFloat<t> &left,
+			const unpackedFloat<t> &right) {
+    return ITE(right.getNaN() || ordering(format, left, right, true),
+	       left,
+	       right);
+  }
+
+
+  
+  template <class t>
+    typename t::prop originalLessThan (const typename t::fpt &format, 
+				       const unpackedFloat<t> &left,
+				       const unpackedFloat<t> &right) {
 
     typedef typename t::prop prop;
 
@@ -130,9 +248,9 @@ namespace symfpu {
   
   // Optimised combination of the two
   template <class t>
-    typename t::prop lessThanOrEqual (const typename t::fpt &format, 
-				      const unpackedFloat<t> &left,
-				      const unpackedFloat<t> &right) {
+    typename t::prop originalLessThanOrEqual (const typename t::fpt &format, 
+					      const unpackedFloat<t> &left,
+					      const unpackedFloat<t> &right) {
 
     typedef typename t::prop prop;
 

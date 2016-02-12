@@ -1,4 +1,4 @@
-CXXFLAGS+=-Wall -W -frounding-math -fsignaling-nans -ffp-contract=off -msse2 -mfpmath=sse -pedantic
+CXXFLAGS+=-std=c++11 -Wall -W -frounding-math -fsignaling-nans -ffp-contract=off -msse2 -mfpmath=sse -pedantic
 SUBDIRS=applications/ utils/ baseTypes/ core/
 OBJECTFILES=utils/common.o baseTypes/simpleExecutable.o core/nondet.o
 LIBFILES=symfpu.a

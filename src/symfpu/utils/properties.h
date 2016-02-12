@@ -38,6 +38,8 @@
 #ifndef SYMFPU_PROPERTIES
 #define SYMFPU_PROPERTIES
 
+#define IMPLIES(X,Y) (!(X) || (Y))
+
 #define PRECONDITION(X) t::precondition(X)
 #define POSTCONDITION(X) t::postcondition(X)
 #define INVARIANT(X) t::invariant(X)

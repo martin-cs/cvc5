@@ -202,6 +202,7 @@ namespace symfpu {
       inline proposition isAllZeros() const {return proposition(this->value == 0);}
 
       static bitVector<T> maxValue (const bitWidthType &w);
+      static bitVector<T> minValue (const bitWidthType &w);
 
       /*** Operators ***/
       // Need to inline the operations where possible
@@ -242,6 +243,16 @@ namespace symfpu {
 	return bitVector<T>(this->width, this->value * op.value);
       }
 
+      inline bitVector<T> operator / (const bitVector<T> &op) const {
+	PRECONDITION(this->width == op.width);
+	return bitVector<T>(this->width, this->value / op.value);
+      }
+
+      inline bitVector<T> operator % (const bitVector<T> &op) const {
+	PRECONDITION(this->width == op.width);
+	return bitVector<T>(this->width, this->value % op.value);
+      }
+
       bitVector<T> operator - (void) const;
       bitVector<T> operator ~ (void) const;
 
@@ -256,8 +267,9 @@ namespace symfpu {
       bitVector<T> signExtendRightShift (const bitVector<T> &op) const;
 
 
-      /*** Modular opertaions ***/
+      /*** Modular operations ***/
       bitVector<T> modularLeftShift (const bitVector<T> &op) const;
+      bitVector<T> modularRightShift (const bitVector<T> &op) const;
 
       inline bitVector<T> modularIncrement () const {
 	return bitVector<T>(this->width, 

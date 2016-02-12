@@ -157,6 +157,6 @@ namespace symfpu {
     return result;
   }
 
-};
+}
 
 #endif

@@ -133,6 +133,7 @@ namespace symfpu {
       proposition isAllZeros() const;
 
       static bitVector<isSigned> maxValue (const bitWidthType &w);
+      static bitVector<isSigned> minValue (const bitWidthType &w);
 
       
       /*** Operators ***/
@@ -156,6 +157,8 @@ namespace symfpu {
       bitVector<isSigned> operator + (const bitVector<isSigned> &op) const;
       bitVector<isSigned> operator - (const bitVector<isSigned> &op) const;
       bitVector<isSigned> operator * (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator / (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> operator % (const bitVector<isSigned> &op) const;
       bitVector<isSigned> operator - (void) const;
       bitVector<isSigned> operator ~ (void) const;
       

@@ -115,6 +115,11 @@ namespace symfpu {
       // TODO : move to inheriting from Node rather than including it
       Node node;
 
+/* SYMBOLIC_EVAL is for debugging CVC4 symbolic back-end issues.
+ * Enable this and disabling constant folding will mean that operations
+ * that are input with constant args are 'folded' using the symbolic encoding
+ * allowing them to be traced via GDB.
+ */
 #ifdef SYMBOLIC_EVAL
       nodeWrapper (const Node n) : node(::CVC4::theory::Rewriter::rewrite(n)) {}
       nodeWrapper (const nodeWrapper &old) : node(::CVC4::theory::Rewriter::rewrite(old.node)) {}
@@ -378,6 +383,7 @@ namespace symfpu {
       inline proposition isAllZeros() const {return (*this == bitVector<isSigned>::zero(this->getWidth()));}
 
       static bitVector<isSigned> maxValue (const bitWidthType &w);
+      static bitVector<isSigned> minValue (const bitWidthType &w);
 
       
       /*** Operators ***/
@@ -407,7 +413,9 @@ namespace symfpu {
       }
 
       inline bitVector<isSigned> operator * (const bitVector<isSigned> &op) const;
-
+      inline bitVector<isSigned> operator / (const bitVector<isSigned> &op) const;
+      inline bitVector<isSigned> operator % (const bitVector<isSigned> &op) const;
+      
       inline bitVector<isSigned> operator - (void) const {
 	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_NEG, this->node));
       }
@@ -458,8 +466,6 @@ namespace symfpu {
       /*** Comparisons ***/
 
       inline proposition operator == (const bitVector<isSigned> &op) const {
-	::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();
-	
 #ifdef PROPSYMFPUISBOOL
 	return proposition(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::EQUAL, this->node, op.node));
 #else

@@ -73,21 +73,54 @@ namespace symfpu {
   /*** Conditional Operations ***/
   template <class t, class bv, class prop>
   inline bv conditionalIncrement (const prop &p, const bv &b) {
-    PRECONDITION(!p || b <  bv::maxValue(b.getWidth()));
+    PRECONDITION(IMPLIES(p, b <  bv::maxValue(b.getWidth())));
     
     bv incremented(b.modularIncrement());
     return bv(ITE(p, incremented, b));
   }
 
   template <class t, class bv, class prop>
+  inline bv conditionalDecrement (const prop &p, const bv &b) {
+    PRECONDITION(IMPLIES(p, b >  bv::minValue(b.getWidth())));
+    
+    bv incremented(b.modularDecrement());
+    return bv(ITE(p, incremented, b));
+  }
+
+  template <class t, class bv, class prop>
   inline bv conditionalLeftShiftOne (const prop &p, const bv &b) {
     typename t::bwt w(b.getWidth());
-    PRECONDITION(!p || (b.extract(w - 1, w - 1).isAllZeros()));
+    PRECONDITION(IMPLIES(p, (b.extract(w - 1, w - 1).isAllZeros())));
 
     bv shifted(b.modularLeftShift(bv::one(w)));
     return bv(ITE(p, shifted, b));
   }
 
+  template <class t, class bv, class prop>
+  inline bv conditionalRightShiftOne (const prop &p, const bv &b) {
+    typename t::bwt w(b.getWidth());
+    // PRECONDITION(IMPLIES(p, (b.extract(0, 0).isAllZeros())));  // Adder uses and compensates for this case.
+
+    bv shifted(b.modularRightShift(bv::one(w)));
+    return bv(ITE(p, shifted, b));
+  }
+
+  template <class t, class bv, class prop>
+  inline bv conditionalNegate (const prop &p, const bv &b) {
+    typename t::bwt w(b.getWidth());
+    PRECONDITION(w >= 2);
+    PRECONDITION(IMPLIES(p, !(b.extract(w - 1, w - 1).isAllOnes() &&
+			      b.extract(w - 2,     0).isAllZeros())));
+    
+    return bv(ITE(p, -b, b));
+  }
+
+  template <class t, class bv>
+  inline bv abs(const bv &b) {
+    return conditionalNegate(b < bv::zero(b.getWidth), b);
+  }
+
+  
 
   /*** Probability Annotations ***/
   enum probability {
@@ -124,7 +157,7 @@ namespace symfpu {
 		   upper,
 		   op));
   }
-
+  
 
   /*** Unary/Binary operations ***/
   template <class t, class bv, class prop, class bwt>
@@ -177,6 +210,82 @@ namespace symfpu {
 		     bv::one(op.getWidth())));
     
     return stickyBit;
+  }
+
+
+  /*** Dividers ***/
+  template <class t>
+  struct resultWithRemainderBit {
+    typedef typename t::ubv ubv;
+    typedef typename t::prop prop;
+    
+    ubv result;
+    prop remainderBit;
+    
+  resultWithRemainderBit(const ubv &o, const prop &r) : result(o), remainderBit(r) {}
+  resultWithRemainderBit(const resultWithRemainderBit<t> &old) : result(old.result), remainderBit(old.remainderBit) {}
+  };
+  
+  // x and y are fixed-point numbers in the range [1,2)
+  // Compute o \in [0.5,2), r \in [0,\delta) such that:  x = o*y + r
+  // Return (o, r != 0)
+  template <class t>
+  inline resultWithRemainderBit<t> fixedPointDivide (const typename t::ubv &x, const typename t::ubv &y) {
+    typename t::bwt w(x.getWidth());
+
+    // Same width and both have MSB ones
+    PRECONDITION(y.getWidth() == w);
+    PRECONDITION(x.extract(w - 1, w - 1).isAllOnes());
+    PRECONDITION(y.extract(w - 1, w - 1).isAllOnes());
+
+    typedef typename t::ubv ubv;
+    
+    // Not the best way of doing this but pretty universal
+    ubv ex(x.append(ubv::zero(w - 1)));
+    ubv ey(y.extend(w - 1));
+
+    ubv div(ex / ey);
+    ubv rem(ex % ey);
+
+    return resultWithRemainderBit<t>(div.extract(w - 1, 0), !(rem.isAllZeros()));
+  }
+
+  
+  // x is a fixed-point number in the range [1,4) with 2/p bits
+  // Compute o \in [1,sqrt(2)), r \in [0,o*2 + 1) such that x = o*o + r with 1/p bits
+  // Return (o, r != 0)
+  template <class t>
+  inline resultWithRemainderBit<t> fixedPointSqrt (const typename t::ubv &x) {
+    typedef typename t::bwt bwt;
+    typedef typename t::ubv ubv;
+    typedef typename t::prop prop;
+
+    // The default algorithm given here isn't a great one
+    // However it is simple and has a very simple termination criteria.
+    // Plus most symbolic back ends will prefer
+    // o = nondet(), r = nondet(), assert(r < o*2 + 1), assert(x = o*o + r)
+
+    bwt inputWidth(x.getWidth());
+    bwt outputWidth(inputWidth - 1);
+
+    // To compare against, we need to pad x to 2/2p
+    ubv xcomp(x.append(ubv::zero(inputWidth - 2))); 
+
+    // Start at 1
+    ubv working(ubv::one(outputWidth) << ubv(outputWidth, outputWidth - 1));
+
+    bwt location;
+    for (location = outputWidth - 1; location > 0; --location) { // Offset by 1 for easy termination
+      ubv shift(ubv(outputWidth, location - 1));
+      
+      ubv candidate(working | (ubv::one(outputWidth) << shift));
+
+      prop addBit(expandingMultiply<t, ubv>(candidate, candidate) <= xcomp);
+
+      working = working | (ubv(addBit).extend(outputWidth - 1) << shift);
+    }
+    
+    return resultWithRemainderBit<t>(working, !(expandingMultiply<t, ubv>(working, working) == xcomp));
   }
   
 }

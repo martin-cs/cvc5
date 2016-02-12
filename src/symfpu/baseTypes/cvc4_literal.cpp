@@ -64,12 +64,24 @@ namespace symfpu {
       }
     }
 
-
+    /*
     template <>
     bitVector<false> bitVector<false>::maxValue (const bitWidthType &w) {
       return bitVector<false>::allOnes(w);
     }
+    */
 
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::minValue (const bitWidthType &w) {
+      if (isSigned) {
+	CVC4BV base(w, 1U);
+	return bitVector<true>(base::leftShift(w - 1));
+      } else {
+	return bitVector<false>::zero(w);
+      }
+    }
+
+    
 
     /*** Operators ***/
     template <bool isSigned>
@@ -103,6 +115,12 @@ namespace symfpu {
 
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::operator * (const bitVector<isSigned> &op) const { return this->CVC4BV::operator*(op); }
+
+    template <>
+    bitVector<false> bitVector<false>::operator / (const bitVector<false> &op) const { return this->CVC4BV::unsignedDivTotal(op); }
+
+    template <>
+    bitVector<false> bitVector<false>::operator % (const bitVector<false> &op) const { return this->CVC4BV::unsignedRemTotal(op); }
 
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::operator - (void) const { return this->CVC4BV::operator-(); }

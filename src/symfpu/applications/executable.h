@@ -15,6 +15,8 @@
 ** along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// DEPRECIATED : USE implementation.h instead
+
 /*
 ** executable.h
 **
@@ -43,68 +45,6 @@
 
 #ifndef SYMFPU_EXECUTABLE
 #define SYMFPU_EXECUTABLE
-
-
-// C++ has some great features...
-// ... this is a work around for one of the ones it is missing...
-
-template <class execFloat>
-class referenceFunctions {
- public :
-  static execFloat abs (execFloat f);
-
-  // These will work for any inbuilt float-type, specialisations need for others
-  // Name changes because they are macros...
-
-  static int fpClassify (execFloat f) { return fpclassify(f); }
-  static int isNormal (execFloat f) { return isnormal(f); }
-  static int isSubnormal (execFloat f) { return fpclassify(f) == FP_SUBNORMAL; }
-  static int isZero (execFloat f);
-  static int isInf (execFloat f) { return isinf(f); }
-  static int isNaN (execFloat f) { return isnan(f); }
-  static int isPositive (execFloat f) { return !isnan(f) && !signbit(f); }
-  static int isNegative (execFloat f) { return !isnan(f) &&  signbit(f); }
-
-};
-
-// Specialisations for the obvious execFloat types
-// To use other types as the reference, more instantiations will be needed
-
-template <>
-float referenceFunctions<float>::abs (float f) {
-  return fabsf(f);
-}
-
-template <>
-double referenceFunctions<double>::abs (double f) {
-  return fabs(f);
-}
-
-template <>
-long double referenceFunctions<long double>::abs (long double f) {
-  return fabsl(f);
-}
-
-
-
-template <>
-int referenceFunctions<float>::isZero (float f) {
-  return f == 0.0f;
-}
-
-template <>
-int referenceFunctions<double>::isZero (double f) {
-  return f == 0.0;
-}
-
-template <>
-int referenceFunctions<long double>::isZero (long double f) {
-  return f == 0.0l;
-}
-
-
-
-
 
 
 
@@ -182,7 +122,7 @@ template <class execBV, class execFloat, class traits>
     static execBV absoluteReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      f = referenceFunctions<execFloat>::abs(f);
+      f = nativeFunctions<execFloat>::abs(f);
 
       return *((execBV *)&f);
     }
@@ -201,7 +141,7 @@ template <class execBV, class execFloat, class traits>
     static bool isNormalReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isNormal(f);
+      return nativeFunctions<execFloat>::isNormal(f);
     }
 
 
@@ -219,7 +159,7 @@ template <class execBV, class execFloat, class traits>
     static bool isSubnormalReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isSubnormal(f);
+      return nativeFunctions<execFloat>::isSubnormal(f);
     }
 
 
@@ -238,7 +178,7 @@ template <class execBV, class execFloat, class traits>
     static bool isZeroReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isZero(f);
+      return nativeFunctions<execFloat>::isZero(f);
     }
 
 
@@ -256,7 +196,7 @@ template <class execBV, class execFloat, class traits>
     static bool isInfiniteReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isInf(f);
+      return nativeFunctions<execFloat>::isInf(f);
     }
 
 
@@ -274,7 +214,7 @@ template <class execBV, class execFloat, class traits>
     static bool isNaNReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isNaN(f);
+      return nativeFunctions<execFloat>::isNaN(f);
     }
 
 
@@ -293,7 +233,7 @@ template <class execBV, class execFloat, class traits>
     static bool isPositiveReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isPositive(f);
+      return nativeFunctions<execFloat>::isPositive(f);
     }
 
 
@@ -311,7 +251,7 @@ template <class execBV, class execFloat, class traits>
     static bool isNegativeReference (const fpt &, execBV bv) {
       execFloat f = *((execFloat *)&bv);
 
-      return referenceFunctions<execFloat>::isNegative(f);
+      return nativeFunctions<execFloat>::isNegative(f);
     }
 
 
@@ -331,7 +271,7 @@ template <class execBV, class execFloat, class traits>
       execFloat f = *((execFloat *)(&bv1));
       execFloat g = *((execFloat *)(&bv2));
 
-      return (bv1 == bv2) || (referenceFunctions<execFloat>::isNaN(f) && referenceFunctions<execFloat>::isNaN(g));
+      return (bv1 == bv2) || (nativeFunctions<execFloat>::isNaN(f) && nativeFunctions<execFloat>::isNaN(g));
     }
 
 

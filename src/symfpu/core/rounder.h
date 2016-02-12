@@ -79,6 +79,7 @@
  *
  *    Multiplicative
  *     May be able to increment without overflow.
+ *      It only seems to be possible for subnormals.
  *     Don't need to extend the exponent to increment when normalising.
  *     Can use injection bits during the multiplication reduction tree,
  *      the problem with the carry up can be fixed afterwards with an
@@ -98,10 +99,32 @@
 
 namespace symfpu {
 
+  // Allows various of the key branches in the rounder to be fixed / removed
+  // using information that is known from the operation in which the rounder
+  // is used. Setting these to false gives the usual rounder.
+  template <class t>
+  struct customRounderInfo {
+    typedef typename t::prop prop;
+
+    prop noOverflow;
+    prop noUnderflow;
+    prop exact;                 // Significand does not need to be changed
+    prop subnormalExact;        // If the value is subnormal then it is exact
+    prop noSignificandOverflow; // Incrementing the significand will not cause overflow
+    //prop stickyIsZero;        // Can be fixed in the number directly
+    
+    customRounderInfo (const prop &noO, const prop &noU,
+		       const prop &e, const prop &sE,
+		       const prop &nSO) :
+      noOverflow(noO), noUnderflow(noU), exact(e),
+      subnormalExact(sE), noSignificandOverflow(nSO) {}
+  };
+  
 template <class t>
   unpackedFloat<t> customRounder (const typename t::fpt &format,
 				  const typename t::rm &roundingMode,
-				  const unpackedFloat<t> &uf) {
+				  const unpackedFloat<t> &uf,
+				  const customRounderInfo<t> &known) {
 
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
@@ -155,8 +178,10 @@ template <class t>
 
 
   /*** Normal or subnormal rounding? ***/
-  prop normalRounding(exp >= unpackedFloat<t>::minNormalExponent(format).extend(exponentExtension));
-  probabilityAnnotation<t>(normalRounding, LIKELY);
+  prop normalRoundingRange(exp >= unpackedFloat<t>::minNormalExponent(format).extend(exponentExtension));
+  probabilityAnnotation<t>(normalRoundingRange, LIKELY);
+  prop normalRounding(normalRoundingRange || known.subnormalExact);
+
   
 
   /*** Round to correct significand. ***/
@@ -179,7 +204,7 @@ template <class t>
   
   ubv subnormalMask(orderEncode<t>(subnormalShiftPrepared)); // Invariant implies this if all ones, it will not be used
   ubv subnormalIncrementAmount(subnormalMask.modularIncrement()); // The only case when this looses info is earlyUnderflow
-  INVARIANT(!subnormalIncrementAmount.isAllZeros() || earlyUnderflow);
+  INVARIANT(IMPLIES(subnormalIncrementAmount.isAllZeros(), earlyUnderflow));
   ubv subnormalStickyMask(subnormalMask >> ubv::one(targetSignificandWidth + 1)); // +1 as the exponent is extended
   ubv subnormalGuardLocation(subnormalMask & (~subnormalStickyMask));
 
@@ -202,7 +227,9 @@ template <class t>
   prop roundUpRTP(roundingMode == t::RTP() && !uf.getSign() && (choosenGuardBit || choosenStickyBit));
   prop roundUpRTN(roundingMode == t::RTN() &&  uf.getSign() && (choosenGuardBit || choosenStickyBit));
   prop roundUpRTZ(roundingMode == t::RTZ() && prop(false));
-  prop roundUp(roundUpRNE || roundUpRNA || roundUpRTP || roundUpRTN || roundUpRTZ);
+  prop roundUp(!known.exact &&
+	       !(known.subnormalExact && !normalRoundingRange) &&
+	       (roundUpRNE || roundUpRNA || roundUpRTP || roundUpRTN || roundUpRTZ));
 
 
   // Perform the increment as needed
@@ -228,11 +255,11 @@ template <class t>
   
   // We might have lost the leading one, if so, re-add and note that we need to increment the significand
   prop significandOverflow(rawRoundedSignificand.extract(targetSignificandWidth, targetSignificandWidth).isAllOnes());
-  INVARIANT(!(significandOverflow && !roundUp));
+  INVARIANT(IMPLIES(significandOverflow, roundUp));
   
   ubv extractedRoundedSignificand(rawRoundedSignificand.extract(targetSignificandWidth - 1, 0));
   ubv roundedSignificand(extractedRoundedSignificand | leadingOne);
-  INVARIANT(!significandOverflow || extractedRoundedSignificand.isAllZeros());
+  INVARIANT(IMPLIES(significandOverflow, extractedRoundedSignificand.isAllZeros()));
 
   
 
@@ -242,8 +269,10 @@ template <class t>
   // The extend is almost certainly unnecessary (see specialised rounders)
   sbv extendedExponent(exp.extend(1));
 
-  prop incrementExponent(roundUp && significandOverflow);  // The roundUp is implied but kept for signal forwarding
-  probabilityAnnotation<t>(incrementExponent, VERYUNLIKELY);
+  prop incrementExponentNeeded(roundUp && significandOverflow);  // The roundUp is implied but kept for signal forwarding
+  probabilityAnnotation<t>(incrementExponentNeeded, VERYUNLIKELY);
+  prop incrementExponent(!known.noSignificandOverflow && incrementExponentNeeded);
+  INVARIANT(IMPLIES(known.noSignificandOverflow, !incrementExponentNeeded));
   
   sbv correctedExponent(conditionalIncrement<t>(incrementExponent, extendedExponent));
 
@@ -274,8 +303,8 @@ template <class t>
   /*** Underflow and overflow ***/
 
   // So that ITE abstraction works...
-  prop overflow(ITE(lateOverflow, prop(true), earlyOverflow));
-  prop underflow(ITE(lateUnderflow, prop(true), earlyUnderflow));
+  prop overflow(!known.noOverflow && ITE(lateOverflow, prop(true), earlyOverflow));
+  prop underflow(!known.noUnderflow && ITE(lateUnderflow, prop(true), earlyUnderflow));
 
   // On overflow either return inf or max
   prop returnInf(roundingMode == t::RNE() || 
@@ -510,7 +539,10 @@ template <class t>
   unpackedFloat<t> rounder (const typename t::fpt &format,
 			    const typename t::rm &roundingMode,
 			    const unpackedFloat<t> &uf) {
-  return customRounder(format, roundingMode, uf);
+  typedef typename t::prop prop;
+  customRounderInfo<t> cri(prop(false), prop(false), prop(false), prop(false), prop(false));  // Default is to know nothing
+  
+  return customRounder(format, roundingMode, uf, cri);
  }
 
 

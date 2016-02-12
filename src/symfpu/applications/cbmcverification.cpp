@@ -47,6 +47,7 @@ static int assumeFirstPrecondition = 1;
 
 
 #include "symfpu/baseTypes/simpleExecutable.h"
+#include "symfpu/applications/implementations.h"
 #include "symfpu/applications/executable.h"
 
 
@@ -106,41 +107,41 @@ namespace singlePrecision {
   
   typedef executableTests<uint32_t, float, traits> test;
   
-  UNARYFUNCTIONTEST(uint32_t, unpackPack);
-  UNARYFUNCTIONTEST(uint32_t, negate);
-  UNARYFUNCTIONTEST(uint32_t, absolute);
+  UNARYFUNCTIONTEST(uint32_t, unpackPack)
+  UNARYFUNCTIONTEST(uint32_t, negate)
+  UNARYFUNCTIONTEST(uint32_t, absolute)
 
-  UNARYPREDICATETEST(uint32_t, isNormal);
-  UNARYPREDICATETEST(uint32_t, isSubnormal);
-  UNARYPREDICATETEST(uint32_t, isZero);
-  UNARYPREDICATETEST(uint32_t, isInfinite);
-  UNARYPREDICATETEST(uint32_t, isPositive);
-  UNARYPREDICATETEST(uint32_t, isNegative);
+  UNARYPREDICATETEST(uint32_t, isNormal)
+  UNARYPREDICATETEST(uint32_t, isSubnormal)
+  UNARYPREDICATETEST(uint32_t, isZero)
+  UNARYPREDICATETEST(uint32_t, isInfinite)
+  UNARYPREDICATETEST(uint32_t, isPositive)
+  UNARYPREDICATETEST(uint32_t, isNegative)
 
-  BINARYPREDICATETEST(uint32_t, smtlibEqual);
-  BINARYPREDICATETEST(uint32_t, ieee754Equal);
-  BINARYPREDICATETEST(uint32_t, lessThan);
-  BINARYPREDICATETEST(uint32_t, lessThanOrEqual);
+  BINARYPREDICATETEST(uint32_t, smtlibEqual)
+  BINARYPREDICATETEST(uint32_t, ieee754Equal)
+  BINARYPREDICATETEST(uint32_t, lessThan)
+  BINARYPREDICATETEST(uint32_t, lessThanOrEqual)
 
-  BINARYFUNCTIONTEST(uint32_t, RNE, add);
-  BINARYFUNCTIONTEST(uint32_t, RNA, add);
-  BINARYFUNCTIONTEST(uint32_t, RTP, add);
-  BINARYFUNCTIONTEST(uint32_t, RTN, add);
-  BINARYFUNCTIONTEST(uint32_t, RTZ, add);
+  BINARYFUNCTIONTEST(uint32_t, RNE, add)
+  BINARYFUNCTIONTEST(uint32_t, RNA, add)
+  BINARYFUNCTIONTEST(uint32_t, RTP, add)
+  BINARYFUNCTIONTEST(uint32_t, RTN, add)
+  BINARYFUNCTIONTEST(uint32_t, RTZ, add)
 
-  BINARYFUNCTIONTEST(uint32_t, RNE, multiply);
-  BINARYFUNCTIONTEST(uint32_t, RNA, multiply);
-  BINARYFUNCTIONTEST(uint32_t, RTP, multiply);
-  BINARYFUNCTIONTEST(uint32_t, RTN, multiply);
-  BINARYFUNCTIONTEST(uint32_t, RTZ, multiply);
+  BINARYFUNCTIONTEST(uint32_t, RNE, multiply)
+  BINARYFUNCTIONTEST(uint32_t, RNA, multiply)
+  BINARYFUNCTIONTEST(uint32_t, RTP, multiply)
+  BINARYFUNCTIONTEST(uint32_t, RTN, multiply)
+  BINARYFUNCTIONTEST(uint32_t, RTZ, multiply)
 
-  BINARYFUNCTIONTEST(uint32_t, RNE, sub);
-  BINARYFUNCTIONTEST(uint32_t, RNA, sub);
-  BINARYFUNCTIONTEST(uint32_t, RTP, sub);
-  BINARYFUNCTIONTEST(uint32_t, RTN, sub);
-  BINARYFUNCTIONTEST(uint32_t, RTZ, sub);
+  BINARYFUNCTIONTEST(uint32_t, RNE, sub)
+  BINARYFUNCTIONTEST(uint32_t, RNA, sub)
+  BINARYFUNCTIONTEST(uint32_t, RTP, sub)
+  BINARYFUNCTIONTEST(uint32_t, RTN, sub)
+  BINARYFUNCTIONTEST(uint32_t, RTZ, sub)
 
-};
+}
 
 
 
@@ -152,41 +153,41 @@ namespace doublePrecision {
   
   typedef executableTests<uint64_t, double, traits> test;
   
-  UNARYFUNCTIONTEST(uint64_t, unpackPack);
-  UNARYFUNCTIONTEST(uint64_t, negate);
-  UNARYFUNCTIONTEST(uint64_t, absolute);
+  UNARYFUNCTIONTEST(uint64_t, unpackPack)
+  UNARYFUNCTIONTEST(uint64_t, negate)
+  UNARYFUNCTIONTEST(uint64_t, absolute)
 
-  UNARYPREDICATETEST(uint64_t, isNormal);
-  UNARYPREDICATETEST(uint64_t, isSubnormal);
-  UNARYPREDICATETEST(uint64_t, isZero);
-  UNARYPREDICATETEST(uint64_t, isInfinite);
-  UNARYPREDICATETEST(uint64_t, isPositive);
-  UNARYPREDICATETEST(uint64_t, isNegative);
+  UNARYPREDICATETEST(uint64_t, isNormal)
+  UNARYPREDICATETEST(uint64_t, isSubnormal)
+  UNARYPREDICATETEST(uint64_t, isZero)
+  UNARYPREDICATETEST(uint64_t, isInfinite)
+  UNARYPREDICATETEST(uint64_t, isPositive)
+  UNARYPREDICATETEST(uint64_t, isNegative)
 
-  BINARYPREDICATETEST(uint64_t, smtlibEqual);
-  BINARYPREDICATETEST(uint64_t, ieee754Equal);
-  BINARYPREDICATETEST(uint64_t, lessThan);
-  BINARYPREDICATETEST(uint64_t, lessThanOrEqual);
+  BINARYPREDICATETEST(uint64_t, smtlibEqual)
+  BINARYPREDICATETEST(uint64_t, ieee754Equal)
+  BINARYPREDICATETEST(uint64_t, lessThan)
+  BINARYPREDICATETEST(uint64_t, lessThanOrEqual)
 
-  BINARYFUNCTIONTEST(uint64_t, RNE, add);
-  BINARYFUNCTIONTEST(uint64_t, RNA, add);
-  BINARYFUNCTIONTEST(uint64_t, RTP, add);
-  BINARYFUNCTIONTEST(uint64_t, RTN, add);
-  BINARYFUNCTIONTEST(uint64_t, RTZ, add);
+  BINARYFUNCTIONTEST(uint64_t, RNE, add)
+  BINARYFUNCTIONTEST(uint64_t, RNA, add)
+  BINARYFUNCTIONTEST(uint64_t, RTP, add)
+  BINARYFUNCTIONTEST(uint64_t, RTN, add)
+  BINARYFUNCTIONTEST(uint64_t, RTZ, add)
 
-  BINARYFUNCTIONTEST(uint64_t, RNE, multiply);
-  BINARYFUNCTIONTEST(uint64_t, RNA, multiply);
-  BINARYFUNCTIONTEST(uint64_t, RTP, multiply);
-  BINARYFUNCTIONTEST(uint64_t, RTN, multiply);
-  BINARYFUNCTIONTEST(uint64_t, RTZ, multiply);
+  BINARYFUNCTIONTEST(uint64_t, RNE, multiply)
+  BINARYFUNCTIONTEST(uint64_t, RNA, multiply)
+  BINARYFUNCTIONTEST(uint64_t, RTP, multiply)
+  BINARYFUNCTIONTEST(uint64_t, RTN, multiply)
+  BINARYFUNCTIONTEST(uint64_t, RTZ, multiply)
 
-  BINARYFUNCTIONTEST(uint64_t, RNE, sub);
-  BINARYFUNCTIONTEST(uint64_t, RNA, sub);
-  BINARYFUNCTIONTEST(uint64_t, RTP, sub);
-  BINARYFUNCTIONTEST(uint64_t, RTN, sub);
-  BINARYFUNCTIONTEST(uint64_t, RTZ, sub);
+  BINARYFUNCTIONTEST(uint64_t, RNE, sub)
+  BINARYFUNCTIONTEST(uint64_t, RNA, sub)
+  BINARYFUNCTIONTEST(uint64_t, RTP, sub)
+  BINARYFUNCTIONTEST(uint64_t, RTN, sub)
+  BINARYFUNCTIONTEST(uint64_t, RTZ, sub)
 
-};
+}
 
 
 
