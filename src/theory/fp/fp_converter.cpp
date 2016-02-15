@@ -26,7 +26,7 @@
 #include "symfpu/core/multiply.h"
 #include "symfpu/core/fma.h"
 #include "symfpu/core/sqrt.h"
-#include "symfpu/core/div.h"
+#include "symfpu/core/divide.h"
 #include "symfpu/core/compare.h"
 #include "symfpu/core/classify.h"
 #include "symfpu/core/convert.h"

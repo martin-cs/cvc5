@@ -63,30 +63,7 @@ namespace symfpu {
     template <>
     bitVector<false> bitVector<false>::minValue (const bitWidthType &w) {
       return bitVector<false>::zero(w);
-    }
-
-
-    template <>
-    inline bitVector<true> bitVector<true>::operator / (const bitVector<true> &op) const {
-      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SDIV, this->node, op.node));
-    }
-
-    template <>
-    inline bitVector<false> bitVector<false>::operator / (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UDIV, this->node, op.node));
-    }
-    
-    template <>
-    inline bitVector<true> bitVector<true>::operator % (const bitVector<true> &op) const {
-      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SREM, this->node, op.node));
-    }
-
-    template <>
-    inline bitVector<false> bitVector<false>::operator % (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UREM, this->node, op.node));
-    }
-    
-
+    }    
     
   };
 };

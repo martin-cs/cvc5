@@ -48,7 +48,7 @@ protected :
 
 public:
 
-  FloatingPointEnumerator(TypeNode type) throw(AssertionException) :
+  FloatingPointEnumerator(TypeNode type, TypeEnumeratorProperties * tep = NULL) throw(AssertionException) :
     TypeEnumeratorBase<FloatingPointEnumerator>(type),
       e(type.getFloatingPointExponentSize()),
       s(type.getFloatingPointSignificandSize()),

@@ -443,6 +443,10 @@ namespace symfpu {
       inline bitVector<isSigned> modularLeftShift (const bitVector<isSigned> &op) const {
 	return *this << op;
       }
+      
+      inline bitVector<isSigned> modularRightShift (const bitVector<isSigned> &op) const {
+	return *this >> op;
+      }
 
       inline bitVector<isSigned> modularIncrement () const {
 	return this->increment();
@@ -565,6 +569,26 @@ namespace symfpu {
       return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_MULT, this->node, op.node));
     }
     
+    template <>
+    inline bitVector<true> bitVector<true>::operator / (const bitVector<true> &op) const {
+      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SDIV, this->node, op.node));
+    }
+
+    template <>
+    inline bitVector<false> bitVector<false>::operator / (const bitVector<false> &op) const {
+      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UDIV, this->node, op.node));
+    }
+    
+    template <>
+    inline bitVector<true> bitVector<true>::operator % (const bitVector<true> &op) const {
+      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SREM, this->node, op.node));
+    }
+
+    template <>
+    inline bitVector<false> bitVector<false>::operator % (const bitVector<false> &op) const {
+      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UREM, this->node, op.node));
+    }
+
     template <>
     inline bitVector<true> bitVector<true>::extend(bitWidthType extension) const {
       ::CVC4::NodeBuilder<> construct(::CVC4::kind::BITVECTOR_SIGN_EXTEND);
