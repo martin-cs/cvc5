@@ -171,6 +171,7 @@ namespace symfpu {
       /*** Modular opertaions ***/
       // No overflow checking so these are the same as other operations
       bitVector<isSigned> modularLeftShift (const bitVector<isSigned> &op) const;
+      bitVector<isSigned> modularRightShift (const bitVector<isSigned> &op) const;
       bitVector<isSigned> modularIncrement () const;
       bitVector<isSigned> modularDecrement () const;
       bitVector<isSigned> modularAdd (const bitVector<isSigned> &op) const;

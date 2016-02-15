@@ -27,6 +27,8 @@
 **
 */
 
+#include "base/cvc4_assert.h"
+
 // cvc4_literal.h needs definition from util/floatingpoint.h and is included in the middle of it
 #include "util/floatingpoint.h"
 #include "symfpu/baseTypes/cvc4_literal.h"
@@ -75,7 +77,7 @@ namespace symfpu {
     bitVector<isSigned> bitVector<isSigned>::minValue (const bitWidthType &w) {
       if (isSigned) {
 	CVC4BV base(w, 1U);
-	return bitVector<true>(base::leftShift(w - 1));
+	return bitVector<true>(base.leftShift(w - 1));
       } else {
 	return bitVector<false>::zero(w);
       }
@@ -150,6 +152,11 @@ namespace symfpu {
     template <bool isSigned>
     bitVector<isSigned> bitVector<isSigned>::modularLeftShift (const bitVector<isSigned> &op) const {
       return *this << op;
+    }
+
+    template <bool isSigned>
+    bitVector<isSigned> bitVector<isSigned>::modularRightShift (const bitVector<isSigned> &op) const {
+      return *this >> op;
     }
 
     template <bool isSigned>

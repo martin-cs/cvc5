@@ -41,11 +41,11 @@
 
 
 // CVC4 headers
+#include "base/cvc4_assert.h"
 #include "expr/node.h"
 #include "expr/type.h"
 #include "expr/node_builder.h"
 #include "util/bitvector.h"
-#include "util/cvc4_assert.h"
 
 #ifdef SYMBOLIC_EVAL
 // This allows debugging of the CVC4 symbolic back-end.

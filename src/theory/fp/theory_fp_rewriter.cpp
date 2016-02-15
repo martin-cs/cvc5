@@ -225,6 +225,9 @@ namespace constantFold {
 
   RewriteResponse convertFromRealLiteral (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
+
+    const Rational r = node[1].getConst<Rational>();
+    
 #if 0
     // \todo Honour the rounding mode and work for something other than doubles!
 
@@ -496,7 +499,7 @@ namespace constantFold {
   RewriteResponse roundingModeBitBlast (TNode node, bool) {
     Assert(node.getKind() == kind::ROUNDINGMODE_BITBLAST);
 
-    RoundingMode arg0(node[0].getConst<RoundingMode>());
+    //RoundingMode arg0(node[0].getConst<RoundingMode>());
     BitVector value;
   
     /* \todo fix the numbering of rounding modes so this doesn't need 

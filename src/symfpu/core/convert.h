@@ -90,7 +90,6 @@ template <class t>
 
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
-  typedef typename t::ubv ubv;
   typedef typename t::sbv sbv;
   typedef typename t::fpt fpt;
 
@@ -118,7 +117,6 @@ template <class t>
 
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
-  typedef typename t::ubv ubv;
   typedef typename t::sbv sbv;
   typedef typename t::fpt fpt;
 

@@ -167,7 +167,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   }
 
   FloatingPoint FloatingPoint::convert (const FloatingPointSize &target, const RoundingMode &rm) const {
-    return FloatingPoint(t, symfpu::convert<symfpuLiteral::traits>(t, target, rm, fpl));
+    return FloatingPoint(t, symfpu::convertFloatToFloat<symfpuLiteral::traits>(t, target, rm, fpl));
   }
 
   BitVector FloatingPoint::pack (void) const {

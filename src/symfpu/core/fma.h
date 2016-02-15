@@ -64,9 +64,9 @@ namespace symfpu {
    INVARIANT(multiplyResult.valid(extendedFormat));
 
    // Rounding mode doesn't matter as this is a strict extension
-   unpackedFloat<t> extendedAddArgument(convert(format, extendedFormat, t::RTZ(), addArgument));
+   unpackedFloat<t> extendedAddArgument(convertFloatToFloat(format, extendedFormat, t::RTZ(), addArgument));
 
-   unpackedFloat<t> additionResult(arithmeticAdd(extendedFormat, roundingMode, multiplyResult, extendedAddArgument, prop(true)).uf);
+   unpackedFloat<t> additionResult(arithmeticAdd(extendedFormat, roundingMode, multiplyResult, extendedAddArgument, prop(true), prop(false)).uf);
    // Custom rounder flags are ignored as they are not applicable in this case
    
    unpackedFloat<t> roundedResult(rounder(format, roundingMode, additionResult));
