@@ -244,11 +244,13 @@ namespace symfpu {
       }
 
       inline bitVector<T> operator / (const bitVector<T> &op) const {
+	PRECONDITION(op.value != 0);
 	PRECONDITION(this->width == op.width);
 	return bitVector<T>(this->width, this->value / op.value);
       }
 
       inline bitVector<T> operator % (const bitVector<T> &op) const {
+	PRECONDITION(op.value != 0);
 	PRECONDITION(this->width == op.width);
 	return bitVector<T>(this->width, this->value % op.value);
       }

@@ -226,7 +226,75 @@ namespace constantFold {
   RewriteResponse convertFromRealLiteral (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
 
-    const Rational r = node[1].getConst<Rational>();
+#if 0    
+    Rational r = node[1].getConst<Rational>();
+    Rational two(2,1);
+    
+    if (r.isZero()) {
+      // Return 0
+      
+    } else {
+      int negative = (r.sgn() < 0) ? 1 : 0;
+      r.abs();
+
+      // Compute the exponent
+      Rational exp = 0;
+      Rational working(1,1);
+
+      if (r == working) {
+
+      } else if ( r < working ) {
+	while (r < working) {
+	  exp--;
+	  working /= two;
+	}
+	exp++;
+	working *= two;
+	
+      } else {
+	while (r > working) {
+	  exp++;
+	  working *= two;
+	}
+	exp--;
+	working /= two;
+      }
+
+      Assert(working <= r);
+      Assert(r < working * two);
+      
+      // Compute the significand.
+      unsigned length; // + 2
+      BitVector sig(length, 0U); // 2 saves the shift
+      Rational workingSig(0,1);
+      for (unsigned i = 0; i < length - 1; ++i) { // i as found
+	Rational mid(workingSig + working);
+
+	if (mid < r) {
+	  sig &= 1;
+	  workingSig = mid;
+	}
+
+	sig <<= 1;
+	working /= two;
+      }
+
+      // Compute the sticky bit
+      Rational remainder(r - workingSig);
+      Assert(Rational(0,1) <= remainder);
+
+      if (!remainder.isZero()) {
+
+      }
+
+      // Build an exact float
+
+      // Then cast...
+
+      
+    }
+#endif
+
     
 #if 0
     // \todo Honour the rounding mode and work for something other than doubles!
@@ -331,6 +399,19 @@ namespace constantFold {
     return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.fma(rm, arg2, arg3)));
   }
 
+  RewriteResponse div (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_DIV);
+    Assert(node.getNumChildren() == 3);
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg1(node[1].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[2].getConst<FloatingPoint>());
+    
+    Assert(arg1.t == arg2.t);
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.div(rm, arg2)));
+  }
+  
   RewriteResponse equal (TNode node, bool isPreRewrite) {
     Assert(node.getKind() == kind::EQUAL);
   
@@ -728,7 +809,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_PLUS] = constantFold::plus;
     constantFoldTable[kind::FLOATINGPOINT_SUB] = rewrite::removed;
     constantFoldTable[kind::FLOATINGPOINT_MULT] = constantFold::mult;
-    constantFoldTable[kind::FLOATINGPOINT_DIV] = rewrite::identity;
+    constantFoldTable[kind::FLOATINGPOINT_DIV] = constantFold::div;
     constantFoldTable[kind::FLOATINGPOINT_FMA] = constantFold::fma;
     constantFoldTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
     constantFoldTable[kind::FLOATINGPOINT_REM] = rewrite::identity;

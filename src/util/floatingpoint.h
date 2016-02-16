@@ -178,6 +178,7 @@ namespace CVC4 {
     FloatingPoint plus (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint sub (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint mult (const RoundingMode &rm, const FloatingPoint &arg) const;
+    FloatingPoint div (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint fma (const RoundingMode &rm, const FloatingPoint &arg1, const FloatingPoint &arg2) const;
 
     bool operator ==(const FloatingPoint& fp) const;

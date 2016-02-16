@@ -41,7 +41,7 @@
 
 /*** Test Vector Generation ***/
 
-#define NUMBER_OF_FLOAT_TESTS 123
+#define NUMBER_OF_FLOAT_TESTS 124
 static float floatTestValue [NUMBER_OF_FLOAT_TESTS] = {
   0x0p+0f, -0x0p+0f,                        // Zeros
   0x1p+0f, -0x1p+0f,                        // Ones
@@ -126,7 +126,8 @@ static float floatTestValue [NUMBER_OF_FLOAT_TESTS] = {
    0x1.8p+0f,                  // Carry in to top bit of fraction when half is added
    0x1.fffffep+125f,           // Hunt a specific bug
    0x1.fffffep+126f,
-   0x1.8p+1f
+   0x1.8p+1f,
+   0x1.000004p+125f
 };
 
 float getTestValue (uint64_t index) {
@@ -612,7 +613,7 @@ void binaryPredicateTest (const int verbose, const uint64_t start, const uint64_
     bool computed = test(input1, input2);
     
     if (verbose || !(computed == reference)) {
-      fprintf(stdout,"vector[%d -> (%d,%d)] ", (uint32_t)i, (uint32_t)left, (uint32_t)right);
+      fprintf(stdout,"vector[%d -> (%d,%d)] ", (uint32_t)i, (uint32_t)right, (uint32_t)left);
       fprintf(stdout,"input1 = 0x%x, input2 = 0x%x, computed = %d, real = %d\n", input1, input2, computed, reference);
       fflush(stdout);
     }
@@ -735,7 +736,7 @@ void binaryFunctionTest (const int verbose, const uint64_t start, const uint64_t
     uint32_t computed = test(input1, input2);
 
     if (verbose || !singlePrecisionHardware::smtlibEqual(computed, reference)) {
-      fprintf(stdout,"vector[%d -> (%d,%d)] ", (uint32_t)i, (uint32_t)left, (uint32_t)right);
+      fprintf(stdout,"vector[%d -> (%d,%d)] ", (uint32_t)i, (uint32_t)right, (uint32_t)left);
       fprintf(stdout,"input1 = 0x%x, input2 = 0x%x, computed = 0x%x, real = 0x%x\n", input1, input2, computed, reference);
       fflush(stdout);
     }
@@ -858,7 +859,7 @@ void binaryRoundedFunctionTest (const int verbose, const uint64_t start, const u
     uint32_t computed = test(input1, input2);
 
     if (verbose || !singlePrecisionHardware::smtlibEqual(computed, reference)) {
-      fprintf(stdout,"vector[%d -> (%d,%d)] ", (uint32_t)i, (uint32_t)left, (uint32_t)right);
+      fprintf(stdout,"vector[%d -> (%d,%d)] ", (uint32_t)i, (uint32_t)right, (uint32_t)left);
       fprintf(stdout,"input1 = 0x%x, input2 = 0x%x, computed = 0x%x, real = 0x%x\n", input1, input2, computed, reference);
       fflush(stdout);
     }
@@ -1115,7 +1116,7 @@ int main (int argc, char **argv) {
       break;
 
     case 't' :
-      end = NUMBER_OF_FLOAT_TESTS  * NUMBER_OF_FLOAT_TESTS;
+      end = NUMBER_OF_FLOAT_TESTS  * NUMBER_OF_FLOAT_TESTS; // TODO : split doesn't work like this so this isn't quite right
       break;
 
     case 0 :    /* Flag set */

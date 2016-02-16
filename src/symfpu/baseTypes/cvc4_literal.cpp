@@ -77,7 +77,9 @@ namespace symfpu {
     bitVector<isSigned> bitVector<isSigned>::minValue (const bitWidthType &w) {
       if (isSigned) {
 	CVC4BV base(w, 1U);
-	return bitVector<true>(base.leftShift(w - 1));
+	CVC4BV shiftAmount(w, w-1);
+	CVC4BV result(base.leftShift(shiftAmount));
+	return bitVector<true>(result);
       } else {
 	return bitVector<false>::zero(w);
       }

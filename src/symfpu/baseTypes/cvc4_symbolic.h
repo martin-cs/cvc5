@@ -576,7 +576,7 @@ namespace symfpu {
 
     template <>
     inline bitVector<false> bitVector<false>::operator / (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UDIV, this->node, op.node));
+      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UDIV_TOTAL, this->node, op.node));
     }
     
     template <>
@@ -586,7 +586,7 @@ namespace symfpu {
 
     template <>
     inline bitVector<false> bitVector<false>::operator % (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UREM, this->node, op.node));
+      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UREM_TOTAL, this->node, op.node));
     }
 
     template <>

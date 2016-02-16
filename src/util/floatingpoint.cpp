@@ -25,6 +25,7 @@
 #include "symfpu/core/add.h"
 #include "symfpu/core/multiply.h"
 #include "symfpu/core/fma.h"
+#include "symfpu/core/divide.h"
 #include "symfpu/core/convert.h"
 
 
@@ -123,6 +124,10 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     return FloatingPoint(t, symfpu::fma<symfpuLiteral::traits>(t, rm, fpl, arg1.fpl, arg2.fpl));
   }
 
+  FloatingPoint FloatingPoint::div (const RoundingMode &rm, const FloatingPoint &arg) const {
+    Assert(this->t == arg.t);
+    return FloatingPoint(t, symfpu::divide<symfpuLiteral::traits>(t, rm, fpl, arg.fpl));
+  }
 
   bool FloatingPoint::operator ==(const FloatingPoint& fp) const {
     return ( (t == fp.t) && symfpu::smtlibEqual<symfpuLiteral::traits>(t,fpl,fp.fpl) );
@@ -167,7 +172,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   }
 
   FloatingPoint FloatingPoint::convert (const FloatingPointSize &target, const RoundingMode &rm) const {
-    return FloatingPoint(t, symfpu::convertFloatToFloat<symfpuLiteral::traits>(t, target, rm, fpl));
+    return FloatingPoint(target, symfpu::convertFloatToFloat<symfpuLiteral::traits>(t, target, rm, fpl));
   }
 
   BitVector FloatingPoint::pack (void) const {

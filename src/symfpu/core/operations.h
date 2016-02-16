@@ -81,7 +81,7 @@ namespace symfpu {
 
   template <class t, class bv, class prop>
   inline bv conditionalDecrement (const prop &p, const bv &b) {
-    PRECONDITION(IMPLIES(p, b >  bv::minValue(b.getWidth())));
+    PRECONDITION(IMPLIES(p, bv::minValue(b.getWidth()) < b));
     
     bv incremented(b.modularDecrement());
     return bv(ITE(p, incremented, b));
