@@ -555,10 +555,13 @@ namespace fp {
 
 	    case kind::FLOATINGPOINT_FP :
 	    case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR :
-	    case kind::FLOATINGPOINT_TO_FP_REAL :
 	    case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR :
 	    case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR :
 	      Unimplemented("Conversion not finished");
+	      break;
+
+	    case kind::FLOATINGPOINT_TO_FP_REAL :
+	      Unimplemented("Conversion from real to floating-point not supported with bit-blasting theory solver");
 	      break;
 	      
 	    case kind::FLOATINGPOINT_TO_FP_GENERIC :

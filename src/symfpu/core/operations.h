@@ -117,7 +117,7 @@ namespace symfpu {
 
   template <class t, class bv>
   inline bv abs(const bv &b) {
-    return conditionalNegate(b < bv::zero(b.getWidth), b);
+    return conditionalNegate<t, bv, typename t::prop>(b < bv::zero(b.getWidth()), b);
   }
 
   

@@ -223,108 +223,6 @@ namespace rewrite {
 
 namespace constantFold {
 
-  RewriteResponse convertFromRealLiteral (TNode node, bool) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
-
-#if 0    
-    Rational r = node[1].getConst<Rational>();
-    Rational two(2,1);
-    
-    if (r.isZero()) {
-      // Return 0
-      
-    } else {
-      int negative = (r.sgn() < 0) ? 1 : 0;
-      r.abs();
-
-      // Compute the exponent
-      Rational exp = 0;
-      Rational working(1,1);
-
-      if (r == working) {
-
-      } else if ( r < working ) {
-	while (r < working) {
-	  exp--;
-	  working /= two;
-	}
-	exp++;
-	working *= two;
-	
-      } else {
-	while (r > working) {
-	  exp++;
-	  working *= two;
-	}
-	exp--;
-	working /= two;
-      }
-
-      Assert(working <= r);
-      Assert(r < working * two);
-      
-      // Compute the significand.
-      unsigned length; // + 2
-      BitVector sig(length, 0U); // 2 saves the shift
-      Rational workingSig(0,1);
-      for (unsigned i = 0; i < length - 1; ++i) { // i as found
-	Rational mid(workingSig + working);
-
-	if (mid < r) {
-	  sig &= 1;
-	  workingSig = mid;
-	}
-
-	sig <<= 1;
-	working /= two;
-      }
-
-      // Compute the sticky bit
-      Rational remainder(r - workingSig);
-      Assert(Rational(0,1) <= remainder);
-
-      if (!remainder.isZero()) {
-
-      }
-
-      // Build an exact float
-
-      // Then cast...
-
-      
-    }
-#endif
-
-    
-#if 0
-    // \todo Honour the rounding mode and work for something other than doubles!
-
-    TNode op = node.getOperator();
-    const FloatingPointToFPReal &param = op.getConst<FloatingPointToFPReal>();
-    Node lit =
-      NodeManager::currentNM()->mkConst(FloatingPoint(param.t.exponent(),
-						      param.t.significand(),
-						      node[1].getConst<Rational>().getDouble()));
-    
-    return RewriteResponse(REWRITE_DONE, lit);
-#endif
-    return RewriteResponse(REWRITE_DONE, node);
-  }
-
-  RewriteResponse convertFromIEEEBitVectorLiteral (TNode node, bool) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
-
-    TNode op = node.getOperator();
-    const FloatingPointToFPIEEEBitVector &param = op.getConst<FloatingPointToFPIEEEBitVector>();
-    const BitVector &bv = node[0].getConst<BitVector>();
-    
-    Node lit =
-      NodeManager::currentNM()->mkConst(FloatingPoint(param.t.exponent(),
-						      param.t.significand(),
-						      bv));
-    
-    return RewriteResponse(REWRITE_DONE, lit);
-  }
 
   RewriteResponse fpLiteral (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_FP);
@@ -410,6 +308,65 @@ namespace constantFold {
     Assert(arg1.t == arg2.t);
     
     return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.div(rm, arg2)));
+  }
+  
+  RewriteResponse sqrt (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_SQRT);
+    Assert(node.getNumChildren() == 2);
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg(node[1].getConst<FloatingPoint>());
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg.sqrt(rm)));
+  }
+
+  RewriteResponse rti (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_RTI);
+    Assert(node.getNumChildren() == 2);
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg(node[1].getConst<FloatingPoint>());
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg.rti(rm)));
+  }
+
+  RewriteResponse rem (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_REM);
+    Assert(node.getNumChildren() == 3);
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg1(node[1].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[2].getConst<FloatingPoint>());
+    
+    Assert(arg1.t == arg2.t);
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.rem(rm, arg2)));
+  }
+
+  RewriteResponse min (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MIN);
+    Assert(node.getNumChildren() == 2);//3);
+
+    FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[1].getConst<FloatingPoint>());
+    //bool zeroCaseLeft(node[2].getConst<bool>());
+    
+    Assert(arg1.t == arg2.t);
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.min(arg2, true)));
+  }
+
+  RewriteResponse max (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MAX);
+    Assert(node.getNumChildren() == 2);//3);
+
+    FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[1].getConst<FloatingPoint>());
+    //bool zeroCaseLeft(node[2].getConst<bool>());
+    
+    Assert(arg1.t == arg2.t);
+    
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.max(arg2, true)));
   }
   
   RewriteResponse equal (TNode node, bool isPreRewrite) {
@@ -515,6 +472,21 @@ namespace constantFold {
     return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(node[0].getConst<FloatingPoint>().isPositive()));
   }
 
+  RewriteResponse convertFromIEEEBitVectorLiteral (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
+
+    TNode op = node.getOperator();
+    const FloatingPointToFPIEEEBitVector &param = op.getConst<FloatingPointToFPIEEEBitVector>();
+    const BitVector &bv = node[0].getConst<BitVector>();
+    
+    Node lit =
+      NodeManager::currentNM()->mkConst(FloatingPoint(param.t.exponent(),
+						      param.t.significand(),
+						      bv));
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
   RewriteResponse constantConvert (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT);
     Assert(node.getNumChildren() == 2);
@@ -526,6 +498,100 @@ namespace constantFold {
     return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.convert(info.t,rm)));
   }
 
+  RewriteResponse convertFromRealLiteral (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
+  
+    TNode op = node.getOperator();
+    const FloatingPointToFPReal &param = op.getConst<FloatingPointToFPReal>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    Rational arg(node[1].getConst<Rational>());
+
+    FloatingPoint res(param.t, rm, arg);
+    
+    Node lit = NodeManager::currentNM()->mkConst(res);
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
+  RewriteResponse convertFromSBV (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR);
+  
+    TNode op = node.getOperator();
+    const FloatingPointToFPSignedBitVector &param = op.getConst<FloatingPointToFPSignedBitVector>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    BitVector arg(node[1].getConst<BitVector>());
+
+    FloatingPoint res(param.t, rm, arg, true);
+    
+    Node lit = NodeManager::currentNM()->mkConst(res);
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
+  RewriteResponse convertFromUBV (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR);
+  
+    TNode op = node.getOperator();
+    const FloatingPointToFPUnsignedBitVector &param = op.getConst<FloatingPointToFPUnsignedBitVector>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    BitVector arg(node[1].getConst<BitVector>());
+
+    FloatingPoint res(param.t, rm, arg, false);
+    
+    Node lit = NodeManager::currentNM()->mkConst(res);
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
+  RewriteResponse convertToUBV (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV);
+  
+    TNode op = node.getOperator();
+    const FloatingPointToUBV &param = op.getConst<FloatingPointToUBV>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg(node[1].getConst<FloatingPoint>());
+
+    BitVector res(arg.convertToBV(param.bvs, rm, false));
+
+    Node lit = NodeManager::currentNM()->mkConst(res);
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
+  RewriteResponse convertToSBV (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_SBV);
+  
+    TNode op = node.getOperator();
+    const FloatingPointToSBV &param = op.getConst<FloatingPointToSBV>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg(node[1].getConst<FloatingPoint>());
+
+    BitVector res(arg.convertToBV(param.bvs, rm, true));
+
+    Node lit = NodeManager::currentNM()->mkConst(res);
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
+  RewriteResponse convertToReal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_REAL);
+  
+    FloatingPoint arg(node[0].getConst<FloatingPoint>());
+
+    Rational res(arg.convertToRational());
+
+    Node lit = NodeManager::currentNM()->mkConst(res);
+    
+    return RewriteResponse(REWRITE_DONE, lit);
+  }
+
+
+  
   RewriteResponse componentFlag (TNode node, bool) {
     Kind k = node.getKind();
    
@@ -811,11 +877,11 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_MULT] = constantFold::mult;
     constantFoldTable[kind::FLOATINGPOINT_DIV] = constantFold::div;
     constantFoldTable[kind::FLOATINGPOINT_FMA] = constantFold::fma;
-    constantFoldTable[kind::FLOATINGPOINT_SQRT] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_REM] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_RTI] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_MIN] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_MAX] = rewrite::identity;
+    constantFoldTable[kind::FLOATINGPOINT_SQRT] = constantFold::sqrt;
+    constantFoldTable[kind::FLOATINGPOINT_REM] = constantFold::rem;
+    constantFoldTable[kind::FLOATINGPOINT_RTI] = constantFold::rti;
+    constantFoldTable[kind::FLOATINGPOINT_MIN] = constantFold::min;
+    constantFoldTable[kind::FLOATINGPOINT_MAX] = constantFold::max;
 
     /******** Comparisons ********/
     constantFoldTable[kind::FLOATINGPOINT_EQ] = rewrite::removed;
@@ -837,12 +903,12 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = constantFold::convertFromIEEEBitVectorLiteral;
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT] = constantFold::constantConvert;
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_REAL] = constantFold::convertFromRealLiteral;
-    constantFoldTable[kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR] = rewrite::identity;
+    constantFoldTable[kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR] = constantFold::convertFromSBV;
+    constantFoldTable[kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR] = constantFold::convertFromUBV;
     constantFoldTable[kind::FLOATINGPOINT_TO_FP_GENERIC] = rewrite::removed;
-    constantFoldTable[kind::FLOATINGPOINT_TO_UBV] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_TO_SBV] = rewrite::identity;
-    constantFoldTable[kind::FLOATINGPOINT_TO_REAL] = rewrite::identity;
+    constantFoldTable[kind::FLOATINGPOINT_TO_UBV] = constantFold::convertToUBV;
+    constantFoldTable[kind::FLOATINGPOINT_TO_SBV] = constantFold::convertToSBV;
+    constantFoldTable[kind::FLOATINGPOINT_TO_REAL] = constantFold::convertToReal;
 
     /******** Variables ********/
     constantFoldTable[kind::VARIABLE] = rewrite::variable;

@@ -18,6 +18,7 @@
 
 #include "base/cvc4_assert.h"
 #include "util/floatingpoint.h"
+#include "util/integer.h"
 #include "symfpu/core/packing.h"
 #include "symfpu/core/compare.h"
 #include "symfpu/core/sign.h"
@@ -26,6 +27,7 @@
 #include "symfpu/core/multiply.h"
 #include "symfpu/core/fma.h"
 #include "symfpu/core/divide.h"
+#include "symfpu/core/sqrt.h"
 #include "symfpu/core/convert.h"
 
 
@@ -81,6 +83,130 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     fpl(symfpu::unpack<symfpuLiteral::traits>(symfpuLiteral::fpt(e,s), bv)),
     t(e,s) {}
 
+
+  static FloatingPointLiteral constructorHelperBitVector (const FloatingPointSize &ct, const RoundingMode &rm, const BitVector &bv, bool signedBV) {
+    if (signedBV) {
+      return FloatingPointLiteral(symfpu::convertSBVToFloat<symfpuLiteral::traits>(symfpuLiteral::fpt(ct),
+										   symfpuLiteral::rm(rm),
+										   symfpuLiteral::sbv(bv)));
+    } else {
+      return FloatingPointLiteral(symfpu::convertUBVToFloat<symfpuLiteral::traits>(symfpuLiteral::fpt(ct),
+										   symfpuLiteral::rm(rm),
+										   symfpuLiteral::ubv(bv)));
+    }
+    Unreachable("Constructor helper broken");
+  }
+  
+  FloatingPoint::FloatingPoint (const FloatingPointSize &ct, const RoundingMode &rm, const BitVector &bv, bool signedBV) :
+    fpl(constructorHelperBitVector(ct, rm, bv, signedBV)),
+    t(ct) {}
+
+  
+  static FloatingPointLiteral constructorHelperRational (const FloatingPointSize &ct, const RoundingMode &rm, const Rational &ri) {
+    Rational r(ri);
+    Rational two(2,1);
+    
+    if (r.isZero()) {
+      return FloatingPointLiteral::makeZero(ct, false); // In keeping with the SMT-LIB standard
+    } else {
+      int negative = (r.sgn() < 0) ? 1 : 0;
+      r.abs();
+
+      // Compute the exponent
+      Integer exp(0U);
+      Integer inc(1U);
+      Rational working(1,1);
+
+      if (r == working) {
+
+      } else if ( r < working ) {
+	while (r < working) {
+	  exp -= inc;
+	  working /= two;
+	}
+	exp += inc;
+	working *= two;
+	
+      } else {
+	while (r > working) {
+	  exp += inc;
+	  working *= two;
+	}
+	exp -= inc;
+	working /= two;
+      }
+
+      Assert(working <= r);
+      Assert(r < working * two);
+
+      // Work out the number of bits required to represent the exponent
+      unsigned expBits = 2; // No point starting with an invalid amount
+
+      Integer doubleInt(2);
+      if (exp.strictlyPositive()) {
+	Integer representable(4);
+	while (representable < exp) {
+	  representable *= doubleInt;
+	  ++expBits;
+	}
+      } else if (exp.strictlyNegative()) {
+	Integer representable(-4);
+	while (representable > exp) {
+	  representable *= doubleInt;
+	  ++expBits;
+	}
+      }
+      ++expBits; // To allow for sign
+
+      BitVector exactExp(expBits, exp);
+
+      
+      
+      // Compute the significand.
+      unsigned sigBits = ct.significandWidth() + 2; // guard and sticky bits
+      BitVector sig(sigBits, 0U);
+      BitVector one(sigBits, 1U);
+      Rational workingSig(0,1);
+      for (unsigned i = 0; i < sigBits - 1; ++i) {
+	Rational mid(workingSig + working);
+
+	if (mid < r) {
+	  sig = sig | one;
+	  workingSig = mid;
+	}
+
+	sig = sig.leftShift(one);
+	working /= two;
+      }
+
+      // Compute the sticky bit
+      Rational remainder(r - workingSig);
+      Assert(Rational(0,1) <= remainder);
+
+      if (!remainder.isZero()) {
+	sig = sig | one;
+      }
+
+      // Build an exact float
+      FloatingPointSize exactFormat(expBits, sigBits);
+      FloatingPointLiteral exactFloat(negative, exactExp, sig);
+      
+
+      // Then cast...
+      FloatingPointLiteral rounded(symfpu::convertFloatToFloat(exactFormat,
+							       ct,
+							       rm,
+							       exactFloat));
+      return rounded;
+    }
+    Unreachable("Constructor helper broken");
+  }
+  
+  FloatingPoint::FloatingPoint (const FloatingPointSize &ct, const RoundingMode &rm, const Rational &r) :
+    fpl(constructorHelperRational(ct, rm, r)),
+    t(ct) {}
+
+  
   FloatingPoint FloatingPoint::makeNaN (const FloatingPointSize &t) {
     return FloatingPoint(t, symfpu::unpackedFloat<symfpuLiteral::traits>::makeNaN(t));
   }
@@ -129,6 +255,33 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     return FloatingPoint(t, symfpu::divide<symfpuLiteral::traits>(t, rm, fpl, arg.fpl));
   }
 
+  FloatingPoint FloatingPoint::sqrt (const RoundingMode &rm) const {
+    return FloatingPoint(t, symfpu::sqrt<symfpuLiteral::traits>(t, rm, fpl));
+  }
+
+  FloatingPoint FloatingPoint::rti (const RoundingMode &rm) const {
+    Unimplemented("Round to integral not implemented in symfpu");
+    //return FloatingPoint(t, symfpu::rti<symfpuLiteral::traits>(t, rm, fpl));
+    return *this;
+  }
+
+  FloatingPoint FloatingPoint::rem (const RoundingMode &rm, const FloatingPoint &arg) const {
+    Assert(this->t == arg.t);
+    Unimplemented("Remainder not implemented in symfpu");
+    //return FloatingPoint(t, symfpu::remainder<symfpuLiteral::traits>(t, rm, fpl, arg.fpl));
+    return *this;
+  }
+
+  FloatingPoint FloatingPoint::max (const FloatingPoint &arg, bool zeroCaseLeft) const {
+    Assert(this->t == arg.t);
+    return FloatingPoint(t, symfpu::max<symfpuLiteral::traits>(t, fpl, arg.fpl));//, zeroCaseLeft));
+  }
+  
+  FloatingPoint FloatingPoint::min (const FloatingPoint &arg, bool zeroCaseRight) const {
+    Assert(this->t == arg.t);
+    return FloatingPoint(t, symfpu::min<symfpuLiteral::traits>(t, fpl, arg.fpl));//, zeroCaseLeft));
+  }
+
   bool FloatingPoint::operator ==(const FloatingPoint& fp) const {
     return ( (t == fp.t) && symfpu::smtlibEqual<symfpuLiteral::traits>(t,fpl,fp.fpl) );
   }
@@ -173,6 +326,42 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
 
   FloatingPoint FloatingPoint::convert (const FloatingPointSize &target, const RoundingMode &rm) const {
     return FloatingPoint(target, symfpu::convertFloatToFloat<symfpuLiteral::traits>(t, target, rm, fpl));
+  }
+  
+  BitVector FloatingPoint::convertToBV (BitVectorSize width, const RoundingMode &rm, bool signedBV) const {
+    Unimplemented("Convert to BV not implemented in symfpu");
+    //return FloatingPoint(t, symfpu::convertFloatTo*BV<symfpuLiteral::traits>(t, rm, fpl, width));
+    return BitVector(width, 0U);
+  }
+
+  Rational FloatingPoint::convertToRational (void) const {
+    // Is the internal semantics -- ignores NaN and Inf
+
+    if (this->isZero()) {
+      return Rational(0U, 1U);
+      
+    } else {
+
+      Integer sign((this->fpl.getSign()) ? -1 : 1); 
+      Integer exp(this->fpl.getExponent().toInteger() - Integer(t.significand()));
+      Integer significand(this->fpl.getSignificand().toInteger());
+      Integer signedSignificand(sign * significand);
+      
+      // Only have pow(uint32_t) so we should check this.
+      Assert(this->t.significand() <= 32);
+      
+      if (!(exp.strictlyNegative())) {
+	Integer r(signedSignificand.multiplyByPow2(exp.toUnsignedInt()));
+	return Rational(r);
+      } else {
+	Integer one(1U);
+	Integer q(one.multiplyByPow2((-exp).toUnsignedInt()));
+	Rational r(signedSignificand, q);
+	return r;
+      }
+    }
+
+    Unreachable("Convert float literal to real broken.");
   }
 
   BitVector FloatingPoint::pack (void) const {

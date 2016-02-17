@@ -23,6 +23,7 @@
 #include <fenv.h>
 
 #include "util/bitvector.h"
+#include "util/rational.h"
 
 namespace CVC4 {
   // Inline these!
@@ -160,7 +161,10 @@ namespace CVC4 {
     FloatingPoint (unsigned e, unsigned s, const BitVector &bv);
     FloatingPoint (const FloatingPointSize &oldt, const FloatingPointLiteral &oldfpl) : fpl(oldfpl), t(oldt) {}
     FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
-
+    FloatingPoint (const FloatingPointSize &ct, const RoundingMode &rm, const BitVector &bv, bool signedBV);
+    FloatingPoint (const FloatingPointSize &ct, const RoundingMode &rm, const Rational &r);
+    
+    
     static FloatingPoint makeNaN (const FloatingPointSize &t);
     static FloatingPoint makeInf (const FloatingPointSize &t, bool sign);
     static FloatingPoint makeZero (const FloatingPointSize &t, bool sign);
@@ -180,7 +184,14 @@ namespace CVC4 {
     FloatingPoint mult (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint div (const RoundingMode &rm, const FloatingPoint &arg) const;
     FloatingPoint fma (const RoundingMode &rm, const FloatingPoint &arg1, const FloatingPoint &arg2) const;
+    FloatingPoint sqrt (const RoundingMode &rm) const;
+    FloatingPoint rti (const RoundingMode &rm) const;
+    FloatingPoint rem (const RoundingMode &rm, const FloatingPoint &arg) const;
 
+    // In the case of min/max(-0,+0) or (+0,-0) which to return
+    FloatingPoint max (const FloatingPoint &arg, bool zeroCaseLeft) const;
+    FloatingPoint min (const FloatingPoint &arg, bool zeroCaseLeft) const;
+    
     bool operator ==(const FloatingPoint& fp) const;
     bool operator <= (const FloatingPoint &arg) const;
     bool operator < (const FloatingPoint &arg) const;
@@ -194,7 +205,13 @@ namespace CVC4 {
     bool isPositive (void) const;
 
     FloatingPoint convert (const FloatingPointSize &target, const RoundingMode &rm) const;
+    
+    // Caution these follow the 'internal' semantics rather than
+    // being undefined on inf, NaN, etc.
+    BitVector convertToBV (BitVectorSize width, const RoundingMode &rm, bool signedBV) const;
+    Rational convertToRational (void) const;
 
+    
   }; /* class FloatingPoint */
 
 
