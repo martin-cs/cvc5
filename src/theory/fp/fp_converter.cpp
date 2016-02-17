@@ -384,6 +384,7 @@ namespace fp {
 	      break;
 
 	    case kind::FLOATINGPOINT_SQRT :
+	    case kind::FLOATINGPOINT_RTI :
 	      {
 		rmMap::const_iterator mode(r.find(current[0]));
 		fpMap::const_iterator arg1(f.find(current[1]));
@@ -401,6 +402,14 @@ namespace fp {
 		  f.insert(current, symfpu::sqrt<traits>(fpt(current.getType()),
 							(*mode).second,
 							 (*arg1).second));
+		  break;
+		case kind::FLOATINGPOINT_RTI :
+		  /*
+		  f.insert(current, symfpu::rti<traits>(fpt(current.getType()),
+		                                        (*mode).second,
+ 		                                        (*arg1).second));
+		  */
+		  Unimplemented("RoundToIntegral not yet supported in symfpu");
 		  break;
 		default :
 		  Unreachable("Unknown unary rounded floating-point function");
@@ -443,7 +452,9 @@ namespace fp {
 	      }
 	      break;
 	      
-	      
+	    case kind::FLOATINGPOINT_REM :   // Assumes new signature
+	      Unimplemented("Remainder not yet supported in symfpu");
+	      break;	      
 	    case kind::FLOATINGPOINT_PLUS :
 	    case kind::FLOATINGPOINT_SUB :
 	    case kind::FLOATINGPOINT_MULT :
@@ -493,6 +504,16 @@ namespace fp {
 							     (*arg1).second,
 							     (*arg2).second));
 		  break;
+		case kind::FLOATINGPOINT_REM :
+		  /*
+		  f.insert(current, symfpu::remainder<traits>(fpt(current.getType()),
+							     (*mode).second,
+							     (*arg1).second,
+							     (*arg2).second));
+		  */
+		  Unimplemented("Remainder not yet supported in symfpu");
+		  break;
+
 		default :
 		  Unreachable("Unknown binary rounded floating-point function");
 		  break;
@@ -525,12 +546,7 @@ namespace fp {
 	      }
 	      break;
 
-	    
-	    case kind::FLOATINGPOINT_REM :
-	    case kind::FLOATINGPOINT_RTI :
-	      Unimplemented("Operation not yet supported in symfpu");
-	      break;
-	      
+	    	      
 	      /******** Conversions ********/
 	    case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT :
 	      {
@@ -554,10 +570,51 @@ namespace fp {
 
 
 	    case kind::FLOATINGPOINT_FP :
+	      {
+	      Node IEEEBV(NodeManager::currentNM()->mkNode(kind::BITVECTOR_CONCAT,
+							   current[0],
+							   current[1],
+							   current[2]));
+	      f.insert(current, symfpu::unpack<traits>(fpt(current.getType()),
+						       IEEEBV));
+	      }
+	      break;
+	      
 	    case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR :
+	      f.insert(current, symfpu::unpack<traits>(fpt(current.getType()),
+						       ubv(current[0])));
+	      break;
+	      
 	    case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR :
 	    case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR :
-	      Unimplemented("Conversion not finished");
+	      {
+		rmMap::const_iterator mode(r.find(current[0]));
+		bool recurseNeeded = (mode == r.end());
+
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (mode == r.end()) { workStack.push(current[0]); }
+		  continue;    // i.e. recurse!
+		}
+
+		switch (current.getKind()) {
+		case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR :
+		  f.insert(current, symfpu::convertSBVToFloat<traits>(fpt(current.getType()),
+								      (*mode).second,
+								      sbv(current[1])));
+		  break;
+		  
+		case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR :
+		  f.insert(current, symfpu::convertUBVToFloat<traits>(fpt(current.getType()),
+								      (*mode).second,
+								      ubv(current[1])));
+		  break;
+
+		default :
+		  Unreachable("Unknown converstion from bit-vector to floating-point");
+		  break;
+		}
+	      }
 	      break;
 
 	    case kind::FLOATINGPOINT_TO_FP_REAL :
@@ -770,7 +827,7 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 		
-	      Unimplemented("Operation not yet supported in symfpu");
+	      Unimplemented("Floating-point to UBV not yet supported in symfpu");
 	      /*
 		u.insert(current, symfpu::toUnsigned<traits>(fpt(childType),
 		(*mode).second,
@@ -800,7 +857,7 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 
-	      Unimplemented("Operation not yet supported in symfpu");
+	      Unimplemented("Floating-point to SBV not yet supported in symfpu");
 	      /*
 		s.insert(current, symfpu::toSigned<traits>(fpt(childType),
 		(*mode).second,
