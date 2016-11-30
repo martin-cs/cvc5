@@ -1,3 +1,4 @@
+include ../flags
 CXXFLAGS+=-I../
 ALL=simpleExecutable.o
 

@@ -42,6 +42,7 @@
 #include "symfpu/core/add.h"
 #include "symfpu/core/divide.h"
 #include "symfpu/core/sqrt.h"
+#include "symfpu/core/fma.h"
 
 #ifndef SYMFPU_IMPLEMENTATIONS
 #define SYMFPU_IMPLEMENTATIONS
@@ -54,6 +55,7 @@ class nativeFunctions {
   static execFloat max (execFloat f, execFloat g);
   static execFloat min (execFloat f, execFloat g);
   static execFloat sqrt (execFloat f);
+  static execFloat fma (execFloat f, execFloat g, execFloat h);
 
   
   // These will work for any inbuilt float-type, specialisations need for others
@@ -138,6 +140,23 @@ double nativeFunctions<double>::sqrt (double f) {
 template <>
 long double nativeFunctions<long double>::sqrt (long double f) {
   return sqrtl(f);
+}
+
+
+template <>
+float nativeFunctions<float>::fma (float f, float g, float h) {
+  return fmaf(f,g,h);
+}
+
+template <>
+double nativeFunctions<double>::fma (double f, double g, double h) {
+  return fma(f,g,h);
+}
+
+
+template <>
+long double nativeFunctions<long double>::fma (long double f, long double g, long double h) {
+  return fmal(f,g,h);
 }
 
 
@@ -317,6 +336,16 @@ class native {
     execFloat h = nativeFunctions<execFloat>::min(f,g);
     
     return *((execBV *)&h);
+  }
+
+  static execBV fma (execBV bv1, execBV bv2, execBV bv3) {
+    execFloat f = *((execFloat *)(&bv1));
+    execFloat g = *((execFloat *)(&bv2));
+    execFloat h = *((execFloat *)(&bv3));
+    
+    execFloat p = nativeFunctions<execFloat>::fma(f,g,h);
+    
+    return *((execBV *)&p);
   }
 
 };
@@ -631,6 +660,22 @@ class sympfuImplementation {
     uf min(symfpu::min<traits>(*format, unpacked1, unpacked2));
     
     ubv repacked(symfpu::pack<traits>(*format, min));
+    
+    return repacked.contents();
+  }
+
+  static execBV fma (execBV bv1, execBV bv2, execBV bv3) {
+    ubv packed1(bitsInExecBV(),bv1);
+    ubv packed2(bitsInExecBV(),bv2);
+    ubv packed3(bitsInExecBV(),bv3);
+    
+    uf unpacked1(symfpu::unpack<traits>(*format, packed1));
+    uf unpacked2(symfpu::unpack<traits>(*format, packed2));
+    uf unpacked3(symfpu::unpack<traits>(*format, packed3));
+    
+    uf fma(symfpu::fma<traits>(*format, *mode, unpacked1, unpacked2, unpacked3));
+    
+    ubv repacked(symfpu::pack<traits>(*format, fma));
     
     return repacked.contents();
   }

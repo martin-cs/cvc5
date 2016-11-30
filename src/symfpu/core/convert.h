@@ -139,7 +139,56 @@ template <class t>
   return convertFloatToFloat(initialFormat, targetFormat, roundingMode, normalised);
  }
 
- 
+
+ template <class t>
+   unpackedFloat<t> convertFloatToUBV (const typename t::fpt &format,
+				       const typename t::rm &roundingMode,
+				       const unpackedFloat<t> &uf,
+				       const typename t::bwt &targetWidth) {
+   
+   typedef typename t::bwt bwt;
+   typedef typename t::prop prop;
+   typedef typename t::ubv ubv;
+   typedef typename t::sbv sbv;
+
+   
+   // Invalid cases
+   prop specialValue(uf.getInf() || uf.getNaN());
+
+   sbv exponent(uf.getExponent());
+   bwt exponentWidth(exponent.getWidth());
+
+   sbv largestExponent(exponentWidth, targetWidth);
+   prop tooLarge(uf.getExponent() >=  largestExponent);
+
+   prop undefinedResult(specialValue || uf.getZero() || tooLarge || uf.getSign());
+   probabilityAnnotation<t>(undefinedResult, LIKELY); // Convertable values are rare
+
+
+   // Align
+   ubv expandedSignificand(uf.getSignificand().extend(targetWidth + 1)); // Start with the significand in the sticky position.
+   sbv shiftAmount(collar<t>(exponent.modularIncrement().modularIncrement(),  // Overflow lost in the "too large" case
+			     sbv::zero(exponentWidth),
+			     largestExponent)); // Equal to bit width, thus shift right across
+   ubv convertedShiftAmount(shiftAmount.contract(bitsToRepresent(largestExponent) + 1 /* +1 for sign, safe due to collar */
+						 ).toUnsigned().matchWidth(expandedSignificand()));
+   ubv aligned(expandedSignificand << convertedShiftAmount); // Safe by collar
+
+
+   // Fixed position round
+   significandRounderResult<t> rounded(fixedPositionRound(roundingMode, prop(false),
+							  aligned, targetWidth,
+							  prop(false), prop(false)));
+   // Note that incrementExponent is ignored as it only happens when the rounding overflows
+   // Sign is also "optimised" as it is only used in the case of positive
+   
+   ubv result(ITE(undefinedResult,
+		  ubv::zero(targetWidth),
+		  rounded.significand));
+
+   return result;
+ }
+   
 }
 
 #endif

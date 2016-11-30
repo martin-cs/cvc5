@@ -1,4 +1,4 @@
-CXXFLAGS+=-std=c++11 -Wall -W -frounding-math -fsignaling-nans -ffp-contract=off -msse2 -mfpmath=sse -pedantic
+include flags
 SUBDIRS=applications/ utils/ baseTypes/ core/
 OBJECTFILES=utils/common.o baseTypes/simpleExecutable.o core/nondet.o
 LIBFILES=symfpu.a

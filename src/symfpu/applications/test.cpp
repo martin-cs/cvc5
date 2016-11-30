@@ -964,6 +964,180 @@ void binaryRoundedFunctionPrintSMT (const int /*verbose*/, const uint64_t start,
 
 
 
+
+
+
+
+uint64_t splitOneOfThree (uint64_t input) {
+  uint64_t output = 0;
+
+  for (uint64_t i = 0; i <= 63; i +=3) {
+    output |= (input & (1ULL << i)) ? 1ULL << (i >> 1ULL) : 0;
+  }
+
+  return output;
+}
+
+uint64_t splitTwoOfThree (uint64_t input) {
+  uint64_t output = 0;
+
+  for (uint64_t i = 1; i <= 63; i +=3) {
+    output |= (input & (1ULL << i)) ? 1ULL << (i >> 1ULL) : 0;
+  }
+
+  return output;
+}
+
+uint64_t splitThreeOfThree (uint64_t input) {
+  uint64_t output = 0;
+
+  for (uint64_t i = 2; i <= 63; i +=3) {
+    output |= (input & (1ULL << i)) ? 1ULL << (i >> 1ULL) : 0;
+  }
+
+  return output;
+}
+
+typedef uint32_t (*ternaryRoundedFunctionTFP) (uint32_t, uint32_t, uint32_t);
+
+template <ternaryRoundedFunctionTFP test, ternaryRoundedFunctionTFP ref>
+void ternaryRoundedFunctionTest (const int verbose, const uint64_t start, const uint64_t end) {
+  uint64_t i;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitOneOfThree(i);
+    uint64_t middle = splitTwoOfThree(i);
+    uint64_t left = splitThreeOfThree(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(middle);
+    float h = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    uint32_t input3 = *((uint32_t *)(&h));
+    
+    uint32_t reference = ref(input1, input2, input3);
+    uint32_t computed = test(input1, input2, input3);
+
+    if (verbose || !singlePrecisionHardware::smtlibEqual(computed, reference)) {
+      fprintf(stdout,"vector[%d -> (%d,%d,%d)] ", (uint32_t)i, (uint32_t)right, (uint32_t)middle, (uint32_t)left);
+      fprintf(stdout,"input1 = 0x%x, input2 = 0x%x, input3 = 0x%x, computed = 0x%x, real = 0x%x\n", input1, input2, input3, computed, reference);
+      fflush(stdout);
+    }
+
+    if ((i & 0xFFFF) == 0) {
+      fprintf(stdout,".");
+      fflush(stdout);
+    }
+  }
+  
+  return;
+}
+
+template <ternaryRoundedFunctionTFP ref>
+void ternaryRoundedFunctionPrintC (const int /*verbose*/, const uint64_t start, const uint64_t end, const char *name, const char *cPrintString, const char *roundingModeString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitOneOfThree(i);
+    uint64_t middle = splitTwoOfThree(i);
+    uint64_t left = splitThreeOfThree(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(middle);
+    float h = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    uint32_t input3 = *((uint32_t *)(&h));
+    
+    uint32_t reference = ref(input1, input2, input3);
+    float fref = *((float *)(&reference));
+
+    out = startOutputC(name, roundingModeString, i);
+
+    fprintf(out, "float f = ");
+    printFloatC(out, f);
+    fprintf(out,";\n");
+
+    fprintf(out, "float g = ");
+    printFloatC(out, g);
+    fprintf(out,";\n");
+
+    fprintf(out, "float h = ");
+    printFloatC(out, g);
+    fprintf(out,";\n");
+
+    fprintf(out, "float ref = ");
+    printFloatC(out, fref);
+    fprintf(out,";\n");
+
+    fprintf(out, "fesetround(%s);\n", roundingModeString);
+    fprintf(out, "float computed = %s;\n", cPrintString);
+    fprintf(out, "assert(compare(ref, computed));\n");
+
+    finishOutputC(out);
+  }
+  
+  return;
+}
+
+template <ternaryRoundedFunctionTFP ref>
+void ternaryRoundedFunctionPrintSMT (const int /*verbose*/, const uint64_t start, const uint64_t end, const char *name, const char *SMTPrintString, const char *roundingModeString) {
+  uint64_t i;
+  FILE *out;
+
+  for (i = start; i < end; ++i) {
+    uint64_t right = splitOneOfThree(i);
+    uint64_t middle = splitTwoOfThree(i);
+    uint64_t left = splitThreeOfThree(i);
+
+    float f = getTestValue(right);
+    float g = getTestValue(middle);
+    float h = getTestValue(left);
+    
+    uint32_t input1 = *((uint32_t *)(&f));
+    uint32_t input2 = *((uint32_t *)(&g));
+    uint32_t input3 = *((uint32_t *)(&h));
+    
+    uint32_t reference = ref(input1, input2, input3);
+    // float fref = *((float *)(&reference));
+
+    out = startOutputSMT(name, roundingModeString, i);
+
+    fprintf(out, "(define-fun f () Float32 ");
+    printFloatSMT(out, input1);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun g () Float32 ");
+    printFloatSMT(out, input2);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun h () Float32 ");
+    printFloatSMT(out, input2);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun ref () Float32 ");
+    printFloatSMT(out, reference);
+    fprintf(out, ")\n");
+
+    fprintf(out, "(define-fun rm () RoundingMode %s )\n", roundingModeString);
+        
+    fprintf(out, "(define-fun result () Float32 %s )\n", SMTPrintString);
+    
+    fprintf(out, "(assert (= ref result))\n");
+
+
+    finishOutputSMT(out);
+  }
+  
+  return;
+}
+
+
+
 typedef void (*testFunction) (const int, const uint64_t, const uint64_t);
 typedef void (*printFunction) (const int, const uint64_t, const uint64_t, const char *, const char *, const char *);
 
@@ -1025,6 +1199,7 @@ int main (int argc, char **argv) {
     {0,0,                "max", INST(binaryFunction, max),              "fmaxf(f,g)",  "(fp.max f g)"},
     {0,0,                "min", INST(binaryFunction, min),              "fminf(f,g)",  "(fp.min f g)"},
     {0,1,               "sqrt", INST(unaryRoundedFunction, sqrt),       "sqrtf(f,g)",  "(fp.sqrt rm f)"},
+    {0,1,                "fma", INST(ternaryRoundedFunction, fma),      "fmaf(f,g)",  "(fp.fma rm f g h)"},
     {0,0,                 NULL, NULL, NULL, NULL,                           NULL,  NULL}
   };
 
@@ -1082,6 +1257,7 @@ int main (int argc, char **argv) {
     {             "max",        no_argument,               &(tests[18].enable),  1 },
     {             "min",        no_argument,               &(tests[19].enable),  1 },
     {            "sqrt",        no_argument,               &(tests[20].enable),  1 },
+    {             "fma",        no_argument,               &(tests[21].enable),  1 },
     {             "rne",        no_argument,    &(roundingModeTests[0].enable),  1 },
     {             "rtp",        no_argument,    &(roundingModeTests[1].enable),  1 },
     {             "rtn",        no_argument,    &(roundingModeTests[2].enable),  1 },
@@ -1093,7 +1269,7 @@ int main (int argc, char **argv) {
     {             "RTZ",        no_argument,    &(roundingModeTests[3].enable),  1 },
   //{             "RNA",        no_argument,    &(roundingModeTests[4].enable),  1 },
     {              NULL,                  0,                              NULL,  0 }
-    // TODO : add FMA support
+
 
   }; 
 

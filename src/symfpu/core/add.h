@@ -43,6 +43,7 @@
 /*
 ** Ideas
 **  Optimisation : Collar the exponent difference, convert add to twice the width and thus unify the paths and simplify the shifting.
+**  Enable the absolute max underapproximation
 */
 
 
