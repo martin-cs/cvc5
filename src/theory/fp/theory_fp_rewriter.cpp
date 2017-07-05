@@ -332,15 +332,14 @@ namespace constantFold {
 
   RewriteResponse rem (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_REM);
-    Assert(node.getNumChildren() == 3);
+    Assert(node.getNumChildren() == 2);
 
-    RoundingMode rm(node[0].getConst<RoundingMode>());
-    FloatingPoint arg1(node[1].getConst<FloatingPoint>());
-    FloatingPoint arg2(node[2].getConst<FloatingPoint>());
+    FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[1].getConst<FloatingPoint>());
     
     Assert(arg1.t == arg2.t);
     
-    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.rem(rm, arg2)));
+    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.rem(arg2)));
   }
 
   RewriteResponse min (TNode node, bool) {

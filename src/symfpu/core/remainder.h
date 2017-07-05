@@ -61,11 +61,11 @@ template <class t>
 					const typename t::rm &roundingMode,
 					const unpackedFloat<t> &left,
 					const unpackedFloat<t> &right) {
-  typedef typename t::bwt bwt;
+  //typedef typename t::bwt bwt;
   typedef typename t::prop prop;
-  typedef typename t::ubv ubv;
-  typedef typename t::sbv sbv;
-  typedef typename t::fpt fpt;
+  //typedef typename t::ubv ubv;
+  //typedef typename t::sbv sbv;
+  //typedef typename t::fpt fpt;
 
   PRECONDITION(left.valid(format));
   PRECONDITION(right.valid(format));
@@ -127,10 +127,10 @@ template <class t>
 
 // Put it all together...
 template <class t>
-  unpackedFloat<t> remainder (const typename t::fpt &format,
-			     const typename t::rm &roundingMode,
-			     const unpackedFloat<t> &left,
-			     const unpackedFloat<t> &right) {
+  unpackedFloat<t> remainderWithRounding (const typename t::fpt &format,
+					  const typename t::rm &roundingMode,
+					  const unpackedFloat<t> &left,
+					  const unpackedFloat<t> &right) {
   //typedef typename t::bwt bwt;
   //typedef typename t::prop prop;
   //typedef typename t::ubv ubv;
@@ -147,6 +147,15 @@ template <class t>
   POSTCONDITION(result.valid(format));
 
   return result;
+ }
+
+// IEEE-754 remainder always uses round to nearest, ties to even
+template <class t>
+  unpackedFloat<t> remainder (const typename t::fpt &format,
+			      const unpackedFloat<t> &left,
+			      const unpackedFloat<t> &right) {
+
+  return remainderWithRounding<t>(format, t::RNE(), left, right);
  }
 
 

@@ -29,6 +29,7 @@
 #include "symfpu/core/divide.h"
 #include "symfpu/core/sqrt.h"
 #include "symfpu/core/convert.h"
+#include "symfpu/core/remainder.h"
 
 
 namespace CVC4 {
@@ -263,11 +264,9 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     return FloatingPoint(t, symfpu::roundToIntegral<symfpuLiteral::traits>(t, rm, fpl));
   }
 
-  FloatingPoint FloatingPoint::rem (const RoundingMode &rm, const FloatingPoint &arg) const {
+  FloatingPoint FloatingPoint::rem (const FloatingPoint &arg) const {
     Assert(this->t == arg.t);
-    Unimplemented("Remainder not implemented in symfpu");
-    //return FloatingPoint(t, symfpu::remainder<symfpuLiteral::traits>(t, rm, fpl, arg.fpl));
-    return *this;
+    return FloatingPoint(t, symfpu::remainder<symfpuLiteral::traits>(t, fpl, arg.fpl));
   }
 
   FloatingPoint FloatingPoint::max (const FloatingPoint &arg, bool zeroCaseLeft) const {

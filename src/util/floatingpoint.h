@@ -186,7 +186,7 @@ namespace CVC4 {
     FloatingPoint fma (const RoundingMode &rm, const FloatingPoint &arg1, const FloatingPoint &arg2) const;
     FloatingPoint sqrt (const RoundingMode &rm) const;
     FloatingPoint rti (const RoundingMode &rm) const;
-    FloatingPoint rem (const RoundingMode &rm, const FloatingPoint &arg) const;
+    FloatingPoint rem (const FloatingPoint &arg) const;
 
     // In the case of min/max(-0,+0) or (+0,-0) which to return
     FloatingPoint max (const FloatingPoint &arg, bool zeroCaseLeft) const;
