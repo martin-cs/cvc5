@@ -260,9 +260,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   }
 
   FloatingPoint FloatingPoint::rti (const RoundingMode &rm) const {
-    Unimplemented("Round to integral not implemented in symfpu");
-    //return FloatingPoint(t, symfpu::rti<symfpuLiteral::traits>(t, rm, fpl));
-    return *this;
+    return FloatingPoint(t, symfpu::roundToIntegral<symfpuLiteral::traits>(t, rm, fpl));
   }
 
   FloatingPoint FloatingPoint::rem (const RoundingMode &rm, const FloatingPoint &arg) const {
@@ -329,9 +327,10 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   }
   
   BitVector FloatingPoint::convertToBV (BitVectorSize width, const RoundingMode &rm, bool signedBV) const {
-    Unimplemented("Convert to BV not implemented in symfpu");
-    //return FloatingPoint(t, symfpu::convertFloatTo*BV<symfpuLiteral::traits>(t, rm, fpl, width));
-    return BitVector(width, 0U);
+    if (signedBV)
+      return symfpu::convertFloatToSBV<symfpuLiteral::traits>(t, rm, fpl, width, BitVector(width, 0U));
+    else
+      return symfpu::convertFloatToUBV<symfpuLiteral::traits>(t, rm, fpl, width, BitVector(width, 0U));
   }
 
   Rational FloatingPoint::convertToRational (void) const {

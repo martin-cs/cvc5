@@ -404,12 +404,9 @@ namespace fp {
 							 (*arg1).second));
 		  break;
 		case kind::FLOATINGPOINT_RTI :
-		  /*
-		  f.insert(current, symfpu::rti<traits>(fpt(current.getType()),
-		                                        (*mode).second,
- 		                                        (*arg1).second));
-		  */
-		  Unimplemented("RoundToIntegral not yet supported in symfpu");
+		  f.insert(current, symfpu::roundToIntegral<traits>(fpt(current.getType()),
+								    (*mode).second,
+								    (*arg1).second));
 		  break;
 		default :
 		  Unreachable("Unknown unary rounded floating-point function");
@@ -812,7 +809,7 @@ namespace fp {
 	  /******** Conversions ********/
 	case kind::FLOATINGPOINT_TO_UBV :
 	  {
-	    TypeNode childType (current[0].getType());
+	    TypeNode childType (current[1].getType());
 	    ubvMap::const_iterator i(u.find(current));
 	      
 	    if (i == u.end()) {
@@ -826,13 +823,16 @@ namespace fp {
 		if (arg1 == f.end()) { workStack.push(current[1]); }
 		continue;    // i.e. recurse!
 	      }
-		
-	      Unimplemented("Floating-point to UBV not yet supported in symfpu");
-	      /*
-		u.insert(current, symfpu::toUnsigned<traits>(fpt(childType),
-		(*mode).second,
-		(*arg1).second));
-	      */
+
+	      FloatingPointToUBV info =
+		current.getOperator().getConst<FloatingPointToUBV>();
+
+
+	      u.insert(current, symfpu::convertFloatToUBV<traits>(fpt(childType),
+								  (*mode).second,
+								  (*arg1).second,
+								  info.bvs,
+								  NodeManager::currentNM()->mkConst(BitVector(info.bvs, 0U))));  // TODO change to an undefined function
 	      i = u.find(current);
 	    }
 	      
@@ -842,7 +842,7 @@ namespace fp {
 
 	case kind::FLOATINGPOINT_TO_SBV :
 	  {
-	    TypeNode childType (current[0].getType());
+	    TypeNode childType (current[1].getType());
 	    sbvMap::const_iterator i(s.find(current));
 	      
 	    if (i == s.end()) {
@@ -857,12 +857,16 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 
-	      Unimplemented("Floating-point to SBV not yet supported in symfpu");
-	      /*
-		s.insert(current, symfpu::toSigned<traits>(fpt(childType),
-		(*mode).second,
-		(*arg1).second));
-	      */
+	      FloatingPointToSBV info =
+		current.getOperator().getConst<FloatingPointToSBV>();
+
+
+	      s.insert(current, symfpu::convertFloatToSBV<traits>(fpt(childType),
+								  (*mode).second,
+								  (*arg1).second,
+								  info.bvs,
+								  NodeManager::currentNM()->mkConst(BitVector(info.bvs, 0U))));  // TODO change to an undefined function
+
 	      i = s.find(current);
 	    }
 
