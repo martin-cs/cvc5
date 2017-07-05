@@ -16,13 +16,13 @@
 */
 
 /*
-** multiply.h
+** remainder.h
 **
 ** Martin Brain
 ** martin.brain@cs.ox.ac.uk
-** 25/08/14
+** 14/12/16
 **
-** Multiplication of arbitrary precision floats
+** Computing the IEEE-754 remainder of arbitrary precision floats
 **
 */
 
@@ -31,42 +31,36 @@
 #include "symfpu/core/rounder.h"
 #include "symfpu/core/operations.h"
 
-#ifndef SYMFPU_MULTIPLY
-#define SYMFPU_MULTIPLY
+#ifndef SYMFPU_REMAINDER
+#define SYMFPU_REMAINDER
 
 namespace symfpu {
 
-  // sign == multiplyResult.getSign() normally but not for FMA, thus an argument is needed
 template <class t>
-  unpackedFloat<t> addMultiplySpecialCases (const typename t::fpt &format,
+  unpackedFloat<t> addRemainderSpecialCases (const typename t::fpt &format,
 					    const unpackedFloat<t> &left,
 					    const unpackedFloat<t> &right,
-					    const typename t::prop &sign,
-					    const unpackedFloat<t> &multiplyResult) {
+					    const unpackedFloat<t> &remainderResult) {
   typedef typename t::prop prop;
 
   prop eitherArgumentNan(left.getNaN() || right.getNaN());
-  prop generateNan((left.getInf() && right.getZero()) ||
-		   (left.getZero() && right.getInf()));
+  prop generateNan(left.getInf() || right.getZero());
   prop isNan(eitherArgumentNan || generateNan);
 
-  prop isInf(left.getInf() || right.getInf());
-
-  prop isZero(left.getZero() || right.getZero());
+  prop passThrough(!(left.getInf() || left.getNaN()) && right.getInf());
 
   return ITE(isNan,
 	     unpackedFloat<t>::makeNaN(format),
-	     ITE(isInf,
-		 unpackedFloat<t>::makeInf(format, sign),
-		 ITE(isZero,
-		     unpackedFloat<t>::makeZero(format, sign),
-		     multiplyResult)));
+	     ITE(passThrough,
+		 left,
+		 remainderResult));
  }
 
 template <class t>
-  unpackedFloat<t> arithmeticMultiply (const typename t::fpt &format,
-				       const unpackedFloat<t> &left,
-				       const unpackedFloat<t> &right) {
+  unpackedFloat<t> arithmeticRemainder (const typename t::fpt &format,
+					const typename t::rm &roundingMode,
+					const unpackedFloat<t> &left,
+					const unpackedFloat<t> &right) {
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
   typedef typename t::ubv ubv;
@@ -77,8 +71,11 @@ template <class t>
   PRECONDITION(right.valid(format));
 
   // Compute sign
-  prop multiplySign(left.getSign() ^ right.getSign());
+  prop remainderSign(left.getSign());
 
+
+  #if 0
+  
   // Add up exponents
   sbv exponentSum(expandingAdd<t>(left.getExponent(),right.getExponent()));
   // Optimisation : do this late and use the increment as a carry in
@@ -87,12 +84,12 @@ template <class t>
   sbv max(unpackedFloat<t>::maxNormalExponent(format));
   INVARIANT(expandingAdd<t>(min,min) <= exponentSum);
   INVARIANT(exponentSum <= expandingAdd<t>(max, max));
-  // Optimisation : use the if-then-lazy-else to avoid multiplying for underflow and overflow
+  // Optimisation : use the if-then-lazy-else to avoid remaindering for underflow and overflow
   //                subnormal * subnormal does not need to be evaluated
 
 
-  // Multiply the significands
-  ubv significandProduct(expandingMultiply<t>(left.getSignificand(), right.getSignificand()));
+  // Remainder the significands
+  ubv significandProduct(expandingRemainder<t>(left.getSignificand(), right.getSignificand()));
   // Optimisation : low bits are not needed apart from the guard and sticky bits
   // Optimisation : top bits accurately predict whether re-alignment is needed
 
@@ -114,19 +111,23 @@ template <class t>
 
   
   // Put back together
-  unpackedFloat<t> multiplyResult(multiplySign, alignedExponent, alignedSignificand);
+  unpackedFloat<t> remainderResult(remainderSign, alignedExponent, alignedSignificand);
 
   
   fpt extendedFormat(format.exponentWidth() + 1, format.significandWidth() * 2);
-  POSTCONDITION(multiplyResult.valid(extendedFormat));
+  POSTCONDITION(remainderResult.valid(extendedFormat));
 
-  return multiplyResult;
+  return remainderResult;
+#endif
+
+  // TODO : wrong!
+  return left;
  }
 
 
 // Put it all together...
 template <class t>
-  unpackedFloat<t> multiply (const typename t::fpt &format,
+  unpackedFloat<t> remainder (const typename t::fpt &format,
 			     const typename t::rm &roundingMode,
 			     const unpackedFloat<t> &left,
 			     const unpackedFloat<t> &right) {
@@ -138,11 +139,10 @@ template <class t>
   PRECONDITION(left.valid(format));
   PRECONDITION(right.valid(format));
 
-  unpackedFloat<t> multiplyResult(arithmeticMultiply(format, left, right));
+  unpackedFloat<t> remainderResult(arithmeticRemainder(format, roundingMode, left, right));
   
-  unpackedFloat<t> roundedMultiplyResult(rounder(format, roundingMode, multiplyResult));
-  
-  unpackedFloat<t> result(addMultiplySpecialCases(format, left, right, roundedMultiplyResult.getSign(), roundedMultiplyResult));
+  //unpackedFloat<t> result(addRemainderSpecialCases(format, left, right, roundedRemainderResult));
+  unpackedFloat<t> result(addRemainderSpecialCases(format, left, right, remainderResult));
 
   POSTCONDITION(result.valid(format));
 

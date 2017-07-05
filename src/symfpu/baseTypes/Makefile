@@ -1,6 +1,6 @@
 include ../flags
 CXXFLAGS+=-I../
-ALL=simpleExecutable.o
+ALL=simpleExecutable.o print.o
 
 .PHONY : all
 

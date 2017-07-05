@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -59,6 +59,8 @@
  * - add a 'non-deterministic rounding' mode for underapproximation.
  *
  * - add 'round-to-odd' and 'round-away-from-zero' mode
+ *
+ * - add 'flush subnormals to zero' option
  *
  * - Rather than increment and re-align, take all but the top bit of the
  *   significand, concatinate on to the exponent and then increment.
@@ -177,6 +179,12 @@ namespace symfpu {
   struct significandRounderResult{
     typename t::ubv significand;
     typename t::prop incrementExponent;
+      
+    significandRounderResult(const typename t::ubv &sig, const typename t::prop &inc) :
+      significand(sig), incrementExponent(inc) {}
+      
+    significandRounderResult(const significandRounderResult &old) :
+      significand(old.significand), incrementExponent(old.incrementExponent) {}
   };
 
   // Handles rounding the significand to a fixed width
@@ -194,7 +202,7 @@ namespace symfpu {
     typedef typename t::ubv ubv;
 
     bwt sigWidth(significand.getWidth());
-    PRECONDITION(sigWidth() >= targetWidth + 2);
+    PRECONDITION(sigWidth >= targetWidth + 2);
     // Extract
     ubv extractedSignificand(significand.extract(sigWidth - 1, sigWidth - targetWidth).extend(1)); // extended to catch the overflow
 
@@ -223,7 +231,64 @@ namespace symfpu {
 
     return result;
   }
+
+  
+  // Handles rounding the significand to a fixed width
+  // If knownRoundDown is true should simplify to just mask
+  // Not quite the same as either rounder so can't quite be refactored
+  template <class t>
+  significandRounderResult<t> variablePositionRound(const typename t::rm &roundingMode,
+						    const typename t::prop &sign,
+						    const typename t::ubv &significand,
+						    const typename t::ubv &roundPosition,
+						    const typename t::prop &knownLeadingOne,
+						    const typename t::prop &knownRoundDown) {
+    typedef typename t::bwt bwt;
+    typedef typename t::prop prop;
+    typedef typename t::ubv ubv;
+
+    bwt sigWidth(significand.getWidth());
     
+    // Set up significand
+    // Round-up-from-sticky bit and overflow bit at MSB, (fall-back) guard and sticky bits at LSB
+    ubv expandedSignificand(significand.extend(2).append(ubv::zero(2)));
+    bwt exsigWidth(expandedSignificand.getWidth());
+
+    
+    // Identify the increment, guard and sticky bits
+    ubv incrementLocation(ubv(exsigWidth, (0x1U << 2U)) << roundPosition.matchWidth(expandedSignificand));
+    ubv guardLocation(incrementLocation >> ubv::one(exsigWidth));
+    ubv stickyLocations(guardLocation.decrement());
+
+    prop significandEven((incrementLocation & expandedSignificand).isAllZeros());
+    prop guardBit(!(guardLocation & expandedSignificand).isAllZeros());
+    prop stickyBit(!(stickyLocations & expandedSignificand).isAllZeros());
+
+    // Rounding decision
+    prop roundUp(roundingDecision<t>(roundingMode, sign, significandEven,
+				     guardBit, stickyBit, knownRoundDown));
+
+    // Conditional increment
+    ubv roundedSignificand(expandedSignificand + ITE(roundUp,
+						     incrementLocation,
+						     ubv::zero(exsigWidth)));
+    
+    // Mask out rounded bits and extract
+    ubv maskedRoundedSignificand(roundedSignificand & (~(stickyLocations << ubv::one(exsigWidth)))); // LSB is wrong but gets cut
+
+    ubv roundUpFromSticky(roundedSignificand.extract(exsigWidth - 1, exsigWidth - 1));  // Only true when rounding up and whole significand is sticky
+    ubv overflowBit(roundedSignificand.extract(exsigWidth - 2, exsigWidth - 2));
+    ubv maskTrigger((roundUpFromSticky | overflowBit) & ubv(roundUp));
+    ubv carryUpMask((maskTrigger | ubv(knownLeadingOne)).append(ubv::zero(sigWidth - 1)));   // Cheaper than conditional shift
+    
+    // Build result
+    significandRounderResult<t> result(maskedRoundedSignificand.extract(sigWidth + 1, 2) | carryUpMask,
+				       maskTrigger.isAllOnes());
+
+    return result;
+  }
+
+  
   
   // Allows various of the key branches in the rounder to be fixed / removed
   // using information that is known from the operation in which the rounder

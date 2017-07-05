@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -374,10 +374,7 @@ namespace symfpu {
       
       static bitVector<isSigned> one (const bitWidthType &w) { return bitVector<isSigned>(w,1); }
       static bitVector<isSigned> zero (const bitWidthType &w)  { return bitVector<isSigned>(w,0); }
-      static bitVector<isSigned> allOnes (const bitWidthType &w)  { 
-	return bitVector<isSigned>( ::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_NOT,
-								 ::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(w, (long unsigned int)0))) );
-      }
+      static bitVector<isSigned> allOnes (const bitWidthType &w)  { return bitVector<isSigned>( ~one(w) ); }
       
       inline proposition isAllOnes() const {return (*this == bitVector<isSigned>::allOnes(this->getWidth()));}
       inline proposition isAllZeros() const {return (*this == bitVector<isSigned>::zero(this->getWidth()));}
@@ -412,9 +409,17 @@ namespace symfpu {
 	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SUB, this->node, op.node));
       }
 
-      inline bitVector<isSigned> operator * (const bitVector<isSigned> &op) const;
-      inline bitVector<isSigned> operator / (const bitVector<isSigned> &op) const;
-      inline bitVector<isSigned> operator % (const bitVector<isSigned> &op) const;
+      inline bitVector<isSigned> operator * (const bitVector<isSigned> &op) const {
+	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_MULT, this->node, op.node));
+      }
+      
+      inline bitVector<isSigned> operator / (const bitVector<isSigned> &op) const {
+	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SDIV : ::CVC4::kind::BITVECTOR_UDIV_TOTAL, this->node, op.node));
+      }
+      
+      inline bitVector<isSigned> operator % (const bitVector<isSigned> &op) const {
+	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SREM : ::CVC4::kind::BITVECTOR_UREM_TOTAL, this->node, op.node));
+      }
       
       inline bitVector<isSigned> operator - (void) const {
 	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_NEG, this->node));
@@ -425,11 +430,11 @@ namespace symfpu {
       }
 
       inline bitVector<isSigned> increment () const {
-	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_PLUS, this->node, ::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(this->getWidth(), (long unsigned int)1))));
+	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_PLUS, this->node, one(this->getWidth()).node));
       }
 
       inline bitVector<isSigned> decrement () const {
-	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SUB, this->node, ::CVC4::NodeManager::currentNM()->mkConst(::CVC4::BitVector(this->getWidth(), (long unsigned int)1))));
+	return bitVector<isSigned>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SUB, this->node,  one(this->getWidth()).node));
       }
 
       inline bitVector<isSigned> signExtendRightShift (const bitVector<isSigned> &op) const {
@@ -554,40 +559,8 @@ namespace symfpu {
       }
 
 
-
-
     };
 
-    /** CVC4's only multiply is unsigned
-    inline bitVector<true> bitVector<true>::operator * (const bitVector<true> &op) const {
-      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_MULT, this->node, op.node));
-    }
-    */
-
-    template <>
-    inline bitVector<false> bitVector<false>::operator * (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_MULT, this->node, op.node));
-    }
-    
-    template <>
-    inline bitVector<true> bitVector<true>::operator / (const bitVector<true> &op) const {
-      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SDIV, this->node, op.node));
-    }
-
-    template <>
-    inline bitVector<false> bitVector<false>::operator / (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UDIV_TOTAL, this->node, op.node));
-    }
-    
-    template <>
-    inline bitVector<true> bitVector<true>::operator % (const bitVector<true> &op) const {
-      return bitVector<true>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_SREM, this->node, op.node));
-    }
-
-    template <>
-    inline bitVector<false> bitVector<false>::operator % (const bitVector<false> &op) const {
-      return bitVector<false>(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_UREM_TOTAL, this->node, op.node));
-    }
 
     template <>
     inline bitVector<true> bitVector<true>::extend(bitWidthType extension) const {
@@ -667,6 +640,8 @@ namespace symfpu {
   CVC4SYMITEDFN(cvc4_symbolic::traits::sbv);
   CVC4SYMITEDFN(cvc4_symbolic::traits::ubv);
 
+#undef CVC4SYMITEDFN
+  
 };
 
 #endif

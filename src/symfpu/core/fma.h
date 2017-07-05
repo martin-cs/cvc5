@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -26,6 +26,14 @@
 **  fma(R,A,B,C) = round(R, A * B + C)
 **
 */
+
+/*
+ * BUGS : 
+ * 1. sign of zero different for exact 0 and underflow
+ * 2. large * -large  + inf  = inf  not NaN
+ * 3. rounder decision bugs : one looks like an issue with too-eager overflow,
+ *    one looks like a misplaced decision on highest subnormal exponent
+ */
 
 #include "symfpu/core/unpackedFloat.h"
 #include "symfpu/core/ite.h"

@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 
 #include "symfpu/utils/properties.h"
 #include "symfpu/core/ite.h"
+#include "symfpu/baseTypes/shared.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -47,16 +48,12 @@
 namespace symfpu {
   namespace simpleExecutable {
 
+    typedef symfpu::shared::bitWidthType bitWidthType;
+    typedef symfpu::shared::executable_proposition proposition;
+    typedef symfpu::shared::floatingPointTypeInfo floatingPointTypeInfo;
     
-    // Must be able to contain the number of bit used in the bit-vector type to avoid overflow
-    typedef uint32_t bitWidthType;
-
-    // We can use bools for propositions
-    typedef bool proposition;
-
     // Forwards definitions
     class roundingMode;
-    class floatingPointTypeInfo;
     template <class T> class bitVector;
 
     
@@ -208,13 +205,13 @@ namespace symfpu {
       // Need to inline the operations where possible
       inline bitVector<T> operator << (const bitVector<T> &op) const {
 	PRECONDITION(this->width == op.width);
-	PRECONDITION(op.value >= 0 && op.value < this->width);
+	PRECONDITION(op.value >= 0U && op.value < (T)this->width);
 	return bitVector<T>(this->width, this->value << op.value);
       }
 
       inline bitVector<T> operator >> (const bitVector<T> &op) const {
 	PRECONDITION(this->width == op.width);
-	PRECONDITION(op.value >= 0 && op.value < this->width);
+	PRECONDITION(op.value >= 0U && op.value < (T)this->width);
 	return bitVector<T>(this->width, this->value >> op.value);
       }
 
@@ -366,42 +363,6 @@ namespace symfpu {
 
     };
 
-    
-    
-    // In SMT-LIB style -- significand includes hidden bit
-    class floatingPointTypeInfo {
-    private :
-      bitWidthType exponentBits;
-      bitWidthType significandBits;
-      
-    public :
-      floatingPointTypeInfo (bitWidthType eb, bitWidthType sb) : exponentBits(eb), significandBits(sb) {
-	PRECONDITION(eb > 1);
-	PRECONDITION(sb > 1);
-      }
-      
-      floatingPointTypeInfo (const floatingPointTypeInfo &old) : 
-      exponentBits(old.exponentBits), significandBits(old.significandBits) {}
-      
-      floatingPointTypeInfo & operator= (const floatingPointTypeInfo &old) {
-	this->exponentBits = old.exponentBits;
-	this->significandBits = old.significandBits;
-	
-	return *this;
-      }
-
-      bitWidthType exponentWidth(void) const    { return this->exponentBits; }
-      bitWidthType significandWidth(void) const { return this->significandBits; }
-
-      
-      bitWidthType packedWidth(void) const            { return this->exponentBits + this->significandBits; }
-      bitWidthType packedExponentWidth(void) const    { return this->exponentBits; }
-      bitWidthType packedSignificandWidth(void) const {	return this->significandBits - 1; }
-
-      
-    };
-    
-
   }
 
 
@@ -421,6 +382,8 @@ namespace symfpu {
   SEITEDFN(simpleExecutable::traits::rm);
   SEITEDFN(simpleExecutable::traits::prop);
 
+#undef SEITEDFN
+  
 #define SEITEDFNW(T) template <>					\
     struct ite<simpleExecutable::traits::prop, T> {			\
     static const T & iteOp (const simpleExecutable::traits::prop &cond,	\
@@ -439,6 +402,7 @@ namespace symfpu {
   SEITEDFNW(simpleExecutable::traits::sbv);
   SEITEDFNW(simpleExecutable::traits::ubv);
 
+#undef SEITEDFNW
 
 }
 

@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -1198,7 +1198,8 @@ int main (int argc, char **argv) {
     {0,1,             "divide", INST(binaryRoundedFunction, div),       "f / g",  "(fp.div rm f g)"},
     {0,0,                "max", INST(binaryFunction, max),              "fmaxf(f,g)",  "(fp.max f g)"},
     {0,0,                "min", INST(binaryFunction, min),              "fminf(f,g)",  "(fp.min f g)"},
-    {0,1,               "sqrt", INST(unaryRoundedFunction, sqrt),       "sqrtf(f,g)",  "(fp.sqrt rm f)"},
+    {0,1,               "sqrt", INST(unaryRoundedFunction, sqrt),       "sqrtf(f)",  "(fp.sqrt rm f)"},
+    {0,1,  "round_to_integral", INST(unaryRoundedFunction, rti),        "(fegetround()==FE_TONEAREST) ? rintf(f) : (fegetround()==FE_UPWARD) ? ceilf(f) : (fegetround()==FE_DOWNWARD) ? floorf(f) : truncf(f)",  "(fp.roundToIntegral rm f)"},
     {0,1,                "fma", INST(ternaryRoundedFunction, fma),      "fmaf(f,g)",  "(fp.fma rm f g h)"},
     {0,0,                 NULL, NULL, NULL, NULL,                           NULL,  NULL}
   };
@@ -1257,7 +1258,8 @@ int main (int argc, char **argv) {
     {             "max",        no_argument,               &(tests[18].enable),  1 },
     {             "min",        no_argument,               &(tests[19].enable),  1 },
     {            "sqrt",        no_argument,               &(tests[20].enable),  1 },
-    {             "fma",        no_argument,               &(tests[21].enable),  1 },
+    {             "rti",        no_argument,               &(tests[21].enable),  1 },
+    {             "fma",        no_argument,               &(tests[22].enable),  1 },
     {             "rne",        no_argument,    &(roundingModeTests[0].enable),  1 },
     {             "rtp",        no_argument,    &(roundingModeTests[1].enable),  1 },
     {             "rtn",        no_argument,    &(roundingModeTests[2].enable),  1 },

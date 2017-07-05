@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -227,6 +227,8 @@ namespace symfpu {
   CVC4LITITEDFN(cvc4_literal::traits::sbv);
   CVC4LITITEDFN(cvc4_literal::traits::ubv);
 
+#undef CVC4LITITEDFN
+  
 };
 
 #endif

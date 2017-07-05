@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -84,23 +84,125 @@ unpackedFloat<t> convertFloatToFloat (const typename t::fpt &sourceFormat,
 
 
 template <class t>
+unpackedFloat<t> roundToIntegral (const typename t::fpt &format,
+				  const typename t::rm &roundingMode,
+				  const unpackedFloat<t> &input) {
+
+  PRECONDITION(input.valid(format));
+
+  typedef typename t::bwt bwt;
+  typedef typename t::prop prop;
+  typedef typename t::ubv ubv;
+  typedef typename t::sbv sbv;
+
+  sbv exponent(input.getExponent());
+  bwt exponentWidth(exponent.getWidth());
+  
+  sbv packedSigWidth(exponentWidth, format.packedSignificandWidth());
+  sbv unpackedSigWidth(exponentWidth, format.significandWidth());
+  
+  // Fast path for things that must be integral
+  prop isIntegral(exponent >= packedSigWidth);
+  prop isSpecial(input.getNaN() || input.getInf() || input.getZero());
+  prop isID(isIntegral || isSpecial);
+  probabilityAnnotation<t>(isID, LIKELY);
+  // TODO : fast path the cases that don't round up
+
+  
+  // Otherwise, compute rounding location
+  sbv initialRoundingPoint(packedSigWidth - exponent);  // TODO : check bounds on this
+  sbv roundingPoint(collar<t>(initialRoundingPoint,
+			      sbv::zero(exponentWidth),
+			      unpackedSigWidth.increment()));
+
+  // Round
+  ubv significand(input.getSignificand());
+  significandRounderResult<t> roundedResult(variablePositionRound<t>(roundingMode, input.getSign(), significand,
+								     roundingPoint.toUnsigned().matchWidth(significand),
+								     prop(false), // TODO : Could actually be exponent >= 0
+								     isID));      // The fast-path case so just deactives some code
+
+  // Reconstruct
+  // Note this is not in a valid form if significand is all zeros
+  // The max is necessary to catch cases when we round up to one from very small numbers
+  // The rounder ensures these are zero if they don't round up
+  unpackedFloat<t> reconstructed(input.getSign(),
+				 max<t>(conditionalIncrement<t>(roundedResult.incrementExponent, exponent),
+					sbv::zero(exponentWidth)),
+				 roundedResult.significand);
+					    
+  
+  unpackedFloat<t> result(ITE(isID,
+			      input,
+			      ITE(roundedResult.significand.isAllZeros(),
+				  unpackedFloat<t>::makeZero(format, input.getSign()),
+				  reconstructed)));
+
+  POSTCONDITION(result.valid(format));
+  
+  return result;
+
+  
+  #if 0
+  // increased includes equality
+  bool exponentIncreased = unpackedFloat<t>::exponentWidth(sourceFormat) <= unpackedFloat<t>::exponentWidth(targetFormat);
+  bool significandIncreased = unpackedFloat<t>::significandWidth(sourceFormat) <= unpackedFloat<t>::significandWidth(targetFormat);
+
+  bwt expExtension = (exponentIncreased) ? unpackedFloat<t>::exponentWidth(targetFormat) - unpackedFloat<t>::exponentWidth(sourceFormat) : 0;
+  bwt sigExtension = (significandIncreased) ? unpackedFloat<t>::significandWidth(targetFormat) - unpackedFloat<t>::significandWidth(sourceFormat) : 0;
+
+  unpackedFloat<t> extended(input.extend(expExtension, sigExtension));
+
+  // Format sizes are literal so it is safe to branch on them
+  if (exponentIncreased && significandIncreased) {
+    // Fast path strict promotions
+
+    POSTCONDITION(extended.valid(targetFormat));
+    
+    return extended;
+
+  } else {
+
+    unpackedFloat<t> rounded(rounder(targetFormat, roundingMode, extended));
+
+    unpackedFloat<t> result(ITE(input.getNaN(),
+				unpackedFloat<t>::makeNaN(targetFormat),
+				ITE(input.getInf(),
+				    unpackedFloat<t>::makeInf(targetFormat, input.getSign()),
+				    ITE(input.getZero(),
+					unpackedFloat<t>::makeZero(targetFormat, input.getSign()),
+					rounded))));
+    
+    POSTCONDITION(result.valid(targetFormat));
+    
+    return result;
+  }
+  #endif
+
+}
+
+
+template <class t>
   unpackedFloat<t> convertUBVToFloat (const typename t::fpt &targetFormat,
 				      const typename t::rm &roundingMode,
-				      const typename t::ubv &input) {
-
+				      const typename t::ubv &input,
+				      const typename t::bwt &decimalPointPosition = 0) {
+  
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
   typedef typename t::sbv sbv;
   typedef typename t::fpt fpt;
 
   bwt inputWidth(input.getWidth());
+
+  PRECONDITION(decimalPointPosition <= inputWidth);
   
   // Devise an appropriate format 
   bwt initialExponentWidth(bitsToRepresent<bwt>(inputWidth) + 1); // +1 as unsigned -> signed
   fpt initialFormat(initialExponentWidth, inputWidth);
 
   // Build
-  unpackedFloat<t> initial(prop(false), sbv(initialExponentWidth, inputWidth), input);
+  unpackedFloat<t> initial(prop(false), sbv(initialExponentWidth, inputWidth - decimalPointPosition), input);
   
   // Normalise
   unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
@@ -113,14 +215,16 @@ template <class t>
 template <class t>
   unpackedFloat<t> convertSBVToFloat (const typename t::fpt &targetFormat,
 				      const typename t::rm &roundingMode,
-				      const typename t::sbv &input) {
-
+				      const typename t::sbv &input,
+				      const typename t::bwt &decimalPointPosition = 0) {
   typedef typename t::bwt bwt;
   typedef typename t::prop prop;
   typedef typename t::sbv sbv;
   typedef typename t::fpt fpt;
 
   bwt inputWidth(input.getWidth());
+
+  PRECONDITION(decimalPointPosition <= inputWidth);
   
   // Devise an appropriate format 
   bwt initialExponentWidth(bitsToRepresent<bwt>(inputWidth) + 1); // +1 as unsigned -> signed
@@ -130,7 +234,7 @@ template <class t>
   prop negative(input < sbv::zero(inputWidth));
 
   // Build
-  unpackedFloat<t> initial(negative, sbv(initialExponentWidth, inputWidth), (abs<t,sbv>(input.extend(1))).toUnsigned());
+  unpackedFloat<t> initial(negative, sbv(initialExponentWidth, inputWidth - decimalPointPosition), (abs<t,sbv>(input.extend(1))).toUnsigned());
   
   // Normalise
   unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
@@ -140,55 +244,157 @@ template <class t>
  }
 
 
+ 
  template <class t>
-   unpackedFloat<t> convertFloatToUBV (const typename t::fpt &format,
-				       const typename t::rm &roundingMode,
-				       const unpackedFloat<t> &uf,
-				       const typename t::bwt &targetWidth) {
+   significandRounderResult<t> convertFloatToBV (const typename t::fpt &format,
+						 const typename t::rm &roundingMode,
+						 const unpackedFloat<t> &input,
+						 const typename t::bwt &targetWidth,
+						 const typename t::bwt &decimalPointPosition) {
    
    typedef typename t::bwt bwt;
    typedef typename t::prop prop;
    typedef typename t::ubv ubv;
    typedef typename t::sbv sbv;
 
-   
-   // Invalid cases
-   prop specialValue(uf.getInf() || uf.getNaN());
 
-   sbv exponent(uf.getExponent());
+   PRECONDITION(decimalPointPosition < targetWidth);
+
+
+   // TODO : fast path the RTZ case
+
+  
+   sbv exponent(input.getExponent());
    bwt exponentWidth(exponent.getWidth());
 
    sbv largestExponent(exponentWidth, targetWidth);
-   prop tooLarge(uf.getExponent() >=  largestExponent);
-
-   prop undefinedResult(specialValue || uf.getZero() || tooLarge || uf.getSign());
-   probabilityAnnotation<t>(undefinedResult, LIKELY); // Convertable values are rare
 
 
+   // Handle zero
+   ubv significand(input.getSignificand());
+   bwt significandWidth(significand.getWidth());
+   ubv zerodSignificand(significand &
+			ITE(input.getZero(), ubv::zero(significandWidth), ubv::allOnes(significandWidth)));
+   ubv expandedSignificand(zerodSignificand.extend(targetWidth + 1)); // Start with the significand in the sticky position.
+   
+   
    // Align
-   ubv expandedSignificand(uf.getSignificand().extend(targetWidth + 1)); // Start with the significand in the sticky position.
-   sbv shiftAmount(collar<t>(exponent.modularIncrement().modularIncrement(),  // Overflow lost in the "too large" case
-			     sbv::zero(exponentWidth),
-			     largestExponent)); // Equal to bit width, thus shift right across
-   ubv convertedShiftAmount(shiftAmount.contract(bitsToRepresent(largestExponent) + 1 /* +1 for sign, safe due to collar */
-						 ).toUnsigned().matchWidth(expandedSignificand()));
+   sbv maxShiftAmount(largestExponent.extend(1).increment());             // +1 to shift over the guard bit
+   sbv shiftAmount(collar<t>(expandingAdd<t>(exponent, sbv(exponentWidth, decimalPointPosition + 2)),
+			     sbv::zero(exponentWidth + 1),
+			     maxShiftAmount));
+   ubv convertedShiftAmount(shiftAmount.contract(bitsToRepresent(targetWidth + 1) + 1 /* +1 for sign bit, safe due to collar */
+						 ).toUnsigned().matchWidth(expandedSignificand));
    ubv aligned(expandedSignificand << convertedShiftAmount); // Safe by collar
 
 
    // Fixed position round
-   significandRounderResult<t> rounded(fixedPositionRound(roundingMode, prop(false),
-							  aligned, targetWidth,
-							  prop(false), prop(false)));
-   // Note that incrementExponent is ignored as it only happens when the rounding overflows
-   // Sign is also "optimised" as it is only used in the case of positive
+   significandRounderResult<t> rounded(fixedPositionRound<t>(roundingMode, input.getSign(),
+							     aligned, targetWidth,
+							     prop(false), prop(false)));
+
+   return rounded;
+ }
+
+ template <class t>
+   typename t::ubv convertFloatToUBV (const typename t::fpt &format,
+				      const typename t::rm &roundingMode,
+				      const unpackedFloat<t> &input,
+				      const typename t::bwt &targetWidth,
+				      const typename t::ubv &undefValue,
+				      const typename t::bwt &decimalPointPosition = 0) {
+
+   typedef typename t::bwt bwt;
+   typedef typename t::prop prop;
+   typedef typename t::ubv ubv;
+   typedef typename t::sbv sbv;
+
+
+   PRECONDITION(decimalPointPosition < targetWidth);
+
+
+   // Invalid cases
+   prop specialValue(input.getInf() || input.getNaN());
+
+   sbv exponent(input.getExponent());
+   bwt exponentWidth(exponent.getWidth());
+
+   sbv largestExponent(exponentWidth, targetWidth);
+   prop tooLarge(input.getExponent() >= largestExponent);
+
+   prop tooNegative(input.getSign() && sbv::zero(exponentWidth) <= input.getExponent());  // Can't round to 0
+   
+   prop earlyUndefinedResult(specialValue || tooLarge || tooNegative);
+   probabilityAnnotation<t>(earlyUndefinedResult, LIKELY); // Convertable values are rare
+
+
+   // Fixed position round
+   significandRounderResult<t> rounded(convertFloatToBV(format, roundingMode, input,
+							targetWidth, decimalPointPosition));
+
+   // Put the result together
+   prop undefinedResult(earlyUndefinedResult ||
+			rounded.incrementExponent ||    // Overflow
+			(input.getSign() && !rounded.significand.isAllZeros()));  // Negative case
    
    ubv result(ITE(undefinedResult,
-		  ubv::zero(targetWidth),
+		  undefValue,
 		  rounded.significand));
 
    return result;
  }
+
+  template <class t>
+    typename t::sbv convertFloatToSBV (const typename t::fpt &format,
+				       const typename t::rm &roundingMode,
+				       const unpackedFloat<t> &input,
+				       const typename t::bwt &targetWidth,
+				       const typename t::sbv &undefValue,
+				       const typename t::bwt &decimalPointPosition = 0) {
+
+   typedef typename t::bwt bwt;
+   typedef typename t::prop prop;
+   //typedef typename t::ubv ubv;
+   typedef typename t::sbv sbv;
+
+
+   PRECONDITION(decimalPointPosition < targetWidth);
+
+
+   // Invalid cases
+   prop specialValue(input.getInf() || input.getNaN());
+
+   sbv exponent(input.getExponent());
+   bwt exponentWidth(exponent.getWidth());
+
+   sbv largestExponent(exponentWidth, targetWidth);
+   prop tooLarge(input.getExponent() >= largestExponent);
+
+   prop earlyUndefinedResult(specialValue || tooLarge);
+   probabilityAnnotation<t>(earlyUndefinedResult, LIKELY); // Convertable values are rare
+
+
+   // Fixed position round
+   // (It is tempting to think that this could be done with targetWidth - 1 bits but that
+   // missed the case of things like -128.05 -> int8_t)
+   significandRounderResult<t> rounded(convertFloatToBV(format, roundingMode, input,
+							targetWidth, decimalPointPosition));
+
+   // Put the result together
+   prop undefinedResult(earlyUndefinedResult ||
+			rounded.incrementExponent ||    // Definite Overflow
+			(rounded.significand.extract(rounded.significand.getWidth(),
+						     rounded.significand.getWidth()).isAllOnes() &&
+			 !(input.getSign() && rounded.significand.extract(rounded.significand.getWidth() - 1, 0).isAllZeros()))); // -2^{n-1} is non-overflow safe
+
    
+   sbv result(ITE(undefinedResult,
+		  undefValue,
+		  conditionalNegate<t,sbv,prop>(input.getSign(), rounded.significand.toSigned())));
+
+   return result;
+ }
+
 }
 
 #endif

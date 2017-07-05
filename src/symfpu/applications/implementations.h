@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2016 Martin Brain
+** Copyright (C) 2017 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -55,6 +55,7 @@ class nativeFunctions {
   static execFloat max (execFloat f, execFloat g);
   static execFloat min (execFloat f, execFloat g);
   static execFloat sqrt (execFloat f);
+  static execFloat rti (execFloat f);
   static execFloat fma (execFloat f, execFloat g, execFloat h);
 
   
@@ -142,10 +143,85 @@ long double nativeFunctions<long double>::sqrt (long double f) {
   return sqrtl(f);
 }
 
+template <>
+float nativeFunctions<float>::rti (float f) {
+  switch (fegetround()) {
+  case FE_TONEAREST : return rintf(f); break;
+  case FE_UPWARD : return ceilf(f); break;
+  case FE_DOWNWARD : return floorf(f); break;
+  case FE_TOWARDZERO : return truncf(f); break;
+    //  case RNA : return roundf(f); break;
+  default : assert(0); break;
+  }
+  return 0.0f;
+}
+
+template <>
+double nativeFunctions<double>::rti (double f) {
+  switch (fegetround()) {
+  case FE_TONEAREST : return rint(f); break;
+  case FE_UPWARD : return ceil(f); break;
+  case FE_DOWNWARD : return floor(f); break;
+  case FE_TOWARDZERO : return trunc(f); break;
+    //  case RNA : return round(f); break;
+  default : assert(0); break;
+  }
+  return 0.0;
+}
+
+template <>
+long double nativeFunctions<long double>::rti (long double f) {
+  switch (fegetround()) {
+  case FE_TONEAREST : return rintl(f); break;
+  case FE_UPWARD : return ceill(f); break;
+  case FE_DOWNWARD : return floorl(f); break;
+  case FE_TOWARDZERO : return truncl(f); break;
+    //  case RNA : return roundl(f); break;
+  default : assert(0); break;
+  }
+  return 0.0f;
+}
+
+
+// 1000000 tests
+// libc fma 1739 bugs / 94 not sign of zero
+// double 1861 bugs all not sign of zero
+// float 1861 bugs all not sign of zero
 
 template <>
 float nativeFunctions<float>::fma (float f, float g, float h) {
-  return fmaf(f,g,h);
+
+  // vfmadd132ss
+  return __builtin_fmaf(f,g,h);
+  
+  /*
+    // Needs -mfma4 which is not the fma attribute in /proc/cpuinfo
+  typedef float v4sf __attribute__ ((vector_size (16)));
+
+  v4sf vf = {f,f,f,f};
+  v4sf vg = {g,g,g,g};
+  v4sf vh = {h,h,h,h};
+
+  v4sf result = __builtin_ia32_vfmaddps (vf, vg, vh);
+
+  return result[0];
+  */
+
+  /*
+  float mult = f * g;
+  return mult + h;
+  */  
+
+  /*
+  double df = f;
+  double dg = g;
+  double dh = h;
+
+  double mult = f * g;
+  return (float)(mult + h);
+  */
+  
+  //return fmaf(f,g,h);
 }
 
 template <>
@@ -210,6 +286,14 @@ class native {
     execFloat f = *((execFloat *)&bv);
     
     f = nativeFunctions<execFloat>::sqrt(f);
+    
+    return *((execBV *)&f);
+  }
+  
+  static execBV rti (execBV bv) {
+    execFloat f = *((execFloat *)&bv);
+    
+    f = nativeFunctions<execFloat>::rti(f);
     
     return *((execBV *)&f);
   }
@@ -458,6 +542,18 @@ class sympfuImplementation {
     uf sqrt(symfpu::sqrt<traits>(*format, *mode, unpacked));
     
     ubv repacked(symfpu::pack<traits>(*format, sqrt));
+    
+    return repacked.contents();
+  }
+
+  static execBV rti (execBV bv) {
+    ubv packed(bitsInExecBV(),bv);
+ 
+    uf unpacked(symfpu::unpack<traits>(*format, packed));
+    
+    uf rti(symfpu::roundToIntegral<traits>(*format, *mode, unpacked));
+    
+    ubv repacked(symfpu::pack<traits>(*format, rti));
     
     return repacked.contents();
   }
