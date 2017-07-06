@@ -171,7 +171,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
       for (unsigned i = 0; i < sigBits - 1; ++i) {
 	Rational mid(workingSig + working);
 
-	if (mid < r) {
+	if (mid <= r) {
 	  sig = sig | one;
 	  workingSig = mid;
 	}
@@ -190,7 +190,15 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
 
       // Build an exact float
       FloatingPointSize exactFormat(expBits, sigBits);
-      FloatingPointLiteral exactFloat(negative, exactExp, sig);
+
+      // A small subtlety... if the format has expBits the unpacked format
+      // may have more to allow subnormals to be normalised.
+      // Thus...
+      unsigned extension = symfpuLiteral::uf::exponentWidth(exactFormat) - expBits;
+
+      FloatingPointLiteral exactFloat(negative,
+				      exactExp.signExtend(extension),
+				      sig);
       
 
       // Then cast...
