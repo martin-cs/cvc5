@@ -30,6 +30,7 @@
 #include "symfpu/core/compare.h"
 #include "symfpu/core/classify.h"
 #include "symfpu/core/convert.h"
+#include "symfpu/core/remainder.h"
 
 #if 0
 // \todo Fix this ugly hack
@@ -417,6 +418,7 @@ namespace fp {
 
 	    case kind::FLOATINGPOINT_MIN :
 	    case kind::FLOATINGPOINT_MAX :
+	    case kind::FLOATINGPOINT_REM :
 	      {
 		fpMap::const_iterator arg1(f.find(current[0]));
 		fpMap::const_iterator arg2(f.find(current[1]));
@@ -442,6 +444,12 @@ namespace fp {
 							(*arg2).second));
 		  break;
 
+		case kind::FLOATINGPOINT_REM :
+		  f.insert(current, symfpu::remainder<traits>(fpt(current.getType()),
+							      (*arg1).second,
+							      (*arg2).second));
+		  break;
+
 		default :
 		  Unreachable("Unknown binary floating-point function");
 		  break;
@@ -449,9 +457,6 @@ namespace fp {
 	      }
 	      break;
 	      
-	    case kind::FLOATINGPOINT_REM :   // Assumes new signature
-	      Unimplemented("Remainder not yet supported in symfpu");
-	      break;	      
 	    case kind::FLOATINGPOINT_PLUS :
 	    case kind::FLOATINGPOINT_SUB :
 	    case kind::FLOATINGPOINT_MULT :
@@ -508,7 +513,7 @@ namespace fp {
 							     (*arg1).second,
 							     (*arg2).second));
 		  */
-		  Unimplemented("Remainder with rounding mode not yet supported in symfpu");
+		  Unimplemented("Remainder with rounding mode not yet supported by SMT-LIB");
 		  break;
 
 		default :
