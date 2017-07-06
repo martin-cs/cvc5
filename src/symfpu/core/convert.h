@@ -200,9 +200,10 @@ template <class t>
   // Devise an appropriate format 
   bwt initialExponentWidth(bitsToRepresent<bwt>(inputWidth) + 1); // +1 as unsigned -> signed
   fpt initialFormat(initialExponentWidth, inputWidth);
+  bwt actualExponentWidth(unpackedFloat<t>::exponentWidth(initialFormat));
 
   // Build
-  unpackedFloat<t> initial(prop(false), sbv(initialExponentWidth, inputWidth - decimalPointPosition), input);
+  unpackedFloat<t> initial(prop(false), sbv(actualExponentWidth, inputWidth - decimalPointPosition), input);
   
   // Normalise
   unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
@@ -229,12 +230,13 @@ template <class t>
   // Devise an appropriate format 
   bwt initialExponentWidth(bitsToRepresent<bwt>(inputWidth) + 1); // +1 as unsigned -> signed
   fpt initialFormat(initialExponentWidth, inputWidth + 1);        // +1 as signed -> unsigned
+  bwt actualExponentWidth(unpackedFloat<t>::exponentWidth(initialFormat));
 
   // Work out the sign
   prop negative(input < sbv::zero(inputWidth));
 
   // Build
-  unpackedFloat<t> initial(negative, sbv(initialExponentWidth, inputWidth - decimalPointPosition), (abs<t,sbv>(input.extend(1))).toUnsigned());
+  unpackedFloat<t> initial(negative, sbv(actualExponentWidth, inputWidth - decimalPointPosition), (abs<t,sbv>(input.extend(1))).toUnsigned());
   
   // Normalise
   unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
