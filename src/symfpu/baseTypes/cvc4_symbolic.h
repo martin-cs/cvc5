@@ -259,7 +259,8 @@ namespace symfpu {
 	Node zero(nm->mkConst(::CVC4::BitVector(SYMFPU_NUMBER_OF_ROUNDING_MODES, (long unsigned int)0)));
 
 	// Is there a better encoding of this?
-	return proposition(nm->mkNode(::CVC4::kind::AND, 
+	#ifdef SYMFPUPROPISBOOL
+	return proposition(nm->mkNode(::CVC4::kind::AND,
 				      nm->mkNode(::CVC4::kind::EQUAL,
 						 nm->mkNode(::CVC4::kind::BITVECTOR_AND,
 							    this->node,
@@ -271,6 +272,20 @@ namespace symfpu {
 						 nm->mkNode(::CVC4::kind::EQUAL,
 							    this->node,
 							    zero))));
+	#else
+	return proposition(nm->mkNode(::CVC4::kind::BITVECTOR_AND,
+				      nm->mkNode(::CVC4::kind::BITVECTOR_COMP,
+						 nm->mkNode(::CVC4::kind::BITVECTOR_AND,
+							    this->node,
+							    nm->mkNode(::CVC4::kind::BITVECTOR_SUB,
+								       this->node,
+								       nm->mkConst(::CVC4::BitVector(SYMFPU_NUMBER_OF_ROUNDING_MODES, (long unsigned int)1)))),
+						 zero),
+				      nm->mkNode(::CVC4::kind::BITVECTOR_NOT,
+						 nm->mkNode(::CVC4::kind::BITVECTOR_COMP,
+							    this->node,
+							    zero))));
+	#endif
       }
 
       proposition operator == (const roundingMode &op) const {
