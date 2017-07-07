@@ -25,6 +25,7 @@
 
 #include "theory/fp/fp_converter.h"
 
+#include "context/cdo.h"
 
 namespace CVC4 {
 namespace theory {
@@ -52,13 +53,21 @@ protected :
 
   NotifyClass notification;
   eq::EqualityEngine equalityEngine;
-  Node conflictNode;
+
 
   /** Bit-blasting conversion */
   fpConverter conv;
   bool expansionRequested;
 
   void convertAndEquateTerm(TNode node);
+
+
+  /** General book-keeping **/
+  bool handlePropagation(TNode node);
+  void handleConflict(TNode node);
+
+  context::CDO<bool> conflict;
+  context::CDO<Node> conflictNode;
 
 public:
 

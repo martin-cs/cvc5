@@ -80,16 +80,18 @@ namespace removeToFPGeneric {
 
 /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */
 TheoryFp::TheoryFp(context::Context* c,
-                           context::UserContext* u,
-                           OutputChannel& out,
-                           Valuation valuation,
-                           const LogicInfo& logicInfo) :
+		   context::UserContext* u,
+		   OutputChannel& out,
+		   Valuation valuation,
+		   const LogicInfo& logicInfo) :
   Theory(THEORY_FP, c, u, out, valuation, logicInfo),
   notification(*this),
   equalityEngine(notification, c, "theory::fp::TheoryFp", true),
-  conflictNode(Node::null()),
   conv(u),
-  expansionRequested(false) {
+  expansionRequested(false),
+  conflict(c, false),
+  conflictNode(c, Node::null())
+  {
 
     // Kinds that are to be handled in the congruence closure
     
@@ -264,21 +266,34 @@ void TheoryFp::addSharedTerm(TNode node) {
   return;
 }
 
+bool TheoryFp::handlePropagation(TNode node) {
+  Trace("fp") << "TheoryFp::handlePropagation(): propagate " << node << std::endl;
+
+  bool stat = d_out->propagate(node);
+
+  if (!stat)
+    handleConflict(node);
+
+  return stat;
+}
+
+
+void TheoryFp::handleConflict(TNode node) {
+  Trace("fp") << "TheoryFp::handleConflict(): conflict detected " << node << std::endl;
+
+  conflictNode = node;
+  conflict = true;
+  d_out->conflict(node);
+  return;
+}
+  
 
 void TheoryFp::check(Effort level) {
 
-  while(!done()) {
+  while(!done() && !conflict) {
     // Get all the assertions
     Assertion assertion = get();
     TNode fact = assertion.assertion;
-
-    if (conflictNode != Node::null()) {
-      Debug("fp") << "TheoryFp::check(): conflict detected " << conflictNode << std::endl;
-
-      d_out->conflict(conflictNode);
-      conflictNode = Node::null();
-      return;
-    }
 
     Debug("fp") << "TheoryFp::check(): processing " << fact << std::endl;
 
@@ -341,9 +356,11 @@ void TheoryFp::setMasterEqualityEngine(eq::EqualityEngine* eq) {
 }
 
 void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
+  Trace("fp") << "TheoryFp::explain(): explain " << literal << std::endl;
+  
   // All things we assert directly (and not via bit-vector) should 
   // come from the equality engine so this should be sufficient...
-
+  
   bool polarity = literal.getKind() != kind::NOT;
   TNode atom = polarity ? literal : literal[0];
   if (atom.getKind() == kind::EQUAL) {
@@ -431,36 +448,30 @@ void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
     Debug("fp-eq") << "TheoryFp::eqNotifyTriggerEquality(): call back as equality " << equality << " is " << value << std::endl;
 
     if (value) {
-      theorySolver.d_out->propagate(equality);
+      return theorySolver.handlePropagation(equality);
     } else {
-      theorySolver.d_out->propagate(equality.notNode());
+      return theorySolver.handlePropagation(equality.notNode());
     }
-
-    return true;
   }
 
   bool TheoryFp::NotifyClass::eqNotifyTriggerPredicate(TNode predicate, bool value) {
     Debug("fp-eq") << "TheoryFp::eqNotifyTriggerPredicate(): call back as predicate " << predicate << " is " << value << std::endl;
 
     if (value) {
-      theorySolver.d_out->propagate(predicate);
+      return theorySolver.handlePropagation(predicate);
     } else {
-      theorySolver.d_out->propagate(predicate.notNode());
+      return theorySolver.handlePropagation(predicate.notNode());
     }
-
-    return true;
   }
 
   bool TheoryFp::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value) {
     Debug("fp-eq") << "TheoryFp::eqNotifyTriggerTermEquality(): call back as " << t1 << (value ? " = " : " != ") << t2 << std::endl;
 
     if (value) {
-      theorySolver.d_out->propagate(t1.eqNode(t2));
+      return theorySolver.handlePropagation(t1.eqNode(t2));
     } else {
-      theorySolver.d_out->propagate(t1.eqNode(t2).notNode());
+      return theorySolver.handlePropagation(t1.eqNode(t2).notNode());
     }
-
-    return true;
   }
 
   void TheoryFp::NotifyClass::eqNotifyConstantTermMerge(TNode t1, TNode t2) {
@@ -489,7 +500,7 @@ void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
       conflict = conjunction;
     }
 
-    theorySolver.conflictNode = conflict;
+    theorySolver.handleConflict(conflict);
   }
 
 
