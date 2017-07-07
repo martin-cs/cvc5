@@ -60,6 +60,8 @@ protected :
 
   void convertAndEquateTerm(TNode node);
 
+  bool handlePropagation(TNode node);
+
 public:
 
   /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */

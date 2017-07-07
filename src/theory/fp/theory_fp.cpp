@@ -264,7 +264,14 @@ void TheoryFp::addSharedTerm(TNode node) {
   return;
 }
 
+bool TheoryFp::handlePropagation(TNode node) {
+  out->propagate(node);
 
+  return true;
+}
+
+
+  
 void TheoryFp::check(Effort level) {
 
   while(!done()) {
@@ -429,36 +436,30 @@ void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
     Debug("fp-eq") << "TheoryFp::eqNotifyTriggerEquality(): call back as equality" << equality << " is " << value << std::endl;
 
     if (value) {
-      theorySolver.d_out->propagate(equality);
+      return theorySolver.handlePropagation(equality);
     } else {
-      theorySolver.d_out->propagate(equality.notNode());
+      return theorySolver.handlePropagation(equality.notNode());
     }
-
-    return true;
   }
 
   bool TheoryFp::NotifyClass::eqNotifyTriggerPredicate(TNode predicate, bool value) {
     Debug("fp-eq") << "TheoryFp::eqNotifyTriggerPredicate(): call back as predicate" << predicate << " is " << value << std::endl;
 
     if (value) {
-      theorySolver.d_out->propagate(predicate);
+      return theorySolver.handlePropagation(predicate);
     } else {
-      theorySolver.d_out->propagate(predicate.notNode());
+      return theorySolver.handlePropagation(predicate.notNode());
     }
-
-    return true;
   }
 
   bool TheoryFp::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value) {
     Debug("fp-eq") << "TheoryFp::eqNotifyTriggerTermEquality(): call back as " << t1 << (value ? " = " : " != ") << t2 << std::endl;
 
     if (value) {
-      theorySolver.d_out->propagate(t1.eqNode(t2));
+      return theorySolver.handlePropagation(t1.eqNode(t2));
     } else {
-      theorySolver.d_out->propagate(t1.eqNode(t2).notNode());
+      return theorySolver.handlePropagation(t1.eqNode(t2).notNode());
     }
-
-    return true;
   }
 
   void TheoryFp::NotifyClass::eqNotifyConstantTermMerge(TNode t1, TNode t2) {
