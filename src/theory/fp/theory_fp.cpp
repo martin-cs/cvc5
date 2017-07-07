@@ -265,9 +265,12 @@ void TheoryFp::addSharedTerm(TNode node) {
 }
 
 bool TheoryFp::handlePropagation(TNode node) {
-  out->propagate(node);
+  bool stat = d_out->propagate(node);
 
-  return true;
+  if (!stat)
+    conflictNode = node;
+
+  return stat;
 }
 
 
