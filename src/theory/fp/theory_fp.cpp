@@ -147,7 +147,7 @@ Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << std::endl;
 
   if (!this->expansionRequested) {
-    //    lr.widenLogic(THEORY_UF); // No longer needed
+    lr.widenLogic(THEORY_UF); // No longer needed
     lr.widenLogic(THEORY_BV);
     this->expansionRequested = true;
   }
@@ -228,7 +228,8 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
       Assert((node.getKind() == kind::FLOATINGPOINT_COMPONENT_NAN) ||
 	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_INF) ||
 	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_ZERO) ||
-	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGN));
+	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGN) ||
+	     (node.getKind() == kind::EQUAL));
     }
   }
 
