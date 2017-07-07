@@ -1012,18 +1012,70 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 
     if (res.status == REWRITE_DONE) {
       bool allChildrenConst = true;
+      bool apartFromRoundingMode = false;
       for (Node::const_iterator i = res.node.begin();
 	   i != res.node.end();
 	   ++i) {
 
 	if ((*i).getMetaKind() != kind::metakind::CONSTANT) {
-	  allChildrenConst = false;
-	  break;
+	  if ((*i).getType().isRoundingMode() && !apartFromRoundingMode) {
+	    apartFromRoundingMode = true;
+	  } else {
+	    allChildrenConst = false;
+	    break;
+	  }
 	}
       }
 
       if (allChildrenConst) {
-	RewriteResponse constRes = constantFoldTable [res.node.getKind()] (res.node, false);
+	RewriteStatus rs = REWRITE_DONE;    // This is a bit messy because
+	Node rn = res.node;                 // RewriteResponse is too functional..
+
+	if (apartFromRoundingMode) {
+	  if (!(res.node.getKind() == kind::EQUAL)) {  // Avoid infinite recursion...
+	    // We are close to being able to constant fold this
+	    // and in many cases the rounding mode really doesn't matter.
+	    // So we can try brute forcing our way through them.
+
+	    NodeManager *nm = NodeManager::currentNM();
+
+	    Node RNE(nm->mkConst(roundNearestTiesToEven));
+	    Node RNA(nm->mkConst(roundNearestTiesToAway));
+	    Node RTZ(nm->mkConst(roundTowardPositive));
+	    Node RTN(nm->mkConst(roundTowardNegative));
+	    Node RTP(nm->mkConst(roundTowardZero));
+
+	    TNode RM(res.node[0]);
+
+	    Node wRNE(res.node.substitute(RM, TNode(RNE)));
+	    Node wRNA(res.node.substitute(RM, TNode(RNA)));
+	    Node wRTZ(res.node.substitute(RM, TNode(RTZ)));
+	    Node wRTN(res.node.substitute(RM, TNode(RTN)));
+	    Node wRTP(res.node.substitute(RM, TNode(RTP)));
+
+
+	    rs = REWRITE_AGAIN_FULL;
+	    rn = nm->mkNode(kind::ITE,
+			    nm->mkNode(kind::EQUAL, RM, RNE),
+			    wRNE,
+			    nm->mkNode(kind::ITE,
+				       nm->mkNode(kind::EQUAL, RM, RNA),
+				       wRNA,
+				       nm->mkNode(kind::ITE,
+						  nm->mkNode(kind::EQUAL, RM, RTZ),
+						  wRTZ,
+						  nm->mkNode(kind::ITE,
+							     nm->mkNode(kind::EQUAL, RM, RTN),
+							     wRTN,
+							     wRTP))));
+	  }
+	} else {
+	  RewriteResponse tmp = constantFoldTable [res.node.getKind()] (res.node, false);
+	  rs = tmp.status;
+	  rn = tmp.node;
+	}
+
+	RewriteResponse constRes(rs,rn);
 
 	if (constRes.node != res.node) {
 	  Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): before constant fold " << res.node << std::endl;
