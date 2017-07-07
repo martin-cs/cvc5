@@ -473,8 +473,9 @@ public :
       if (!operandType.isFloatingPoint()) {
 	throw TypeCheckingExceptionPrivate(n, "floating-point bit component applied to a non floating-point sort");
       }
-      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
-	throw TypeCheckingExceptionPrivate(n, "floating-point bit component applied to a non leaf node");
+      if (!(Theory::isLeafOf(n[0], THEORY_FP) ||
+	    n[0].getKind() == kind::FLOATINGPOINT_TO_FP_REAL)) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point bit component applied to a non leaf / to_fp leaf node");
       }
 
     }
@@ -500,8 +501,9 @@ public :
       if (!operandType.isFloatingPoint()) {
 	throw TypeCheckingExceptionPrivate(n, "floating-point exponent component applied to a non floating-point sort");
       }
-      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
-	throw TypeCheckingExceptionPrivate(n, "floating-point exponent component applied to a non leaf node");
+      if (!(Theory::isLeafOf(n[0], THEORY_FP) ||
+	    n[0].getKind() == kind::FLOATINGPOINT_TO_FP_REAL)) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point exponent component applied to a non leaf / to_fp node");
       }
     }
 
@@ -531,8 +533,9 @@ public :
       if (!operandType.isFloatingPoint()) {
 	throw TypeCheckingExceptionPrivate(n, "floating-point significand component applied to a non floating-point sort");
       }
-      if (!Theory::isLeafOf(n[0], THEORY_FP)) {
-	throw TypeCheckingExceptionPrivate(n, "floating-point significand component applied to a non leaf node");
+      if (!(Theory::isLeafOf(n[0], THEORY_FP) ||
+	    n[0].getKind() == kind::FLOATINGPOINT_TO_FP_REAL)) {
+	throw TypeCheckingExceptionPrivate(n, "floating-point significand component applied to a non leaf / to_fp node");
       }
     }
 
