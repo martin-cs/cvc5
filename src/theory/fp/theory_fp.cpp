@@ -77,6 +77,29 @@ namespace removeToFPGeneric {
   }
 }
 
+namespace helper {
+  Node buildConjunct(const std::vector<TNode> &assumptions) {
+    if (assumptions.size() == 0) {
+      return NodeManager::currentNM()->mkConst<bool>(true);
+
+    } else if (assumptions.size() == 1) {
+      return assumptions[0];
+
+    } else {
+      // \todo see bv::utils::flattenAnd
+
+      NodeBuilder<> conjunction(kind::AND);
+      for (std::vector<TNode>::const_iterator it = assumptions.begin();
+	   it != assumptions.end();
+	   ++it) {
+	conjunction << *it;
+      }
+
+      return conjunction;
+    }
+  }
+}
+
 
 /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */
 TheoryFp::TheoryFp(context::Context* c,
@@ -355,19 +378,22 @@ void TheoryFp::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   equalityEngine.setMasterEqualityEngine(eq);
 }
 
-void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
-  Trace("fp") << "TheoryFp::explain(): explain " << literal << std::endl;
+Node TheoryFp::explain(TNode n) {
+  Trace("fp") << "TheoryFp::explain(): explain " << n << std::endl;
   
   // All things we assert directly (and not via bit-vector) should 
   // come from the equality engine so this should be sufficient...
+  std::vector<TNode> assumptions;
   
-  bool polarity = literal.getKind() != kind::NOT;
-  TNode atom = polarity ? literal : literal[0];
+  bool polarity = n.getKind() != kind::NOT;
+  TNode atom = polarity ? n : n[0];
   if (atom.getKind() == kind::EQUAL) {
     equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions);
   } else {
     equalityEngine.explainPredicate(atom, polarity, assumptions);
   }
+
+  return helper::buildConjunct(assumptions);
 }
 
 
@@ -478,25 +504,7 @@ void TheoryFp::explain(TNode literal, std::vector<TNode> &assumptions) {
     std::vector<TNode> assumptions;
     theorySolver.equalityEngine.explainEquality(t1, t2, true, assumptions);
 
-    Node conflict;
-    if (assumptions.size() == 0) {
-      conflict = NodeManager::currentNM()->mkConst<bool>(true);
-
-    } else if (assumptions.size() == 1) {
-      conflict = assumptions[0];
-
-    } else {
-      // \todo see bv::utils::flattenAnd
-
-      NodeBuilder<> conjunction(kind::AND);
-      for (std::vector<TNode>::const_iterator it = assumptions.begin();
-	   it != assumptions.end();
-	   ++it) {
-	conjunction << *it;
-      }
-
-      conflict = conjunction;
-    }
+    Node conflict = helper::buildConjunct(assumptions);
 
     theorySolver.handleConflict(conflict);
   }
