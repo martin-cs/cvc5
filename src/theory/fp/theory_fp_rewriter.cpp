@@ -35,6 +35,7 @@
 
 #include "base/cvc4_assert.h"
 #include "theory/fp/theory_fp_rewriter.h"
+#include "theory/fp/fp_converter.h"
 
 namespace CVC4 {
 namespace theory {
@@ -673,13 +674,11 @@ namespace constantFold {
   RewriteResponse roundingModeBitBlast (TNode node, bool) {
     Assert(node.getKind() == kind::ROUNDINGMODE_BITBLAST);
 
-    //RoundingMode arg0(node[0].getConst<RoundingMode>());
+    RoundingMode arg0(node[0].getConst<RoundingMode>());
     BitVector value;
   
     /* \todo fix the numbering of rounding modes so this doesn't need 
-     * to call symfpu at all. */
-    Unimplemented("Constant fold bit-blasted rounding modes.");
-#if 0
+     * to call symfpu at all and remove the dependency on fp_converter.h */
     switch (arg0) {
     case roundNearestTiesToEven :
       value = symfpuSymbolic::traits::RNE().getNode().getConst<BitVector>();
@@ -705,7 +704,6 @@ namespace constantFold {
       Unreachable("Unknown rounding mode");
       break;
     }
-#endif
     return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(value));
   }
 
