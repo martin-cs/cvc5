@@ -94,7 +94,7 @@ public:
 
   void setMasterEqualityEngine(eq::EqualityEngine* eq);
 
-  void explain(TNode literal, std::vector<TNode> &assumptions);
+  Node explain(TNode n);
 
 };/* class TheoryFp */
 
