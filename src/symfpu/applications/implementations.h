@@ -43,6 +43,7 @@
 #include "symfpu/core/divide.h"
 #include "symfpu/core/sqrt.h"
 #include "symfpu/core/fma.h"
+#include "symfpu/core/remainder.h"
 
 #ifndef SYMFPU_IMPLEMENTATIONS
 #define SYMFPU_IMPLEMENTATIONS
@@ -57,6 +58,8 @@ class nativeFunctions {
   static execFloat sqrt (execFloat f);
   static execFloat rti (execFloat f);
   static execFloat fma (execFloat f, execFloat g, execFloat h);
+  static execFloat rem (execFloat f, execFloat g);
+
 
   
   // These will work for any inbuilt float-type, specialisations need for others
@@ -253,6 +256,23 @@ int nativeFunctions<long double>::isZero (long double f) {
 }
 
 
+template <>
+float nativeFunctions<float>::rem (float f, float g) {
+  return remainderf(f,g);
+}
+
+template <>
+double nativeFunctions<double>::rem (double f, double g) {
+  return remainder(f,g);
+}
+
+template <>
+long double nativeFunctions<long double>::rem (long double f, long double g) {
+  return remainderl(f,g);
+}
+
+
+
 
 template <class execBV, class execFloat>
 class native {
@@ -432,6 +452,15 @@ class native {
     return *((execBV *)&p);
   }
 
+  static execBV rem (execBV bv1, execBV bv2) {
+    execFloat f = *((execFloat *)(&bv1));
+    execFloat g = *((execFloat *)(&bv2));
+    
+    execFloat h = nativeFunctions<execFloat>::rem(f,g);
+    
+    return *((execBV *)&h);
+  }
+  
 };
 
 
@@ -776,6 +805,21 @@ class sympfuImplementation {
     return repacked.contents();
   }
 
+  static execBV rem (execBV bv1, execBV bv2) {
+    ubv packed1(bitsInExecBV(),bv1);
+    ubv packed2(bitsInExecBV(),bv2);
+    
+    uf unpacked1(symfpu::unpack<traits>(*format, packed1));
+    uf unpacked2(symfpu::unpack<traits>(*format, packed2));
+    
+    uf min(symfpu::remainder<traits>(*format, unpacked1, unpacked2));
+    
+    ubv repacked(symfpu::pack<traits>(*format, min));
+    
+    return repacked.contents();
+  }
+
+  
   // The SMT-LIB notion of equality
   //bool compareFloat (execBV bv1, execBV bv2);
 

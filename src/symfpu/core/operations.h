@@ -287,7 +287,29 @@ namespace symfpu {
     
     return resultWithRemainderBit<t>(working, !(expandingMultiply<t, ubv>(working, working) == xcomp));
   }
-  
+
+  // One step of a divider
+  // Here the "remainder bit" is actual the result bit and
+  // The result is the remainder
+  template <class t>
+  inline resultWithRemainderBit<t> divideStep (const typename t::ubv &x, const typename t::ubv &y) {
+    typedef typename t::bwt bwt;
+    typedef typename t::ubv ubv;
+    typedef typename t::prop prop;
+
+    bwt xWidth(x.getWidth());
+    bwt yWidth(y.getWidth());
+
+    PRECONDITION(xWidth == yWidth);
+    PRECONDITION(yWidth >= 2);
+    PRECONDITION(y.extract(yWidth - 2, yWidth - 2).isAllOnes());  // Assume y is aligned
+    
+    prop canSubtract(x >= y);
+    ubv sub(x.modularAdd(y.modularNegate())); // TODO : modular subtract or better
+    ubv step(ITE(canSubtract, sub, x));
+
+    return resultWithRemainderBit<t>(step << ubv::one(xWidth), canSubtract);
+  }
 }
 
 #endif

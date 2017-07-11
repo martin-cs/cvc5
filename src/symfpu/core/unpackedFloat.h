@@ -236,6 +236,12 @@ namespace symfpu {
       return maxSubnormalExponent(format) - sbv(exponentWidth(format),(significandWidth(format) - 2));
     } 
 
+    // Note the different return type as this is used for iteration in remainder
+    static bwt maximumExponentDifference(const fpt &format) {
+      bwt maxNormalExp = (1ULL << (format.exponentWidth() - 1)) - 1;
+      bwt minSubnormalExp = -maxNormalExp - (significandWidth(format) - 2);
+      return maxNormalExp - minSubnormalExp;
+    }
     
     
     inline prop inNormalRange(const fpt &format) const {

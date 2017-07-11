@@ -1201,6 +1201,7 @@ int main (int argc, char **argv) {
     {0,1,               "sqrt", INST(unaryRoundedFunction, sqrt),       "sqrtf(f)",  "(fp.sqrt rm f)"},
     {0,1,  "round_to_integral", INST(unaryRoundedFunction, rti),        "(fegetround()==FE_TONEAREST) ? rintf(f) : (fegetround()==FE_UPWARD) ? ceilf(f) : (fegetround()==FE_DOWNWARD) ? floorf(f) : truncf(f)",  "(fp.roundToIntegral rm f)"},
     {0,1,                "fma", INST(ternaryRoundedFunction, fma),      "fmaf(f,g)",  "(fp.fma rm f g h)"},
+    {0,0,          "remainder", INST(binaryFunction, rem),              "remainderf(f,g)",  "(fp.remainder f g)"},
     {0,0,                 NULL, NULL, NULL, NULL,                           NULL,  NULL}
   };
 
@@ -1260,6 +1261,7 @@ int main (int argc, char **argv) {
     {            "sqrt",        no_argument,               &(tests[20].enable),  1 },
     {             "rti",        no_argument,               &(tests[21].enable),  1 },
     {             "fma",        no_argument,               &(tests[22].enable),  1 },
+    {       "remainder",        no_argument,               &(tests[23].enable),  1 },
     {             "rne",        no_argument,    &(roundingModeTests[0].enable),  1 },
     {             "rtp",        no_argument,    &(roundingModeTests[1].enable),  1 },
     {             "rtn",        no_argument,    &(roundingModeTests[2].enable),  1 },

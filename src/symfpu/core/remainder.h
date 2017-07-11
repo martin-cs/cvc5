@@ -56,15 +56,64 @@ template <class t>
 		 remainderResult));
  }
 
+/* Let left = x*2^e, right = y*2^f, x \in [1,2), y \in [1,2)
+ * x/y \in (0.5,2)   x > y  x/y \in (1,2)   x < y (0.5,1)
+ *
+ *  rem =  x*2^e     - (y*2^f * int((x*2^e) / (y*2^f)))
+ *      =  x*2^e     - (y*2^f * int((x/y) * 2^{e-f}))
+ *      = (x*2^{e-f} - (y     * int((x/y) * 2^{e-f}))) * 2^f
+ *
+ *
+ * If e - f >  0
+ *      = (x*2^{e-f} - (y     * int((x*2^{e-f})/y)) * 2^f
+ *
+ *
+ * If e - f == 0
+ *      = (x         - (y     * int((x/y)          ))) * 2^f
+ *      = ITTE(x ?= y,
+ *             (x - (y * int[guard=1,sticky=1])) * 2^f
+ *             (x -  y) * 2^f,
+ *             ...)
+ *      = ITTE(x ?= y,
+ *             (x - (y * int[guard=1,sticky=1])) * 2^f
+ *             left - right,
+ *             ...)
+ *
+ *
+ * If e - f == -1
+ *      = (x*2^{-1}  - (y     * int((x/y) * 2^{-1 }))) * 2^f
+ *      = ITTE(x ?= y,
+ *             (x*2^{-1}  - (y * int[guard=0,sticky=1])) * 2^f
+ *             (x*2^{-1}  - (y * int[guard=1,sticky=0])) * 2^f
+ *             (x*2^{-1}  - (y * int[guard=1,sticky=1])) * 2^f
+ *
+ * If e - f <= -2
+ *      = (x*2^{e-f}  - (y     * int[guard=0,sticky=1])) * 2^f
+ *      = ITE(int[guard=0,sticky=1],
+ *            x*2^e  - y*2^f,
+ *            left)
+ *      = ITE(int[guard=0,sticky=1],
+ *            left  - right,
+ *            left)
+ *
+ */
+
+// Divide for max(e - f, 0) cycles
+// The equal case, if you divide you use to extract the even bit of n, also save the rem.
+// Then one more cycle for the guard bit
+// Use that remainder to work out the sticky bit
+// Round and either subtract or not from saved rem
+// Output at 2^f
+ 
 template <class t>
   unpackedFloat<t> arithmeticRemainder (const typename t::fpt &format,
 					const typename t::rm &roundingMode,
 					const unpackedFloat<t> &left,
 					const unpackedFloat<t> &right) {
-  //typedef typename t::bwt bwt;
+  typedef typename t::bwt bwt;
   typedef typename t::prop prop;
-  //typedef typename t::ubv ubv;
-  //typedef typename t::sbv sbv;
+  typedef typename t::ubv ubv;
+  typedef typename t::sbv sbv;
   //typedef typename t::fpt fpt;
 
   PRECONDITION(left.valid(format));
@@ -74,54 +123,81 @@ template <class t>
   prop remainderSign(left.getSign());
 
 
-  #if 0
+  // Compute exponent difference
+  sbv exponentDifference(expandingSubtract<t>(left.getExponent(), right.getExponent()));
+  bwt edWidth(exponentDifference.getWidth());
   
-  // Add up exponents
-  sbv exponentSum(expandingAdd<t>(left.getExponent(),right.getExponent()));
-  // Optimisation : do this late and use the increment as a carry in
-
-  sbv min(unpackedFloat<t>::minSubnormalExponent(format));
-  sbv max(unpackedFloat<t>::maxNormalExponent(format));
-  INVARIANT(expandingAdd<t>(min,min) <= exponentSum);
-  INVARIANT(exponentSum <= expandingAdd<t>(max, max));
-  // Optimisation : use the if-then-lazy-else to avoid remaindering for underflow and overflow
-  //                subnormal * subnormal does not need to be evaluated
-
-
-  // Remainder the significands
-  ubv significandProduct(expandingRemainder<t>(left.getSignificand(), right.getSignificand()));
-  // Optimisation : low bits are not needed apart from the guard and sticky bits
-  // Optimisation : top bits accurately predict whether re-alignment is needed
-
-  bwt spWidth(significandProduct.getWidth());
-  ubv topBit(significandProduct.extract(spWidth - 1, spWidth - 1));
-  ubv nextBit(significandProduct.extract(spWidth - 2, spWidth - 2));
-
-  // Alignment of inputs means at least one of the two MSB is 1
-  //  i.e. [1,2) * [1,2) = [1,4)
-  // topBitSet is the likely case
-  prop topBitSet(topBit.isAllOnes());
-  INVARIANT(topBitSet || nextBit.isAllOnes());
-  probabilityAnnotation<t>(topBitSet, LIKELY);
-  
-
-  // Re-align
-  sbv alignedExponent(conditionalIncrement<t>(topBitSet, exponentSum)); // Will not overflow as previously expanded
-  ubv alignedSignificand(conditionalLeftShiftOne<t>(!topBitSet, significandProduct)); // Will not loose information
+  // Extend for divide steps
+  ubv lsig(left.getSignificand().extend(1));
+  ubv rsig(right.getSignificand().extend(1));
 
   
-  // Put back together
-  unpackedFloat<t> remainderResult(remainderSign, alignedExponent, alignedSignificand);
+  ubv first(divideStep<t>(lsig,rsig).result);
+  ubv *running = new ubv(first); // To avoid running out of stack space loop with a pointer
+
+  bwt maxDifference = unpackedFloat<t>::maximumExponentDifference(format);
+  for (bwt i = maxDifference - 1; i > 0; i--) {
+    prop needPrevious(exponentDifference > sbv(edWidth, i));
+    probabilityAnnotation<t>(needPrevious, (i > (maxDifference / 2)) ? VERYUNLIKELY : UNLIKELY);
+    
+    ubv r(ITE(needPrevious, *running, lsig));
+    delete running;  // We assume the value / reference has been transfered to ITE
+    running = new ubv(divideStep<t>(r, rsig).result);
+  }
+
+  // The zero exponent difference case is a little different
+  // as we need the result bit for the even flag
+  // and the actual result for the final
+  prop needPrevious(exponentDifference > sbv::zero(edWidth));
+  probabilityAnnotation<t>(needPrevious, UNLIKELY);
+    
+  ubv r0(ITE(needPrevious, *running, lsig));
+  delete running;
+  resultWithRemainderBit<t> dsr(divideStep<t>(r0, rsig));
+
+  // The same to get the guard flag
+  prop needPreviousGuard(exponentDifference > -sbv::one(edWidth));    
+
+  ubv rm1(ITE(needPreviousGuard, dsr.result, lsig));
+  resultWithRemainderBit<t> dsrg(divideStep<t>(rm1, rsig));
+
+  prop stickyBit(ITE((exponentDifference > -sbv(edWidth,2)),
+		     dsrg.result,
+		     lsig).isAllZeros());
+
+  // From the rounding of the big multiple
+  prop bonusSubtract(roundingDecision<t>(roundingMode,
+					 remainderSign,
+					 dsr.remainderBit,
+					 dsrg.remainderBit,
+					 stickyBit,
+					 prop(false)));
+  probabilityAnnotation<t>(bonusSubtract, UNLIKELY); // Again, more like 50/50
 
   
-  fpt extendedFormat(format.exponentWidth() + 1, format.significandWidth() * 2);
-  POSTCONDITION(remainderResult.valid(extendedFormat));
+  unpackedFloat<t> reconstruct(remainderSign,
+			       right.getExponent(),
+			       dsr.result.extract(lsig.getWidth() - 2,0));
+
+  
+  probabilityAnnotation<t>(needPrevious, UNLIKELY);   // Perhaps stretching it a bit but good for approximation
+  unpackedFloat<t> candidateResult(ITE(needPreviousGuard,
+				       reconstruct.normaliseUpDetectZero(format),
+				       left));
+
+  // The final subtract is a little different as previous ones were
+  // guaranteed to be positive
+  // TODO : This could be improved as these don't need special cases, etc.
+  unpackedFloat<t> remainderResult(ITE(bonusSubtract,
+				       add<t>(format, roundingMode,
+					      candidateResult, right, false),
+				       candidateResult));
+  
+  // TODO : fast path if first.isAllZeros()
+  
+  POSTCONDITION(remainderResult.valid(format));
 
   return remainderResult;
-#endif
-
-  // TODO : wrong!
-  return left;
  }
 
 
