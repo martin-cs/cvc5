@@ -528,6 +528,11 @@ class sympfuImplementation {
     format = new fpt(newFormat);
     return;
   }
+
+  static void destroyFormat() {
+    delete format;
+    return;
+  }
   
   static execBV unpackPack (const execBV bv) {
     ubv packed(bitsInExecBV(),bv);

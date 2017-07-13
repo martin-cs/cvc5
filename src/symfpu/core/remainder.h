@@ -30,6 +30,9 @@
 #include "symfpu/core/ite.h"
 #include "symfpu/core/rounder.h"
 #include "symfpu/core/operations.h"
+#include "symfpu/core/add.h"
+#include "symfpu/core/sign.h"
+
 
 #ifndef SYMFPU_REMAINDER
 #define SYMFPU_REMAINDER
@@ -47,7 +50,8 @@ template <class t>
   prop generateNan(left.getInf() || right.getZero());
   prop isNan(eitherArgumentNan || generateNan);
 
-  prop passThrough(!(left.getInf() || left.getNaN()) && right.getInf());
+  prop passThrough((!(left.getInf() || left.getNaN()) && right.getInf()) ||
+		   left.getZero());
 
   return ITE(isNan,
 	     unpackedFloat<t>::makeNaN(format),
@@ -148,6 +152,8 @@ template <class t>
   // The zero exponent difference case is a little different
   // as we need the result bit for the even flag
   // and the actual result for the final
+  prop lsbRoundActive(exponentDifference > -sbv::one(edWidth));  // i.e. >= 0
+  
   prop needPrevious(exponentDifference > sbv::zero(edWidth));
   probabilityAnnotation<t>(needPrevious, UNLIKELY);
     
@@ -155,42 +161,57 @@ template <class t>
   delete running;
   resultWithRemainderBit<t> dsr(divideStep<t>(r0, rsig));
 
-  // The same to get the guard flag
-  prop needPreviousGuard(exponentDifference > -sbv::one(edWidth));    
-
-  ubv rm1(ITE(needPreviousGuard, dsr.result, lsig));
-  resultWithRemainderBit<t> dsrg(divideStep<t>(rm1, rsig));
-
-  prop stickyBit(ITE((exponentDifference > -sbv(edWidth,2)),
-		     dsrg.result,
-		     lsig).isAllZeros());
-
-  // From the rounding of the big multiple
-  prop bonusSubtract(roundingDecision<t>(roundingMode,
-					 remainderSign,
-					 dsr.remainderBit,
-					 dsrg.remainderBit,
-					 stickyBit,
-					 prop(false)));
-  probabilityAnnotation<t>(bonusSubtract, UNLIKELY); // Again, more like 50/50
+  prop integerEven(!lsbRoundActive || !dsr.remainderBit);  // Note negation of guardBit
 
   
+  // The same to get the guard flag
+  prop guardRoundActive(exponentDifference > -sbv(edWidth,2));  // i.e. >= -1
+
+  ubv rm1(ITE(lsbRoundActive, dsr.result, lsig));
+  resultWithRemainderBit<t> dsrg(divideStep<t>(rm1, rsig));
+
+  prop guardBit(guardRoundActive && dsrg.remainderBit);
+  
+  prop stickyBit(!ITE(guardRoundActive,
+		      dsrg.result,
+		      lsig).isAllZeros());
+		 
+
+  // The base result if lsbRoundActive
   unpackedFloat<t> reconstruct(remainderSign,
 			       right.getExponent(),
-			       dsr.result.extract(lsig.getWidth() - 2,0));
+			       dsr.result.extract(lsig.getWidth() - 1,1)); // dsr shifts right as last action so is safe
 
   
   probabilityAnnotation<t>(needPrevious, UNLIKELY);   // Perhaps stretching it a bit but good for approximation
-  unpackedFloat<t> candidateResult(ITE(needPreviousGuard,
+  unpackedFloat<t> candidateResult(ITE(lsbRoundActive,
 				       reconstruct.normaliseUpDetectZero(format),
 				       left));
 
   // The final subtract is a little different as previous ones were
   // guaranteed to be positive
   // TODO : This could be improved as these don't need special cases, etc.
+
+  // From the rounding of the big integer multiple
+  prop bonusSubtract(roundingDecision<t>(roundingMode,
+					 remainderSign,
+					 integerEven,
+					 guardBit,
+					 stickyBit,
+					 prop(false)));
+  probabilityAnnotation<t>(bonusSubtract, UNLIKELY); // Again, more like 50/50
+
+  // The big integer has sign left.getSign() ^ right.getSign() so we subtract something of left.getSign().
+  // For the integer part we handle this by working with absolutes (ignoring the sign) and
+  // adding it back in at the end.
+  // However for the correction for the rounded part we need to take it into account
+  unpackedFloat<t> signCorrectedRight(right, left.getSign());
   unpackedFloat<t> remainderResult(ITE(bonusSubtract,
-				       add<t>(format, roundingMode,
-					      candidateResult, right, false),
+				       add<t>(format,
+					      roundingMode,
+					      candidateResult,
+					      signCorrectedRight,
+					      false),
 				       candidateResult));
   
   // TODO : fast path if first.isAllZeros()

@@ -1433,6 +1433,7 @@ int main (int argc, char **argv) {
     goto top;
   }
 
+  singlePrecisionExecutableSymfpu::destroyFormat();
 
   return 1;
 }
