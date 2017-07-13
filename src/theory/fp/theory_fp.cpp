@@ -313,6 +313,8 @@ void TheoryFp::handleConflict(TNode node) {
 
 void TheoryFp::check(Effort level) {
 
+  Trace("fp") << "TheoryFp::check(): started at effort level " << level << std::endl;
+
   while(!done() && !conflict) {
     // Get all the assertions
     Assertion assertion = get();
@@ -344,6 +346,8 @@ void TheoryFp::check(Effort level) {
 
 
   }
+
+  Trace("fp") << "TheoryFp::check(): completed" << std::endl;
 
   /* Checking should be handled by the bit-vector engine */
   return;
