@@ -144,15 +144,15 @@ TheoryFp::TheoryFp(context::Context* c,
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISNEG);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_ISPOS);
 
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR_OP);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT_OP);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_REAL_OP);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR_OP);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR_OP);
-    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_GENERIC_OP); // Needed in parsing, should be rewritten away
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_REAL);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR);
+    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_GENERIC); // Needed in parsing, should be rewritten away
 
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_UBV_OP);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_SBV_OP);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_UBV);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_SBV);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_REAL);
 
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_NAN);
