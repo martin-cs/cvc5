@@ -334,6 +334,8 @@ template <class t>
    significandRounderResult<t> rounded(convertFloatToBV(format, roundingMode, input,
 							targetWidth, decimalPointPosition));
 
+   // TODO : fast path negative by converting exp==0 into guard and exp < 0 into sticky
+   
    // Put the result together
    prop undefinedResult(earlyUndefinedResult ||
 			rounded.incrementExponent ||    // Overflow

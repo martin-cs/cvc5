@@ -761,6 +761,9 @@ class sympfuImplementation {
     return repacked.contents();
   }
 
+  #define INTELSSEMAXSTYLE true
+  #define INTELSSEMINSTYLE false
+  
   static execBV max (execBV bv1, execBV bv2) {
     ubv packed1(bitsInExecBV(),bv1);
     ubv packed2(bitsInExecBV(),bv2);
@@ -768,7 +771,7 @@ class sympfuImplementation {
     uf unpacked1(symfpu::unpack<traits>(*format, packed1));
     uf unpacked2(symfpu::unpack<traits>(*format, packed2));
     
-    uf max(symfpu::max<traits>(*format, unpacked1, unpacked2));
+    uf max(symfpu::max<traits>(*format, unpacked1, unpacked2, INTELSSEMAXSTYLE));
     
     ubv repacked(symfpu::pack<traits>(*format, max));
     
@@ -782,7 +785,7 @@ class sympfuImplementation {
     uf unpacked1(symfpu::unpack<traits>(*format, packed1));
     uf unpacked2(symfpu::unpack<traits>(*format, packed2));
     
-    uf min(symfpu::min<traits>(*format, unpacked1, unpacked2));
+    uf min(symfpu::min<traits>(*format, unpacked1, unpacked2, INTELSSEMINSTYLE));
     
     ubv repacked(symfpu::pack<traits>(*format, min));
     

@@ -188,9 +188,16 @@ namespace CVC4 {
     FloatingPoint rti (const RoundingMode &rm) const;
     FloatingPoint rem (const FloatingPoint &arg) const;
 
-    // In the case of min/max(-0,+0) or (+0,-0) which to return
-    FloatingPoint max (const FloatingPoint &arg, bool zeroCaseLeft) const;
-    FloatingPoint min (const FloatingPoint &arg, bool zeroCaseLeft) const;
+    // zeroCase is whether the left or right is returned in the case of min/max(-0,+0) or (+0,-0)
+    FloatingPoint maxTotal (const FloatingPoint &arg, bool zeroCaseLeft) const;
+    FloatingPoint minTotal (const FloatingPoint &arg, bool zeroCaseLeft) const;
+
+    // These detect when the answer is defined
+    typedef std::pair<FloatingPoint, bool> PartialFloatingPoint;
+
+    PartialFloatingPoint max (const FloatingPoint &arg) const;
+    PartialFloatingPoint min (const FloatingPoint &arg) const;
+
     
     bool operator ==(const FloatingPoint& fp) const;
     bool operator <= (const FloatingPoint &arg) const;
@@ -205,11 +212,19 @@ namespace CVC4 {
     bool isPositive (void) const;
 
     FloatingPoint convert (const FloatingPointSize &target, const RoundingMode &rm) const;
+
+    // These require a value to return in the undefined case
+    BitVector convertToBVTotal (BitVectorSize width, const RoundingMode &rm,
+				bool signedBV, BitVector undefinedCase) const;
+    Rational convertToRationalTotal (Rational undefinedCase) const;
+
+    // These detect when the answer is defined
+    typedef std::pair<BitVector, bool> PartialBitVector;
+    typedef std::pair<Rational, bool> PartialRational;
     
-    // Caution these follow the 'internal' semantics rather than
-    // being undefined on inf, NaN, etc.
-    BitVector convertToBV (BitVectorSize width, const RoundingMode &rm, bool signedBV) const;
-    Rational convertToRational (void) const;
+    PartialBitVector convertToBV (BitVectorSize width, const RoundingMode &rm,
+				bool signedBV) const;
+    PartialRational convertToRational (void) const;
 
     
   }; /* class FloatingPoint */

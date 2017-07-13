@@ -34,6 +34,10 @@ namespace CVC4 {
 namespace theory {
 namespace fp {
 
+  struct PairTypeNodeHashFunction {
+    size_t operator()(const std::pair<TypeNode, TypeNode> &p) const;
+  };
+
   // To simplify the naming of various types
   namespace symfpuSymbolic {
     typedef ::symfpu::cvc4_symbolic::traits traits;   // Use the CVC4 symbolic back-end
@@ -90,6 +94,25 @@ namespace fp {
     Node buildSignificandUFApp (Node);
 
     uf buildComponents(TNode current);
+
+
+    /* Uninterpretted functions for partially defined functions. */
+    typedef context::CDHashMap<TypeNode, Node, TypeNodeHashFunction> comparisonUFMap;
+
+    comparisonUFMap minMap;
+    comparisonUFMap maxMap;
+
+    Node minUF(Node);
+    Node maxUF(Node);
+
+    typedef context::CDHashMap<std::pair<TypeNode, TypeNode>, Node, PairTypeNodeHashFunction> conversionUFMap;
+
+    conversionUFMap toUBVMap;
+    conversionUFMap toSBVMap;
+
+    Node toUBVUF(Node);
+    Node toSBVUF(Node);
+
 
   public :
     context::CDList<Node> additionalAssertions;

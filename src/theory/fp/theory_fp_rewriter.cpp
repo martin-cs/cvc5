@@ -377,11 +377,18 @@ namespace constantFold {
 
     FloatingPoint arg1(node[0].getConst<FloatingPoint>());
     FloatingPoint arg2(node[1].getConst<FloatingPoint>());
-    //bool zeroCaseLeft(node[2].getConst<bool>());
     
     Assert(arg1.t == arg2.t);
-    
-    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.min(arg2, true)));
+
+    FloatingPoint::PartialFloatingPoint res(arg1.min(arg2));
+
+    if (res.second) {
+      Node lit = NodeManager::currentNM()->mkConst(res.first);
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      // Can't constant fold the underspecified case
+      return RewriteResponse(REWRITE_DONE, node);
+    }
   }
 
   RewriteResponse max (TNode node, bool) {
@@ -390,11 +397,18 @@ namespace constantFold {
 
     FloatingPoint arg1(node[0].getConst<FloatingPoint>());
     FloatingPoint arg2(node[1].getConst<FloatingPoint>());
-    //bool zeroCaseLeft(node[2].getConst<bool>());
     
     Assert(arg1.t == arg2.t);
-    
-    return RewriteResponse(REWRITE_DONE, NodeManager::currentNM()->mkConst(arg1.max(arg2, true)));
+
+    FloatingPoint::PartialFloatingPoint res(arg1.max(arg2));
+
+    if (res.second) {
+      Node lit = NodeManager::currentNM()->mkConst(res.first);
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      // Can't constant fold the underspecified case
+      return RewriteResponse(REWRITE_DONE, node);
+    }
   }
   
   RewriteResponse equal (TNode node, bool isPreRewrite) {
@@ -583,11 +597,15 @@ namespace constantFold {
     RoundingMode rm(node[0].getConst<RoundingMode>());
     FloatingPoint arg(node[1].getConst<FloatingPoint>());
 
-    BitVector res(arg.convertToBV(param.bvs, rm, false));
+    FloatingPoint::PartialBitVector res(arg.convertToBV(param.bvs, rm, false));
 
-    Node lit = NodeManager::currentNM()->mkConst(res);
-    
-    return RewriteResponse(REWRITE_DONE, lit);
+    if (res.second) {
+      Node lit = NodeManager::currentNM()->mkConst(res.first);
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      // Can't constant fold the underspecified case
+      return RewriteResponse(REWRITE_DONE, node);
+    }
   }
 
   RewriteResponse convertToSBV (TNode node, bool) {
@@ -599,11 +617,15 @@ namespace constantFold {
     RoundingMode rm(node[0].getConst<RoundingMode>());
     FloatingPoint arg(node[1].getConst<FloatingPoint>());
 
-    BitVector res(arg.convertToBV(param.bvs, rm, true));
+    FloatingPoint::PartialBitVector res(arg.convertToBV(param.bvs, rm, true));
 
-    Node lit = NodeManager::currentNM()->mkConst(res);
-    
-    return RewriteResponse(REWRITE_DONE, lit);
+    if (res.second) {
+      Node lit = NodeManager::currentNM()->mkConst(res.first);
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      // Can't constant fold the underspecified case
+      return RewriteResponse(REWRITE_DONE, node);
+    }
   }
 
   RewriteResponse convertToReal (TNode node, bool) {
@@ -611,11 +633,15 @@ namespace constantFold {
   
     FloatingPoint arg(node[0].getConst<FloatingPoint>());
 
-    Rational res(arg.convertToRational());
+    FloatingPoint::PartialRational res(arg.convertToRational());
 
-    Node lit = NodeManager::currentNM()->mkConst(res);
-    
-    return RewriteResponse(REWRITE_DONE, lit);
+    if (res.second) {
+      Node lit = NodeManager::currentNM()->mkConst(res.first);
+      return RewriteResponse(REWRITE_DONE, lit);
+    } else {
+      // Can't constant fold the underspecified case
+      return RewriteResponse(REWRITE_DONE, node);
+    }
   }
 
 

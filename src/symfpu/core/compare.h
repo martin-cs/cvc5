@@ -85,7 +85,7 @@ namespace symfpu {
     typename t::prop ordering (const typename t::fpt &format, 
 			       const unpackedFloat<t> &left,
 			       const unpackedFloat<t> &right,
-			       const bool equality) {
+			       const typename t::prop equality) {
 
     typedef typename t::prop prop;
 
@@ -96,15 +96,15 @@ namespace symfpu {
     prop neitherNaN(!left.getNaN() && !right.getNaN());
     
     // Either is an infinity (wrong in the case of NaN but will be corrected)
-    prop infCase( (left.isNegativeInf() && ((equality) ? true : !right.isNegativeInf()) ) ||
-		  (right.isPositiveInf() && ((equality) ? true : !left.isPositiveInf()) ) ||
-		  ((equality) ? (left.getInf() && right.getInf() && left.getSign() == right.getSign()) : false));
+    prop infCase( (left.isNegativeInf() && ITE(equality, prop(true), !right.isNegativeInf()) ) ||
+		  (right.isPositiveInf() && ITE(equality, prop(true), !left.isPositiveInf()) ) ||
+		  (ITE(equality, left.getInf() && right.getInf() && left.getSign() == right.getSign(), prop(false))) );
 
 
     // Either is a zero (wrong in the case of NaN but will be corrected)
     prop zeroCase( ( left.getZero() && !right.getZero() && !right.getSign()) ||
 		   (right.getZero() && !left.getZero()  &&  left.getSign()) ||
-		   ((equality) ? (left.getZero() && right.getZero()) : false) );
+		   (ITE(equality, left.getZero() && right.getZero(), prop(false))) );
 
 
     // Normal and subnormal case
@@ -144,9 +144,9 @@ namespace symfpu {
 		   negativeLessThanPositive,
 		   ITE(!significandNeeded,
 		       positiveCase || negativeCase,
-		       (equality) ?
-		       positiveExEqCaseEq || negativeExEqCaseEq :
-		       positiveExEqCase || negativeExEqCase)));
+		       ITE(equality,
+			   positiveExEqCaseEq || negativeExEqCaseEq,
+			   positiveExEqCase || negativeExEqCase))));
   }
 
 
@@ -157,7 +157,9 @@ namespace symfpu {
     PRECONDITION(left.valid(format));
     PRECONDITION(right.valid(format));
 
-    return ordering(format, left, right, false);
+    typedef typename t::prop prop;
+
+    return ordering(format, left, right, prop(false));
   }
 
   
@@ -168,17 +170,19 @@ namespace symfpu {
     PRECONDITION(left.valid(format));
     PRECONDITION(right.valid(format));
 
-    return ordering(format, left, right, true);
+    typedef typename t::prop prop;
+
+    return ordering(format, left, right, prop(true));
   }
 
 
   // Note that IEEE-754 says that max(+0,-0) = +/-0 and max(-0,+0) = +/- 0
-  // this will always return the right one.
   template <class t>
   unpackedFloat<t> max (const typename t::fpt &format, 
 			const unpackedFloat<t> &left,
-			const unpackedFloat<t> &right) {
-    return ITE(left.getNaN() || ordering(format, left, right, true),
+			const unpackedFloat<t> &right,
+			const typename t::prop &zeroCase) {
+    return ITE(left.getNaN() || ordering(format, left, right, zeroCase),
 	       right,
 	       left);
   }
@@ -188,8 +192,9 @@ namespace symfpu {
   template <class t>
   unpackedFloat<t> min (const typename t::fpt &format, 
 			const unpackedFloat<t> &left,
-			const unpackedFloat<t> &right) {
-    return ITE(right.getNaN() || ordering(format, left, right, true),
+			const unpackedFloat<t> &right,
+			const typename t::prop &zeroCase) {
+    return ITE(right.getNaN() || ordering(format, left, right, zeroCase),
 	       left,
 	       right);
   }

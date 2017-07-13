@@ -277,14 +277,24 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     return FloatingPoint(t, symfpu::remainder<symfpuLiteral::traits>(t, fpl, arg.fpl));
   }
 
-  FloatingPoint FloatingPoint::max (const FloatingPoint &arg, bool zeroCaseLeft) const {
+  FloatingPoint FloatingPoint::maxTotal (const FloatingPoint &arg, bool zeroCaseLeft) const {
     Assert(this->t == arg.t);
-    return FloatingPoint(t, symfpu::max<symfpuLiteral::traits>(t, fpl, arg.fpl));//, zeroCaseLeft));
+    return FloatingPoint(t, symfpu::max<symfpuLiteral::traits>(t, fpl, arg.fpl, zeroCaseLeft));
   }
   
-  FloatingPoint FloatingPoint::min (const FloatingPoint &arg, bool zeroCaseRight) const {
+  FloatingPoint FloatingPoint::minTotal (const FloatingPoint &arg, bool zeroCaseLeft) const {
     Assert(this->t == arg.t);
-    return FloatingPoint(t, symfpu::min<symfpuLiteral::traits>(t, fpl, arg.fpl));//, zeroCaseLeft));
+    return FloatingPoint(t, symfpu::min<symfpuLiteral::traits>(t, fpl, arg.fpl, zeroCaseLeft));
+  }
+
+  FloatingPoint::PartialFloatingPoint FloatingPoint::max (const FloatingPoint &arg) const {
+    FloatingPoint tmp(maxTotal(arg, true));
+    return PartialFloatingPoint(tmp, tmp == maxTotal(arg, false));
+  }
+
+  FloatingPoint::PartialFloatingPoint FloatingPoint::min (const FloatingPoint &arg) const {
+    FloatingPoint tmp(minTotal(arg, true));
+    return PartialFloatingPoint(tmp, tmp == minTotal(arg, false));
   }
 
   bool FloatingPoint::operator ==(const FloatingPoint& fp) const {
@@ -333,18 +343,32 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     return FloatingPoint(target, symfpu::convertFloatToFloat<symfpuLiteral::traits>(t, target, rm, fpl));
   }
   
-  BitVector FloatingPoint::convertToBV (BitVectorSize width, const RoundingMode &rm, bool signedBV) const {
+  BitVector FloatingPoint::convertToBVTotal (BitVectorSize width, const RoundingMode &rm, bool signedBV, BitVector undefinedCase) const {
     if (signedBV)
       return symfpu::convertFloatToSBV<symfpuLiteral::traits>(t, rm, fpl, width, BitVector(width, 0U));
     else
       return symfpu::convertFloatToUBV<symfpuLiteral::traits>(t, rm, fpl, width, BitVector(width, 0U));
   }
 
-  Rational FloatingPoint::convertToRational (void) const {
-    // Is the internal semantics -- ignores NaN and Inf
+  Rational FloatingPoint::convertToRationalTotal (Rational undefinedCase) const {
+    PartialRational p(convertToRational());
 
+    return p.second ? p.first : undefinedCase;
+  }
+
+  FloatingPoint::PartialBitVector FloatingPoint::convertToBV (BitVectorSize width, const RoundingMode &rm, bool signedBV) const {
+    BitVector tmp(convertToBVTotal (width, rm, signedBV, BitVector(width, 0U)));
+    BitVector confirm(convertToBVTotal (width, rm, signedBV, BitVector(width, 1U)));
+
+    return PartialBitVector(tmp, tmp == confirm);
+  }
+
+  FloatingPoint::PartialRational FloatingPoint::convertToRational (void) const {
+    if (this->isNaN() || this->isInfinite()) {
+      return PartialRational(Rational(0U, 1U), false);
+    }
     if (this->isZero()) {
-      return Rational(0U, 1U);
+      return PartialRational(Rational(0U, 1U), true);
       
     } else {
 
@@ -358,12 +382,12 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
       
       if (!(exp.strictlyNegative())) {
 	Integer r(signedSignificand.multiplyByPow2(exp.toUnsignedInt()));
-	return Rational(r);
+	return PartialRational(Rational(r), true);
       } else {
 	Integer one(1U);
 	Integer q(one.multiplyByPow2((-exp).toUnsignedInt()));
 	Rational r(signedSignificand, q);
-	return r;
+	return PartialRational(r, true);
       }
     }
 
