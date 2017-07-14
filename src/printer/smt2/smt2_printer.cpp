@@ -915,6 +915,8 @@ static string smtKindString(Kind k) throw() {
   case kind::FLOATINGPOINT_RTI: return "fp.roundToIntegral";
   case kind::FLOATINGPOINT_MIN: return "fp.min";
   case kind::FLOATINGPOINT_MAX: return "fp.max";
+  case kind::FLOATINGPOINT_MIN_TOTAL: return "fp.min_total";
+  case kind::FLOATINGPOINT_MAX_TOTAL: return "fp.max_total";
 
   case kind::FLOATINGPOINT_LEQ: return "fp.leq";
   case kind::FLOATINGPOINT_LT: return "fp.lt";

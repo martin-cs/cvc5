@@ -192,6 +192,42 @@ class FloatingPointRoundingOperationTypeRule {
   }
 };
 
+class FloatingPointPartialOperationTypeRule {
+ public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n,
+                                     bool check) {
+    TRACE("FloatingPointOperationTypeRule");
+
+    TypeNode firstOperand = n[0].getType(check);
+
+    if (check) {
+      if (!firstOperand.isFloatingPoint()) {
+        throw TypeCheckingExceptionPrivate(
+            n, "floating-point operation applied to a non floating-point sort");
+      }
+
+      size_t children = n.getNumChildren();
+      for (size_t i = 1; i < children - 1; ++i) {
+        if (!(n[i].getType(check) == firstOperand)) {
+          throw TypeCheckingExceptionPrivate(
+              n, "floating-point partial operation applied to mixed sorts");
+        }
+      }
+
+      TypeNode UFValueType = n[children - 1].getType(check);
+
+      if (!(UFValueType.isBitVector()) ||
+	  !(UFValueType.getBitVectorSize() == 1)) {
+	throw TypeCheckingExceptionPrivate(
+	    n, "floating-point partial operation final argument must be a bit-vector of length 1");
+      }
+    }
+
+    return firstOperand;
+  }
+};
+
+
 class FloatingPointParametricOpTypeRule {
  public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n,

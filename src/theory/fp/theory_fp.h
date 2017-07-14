@@ -69,6 +69,15 @@ protected :
   context::CDO<bool> conflict;
   context::CDO<Node> conflictNode;
 
+  /** Uninterpretted functions for partially defined functions. **/
+  typedef context::CDHashMap<TypeNode, Node, TypeNodeHashFunction> comparisonUFMap;
+
+  comparisonUFMap minMap;
+  comparisonUFMap maxMap;
+
+  Node minUF(Node);
+  Node maxUF(Node);
+
 public:
 
   /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */

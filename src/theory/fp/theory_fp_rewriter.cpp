@@ -143,7 +143,7 @@ namespace rewrite {
   }
 
   RewriteResponse removed (TNode node, bool) {  
-    Unreachable("kind (%d) should have been removed?",node.getKind());
+    Unreachable("kind (%s) should have been removed?",kindToString(node.getKind()).c_str());
     return RewriteResponse(REWRITE_DONE, node);
   }
 
@@ -180,7 +180,8 @@ namespace rewrite {
   RewriteResponse compactMinMax (TNode node, bool isPreRewrite) {
 #ifdef CVC4_ASSERTIONS
     Kind k = node.getKind();
-    Assert((k == kind::FLOATINGPOINT_MIN) || (k == kind::FLOATINGPOINT_MAX));
+    Assert((k == kind::FLOATINGPOINT_MIN) || (k == kind::FLOATINGPOINT_MAX) ||
+	   (k == kind::FLOATINGPOINT_MIN_TOTAL) || (k == kind::FLOATINGPOINT_MAX_TOTAL));
 #endif
     if (node[0] == node[1]) {
       return RewriteResponse(REWRITE_DONE, node[0]);
@@ -373,7 +374,7 @@ namespace constantFold {
 
   RewriteResponse min (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_MIN);
-    Assert(node.getNumChildren() == 2);//3);
+    Assert(node.getNumChildren() == 2);
 
     FloatingPoint arg1(node[0].getConst<FloatingPoint>());
     FloatingPoint arg2(node[1].getConst<FloatingPoint>());
@@ -393,7 +394,7 @@ namespace constantFold {
 
   RewriteResponse max (TNode node, bool) {
     Assert(node.getKind() == kind::FLOATINGPOINT_MAX);
-    Assert(node.getNumChildren() == 2);//3);
+    Assert(node.getNumChildren() == 2);
 
     FloatingPoint arg1(node[0].getConst<FloatingPoint>());
     FloatingPoint arg2(node[1].getConst<FloatingPoint>());
@@ -410,6 +411,67 @@ namespace constantFold {
       return RewriteResponse(REWRITE_DONE, node);
     }
   }
+
+  RewriteResponse minTotal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MIN_TOTAL);
+    Assert(node.getNumChildren() == 3);
+
+    FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[1].getConst<FloatingPoint>());
+
+    Assert(arg1.t == arg2.t);
+
+    // Can be called with the third argument non-constant
+    if (node[2].getMetaKind() == kind::metakind::CONSTANT) {
+      BitVector arg3(node[2].getConst<BitVector>());
+
+      FloatingPoint folded(arg1.minTotal(arg2, arg3.isBitSet(0)));
+      Node lit = NodeManager::currentNM()->mkConst(folded);
+     return RewriteResponse(REWRITE_DONE, lit);
+
+    } else {
+      FloatingPoint::PartialFloatingPoint res(arg1.min(arg2));
+
+      if (res.second) {
+	Node lit = NodeManager::currentNM()->mkConst(res.first);
+	return RewriteResponse(REWRITE_DONE, lit);
+      } else {
+	// Can't constant fold the underspecified case
+	return RewriteResponse(REWRITE_DONE, node);
+      }
+    }
+  }
+
+  RewriteResponse maxTotal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MAX_TOTAL);
+    Assert(node.getNumChildren() == 3);
+
+    FloatingPoint arg1(node[0].getConst<FloatingPoint>());
+    FloatingPoint arg2(node[1].getConst<FloatingPoint>());
+
+    Assert(arg1.t == arg2.t);
+
+    // Can be called with the third argument non-constant
+    if (node[2].getMetaKind() == kind::metakind::CONSTANT) {
+      BitVector arg3(node[2].getConst<BitVector>());
+
+      FloatingPoint folded(arg1.maxTotal(arg2, arg3.isBitSet(0)));
+      Node lit = NodeManager::currentNM()->mkConst(folded);
+     return RewriteResponse(REWRITE_DONE, lit);
+
+    } else {
+      FloatingPoint::PartialFloatingPoint res(arg1.max(arg2));
+
+      if (res.second) {
+	Node lit = NodeManager::currentNM()->mkConst(res.first);
+	return RewriteResponse(REWRITE_DONE, lit);
+      } else {
+	// Can't constant fold the underspecified case
+	return RewriteResponse(REWRITE_DONE, node);
+      }
+    }
+  }
+
   
   RewriteResponse equal (TNode node, bool isPreRewrite) {
     Assert(node.getKind() == kind::EQUAL);
@@ -777,6 +839,8 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     preRewriteTable[kind::FLOATINGPOINT_RTI] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_MIN] = rewrite::compactMinMax;
     preRewriteTable[kind::FLOATINGPOINT_MAX] = rewrite::compactMinMax;
+    preRewriteTable[kind::FLOATINGPOINT_MIN_TOTAL] = rewrite::compactMinMax;
+    preRewriteTable[kind::FLOATINGPOINT_MAX_TOTAL] = rewrite::compactMinMax;
 
     /******** Comparisons ********/
     preRewriteTable[kind::FLOATINGPOINT_EQ] = rewrite::then<rewrite::breakChain,rewrite::ieeeEqToEq>;
@@ -854,6 +918,8 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     postRewriteTable[kind::FLOATINGPOINT_RTI] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_MIN] = rewrite::compactMinMax;
     postRewriteTable[kind::FLOATINGPOINT_MAX] = rewrite::compactMinMax;
+    postRewriteTable[kind::FLOATINGPOINT_MIN_TOTAL] = rewrite::compactMinMax;
+    postRewriteTable[kind::FLOATINGPOINT_MAX_TOTAL] = rewrite::compactMinMax;
 
     /******** Comparisons ********/
     postRewriteTable[kind::FLOATINGPOINT_EQ] = rewrite::removed;
@@ -933,6 +999,8 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_RTI] = constantFold::rti;
     constantFoldTable[kind::FLOATINGPOINT_MIN] = constantFold::min;
     constantFoldTable[kind::FLOATINGPOINT_MAX] = constantFold::max;
+    constantFoldTable[kind::FLOATINGPOINT_MIN_TOTAL] = constantFold::minTotal;
+    constantFoldTable[kind::FLOATINGPOINT_MAX_TOTAL] = constantFold::maxTotal;
 
     /******** Comparisons ********/
     constantFoldTable[kind::FLOATINGPOINT_EQ] = rewrite::removed;
@@ -1037,6 +1105,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     if (res.status == REWRITE_DONE) {
       bool allChildrenConst = true;
       bool apartFromRoundingMode = false;
+      bool apartFromPartiallyDefinedArgument = false;
       for (Node::const_iterator i = res.node.begin();
 	   i != res.node.end();
 	   ++i) {
@@ -1044,6 +1113,11 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 	if ((*i).getMetaKind() != kind::metakind::CONSTANT) {
 	  if ((*i).getType().isRoundingMode() && !apartFromRoundingMode) {
 	    apartFromRoundingMode = true;
+	  } else if ((res.node.getKind() == kind::FLOATINGPOINT_MIN_TOTAL ||
+		      res.node.getKind() == kind::FLOATINGPOINT_MAX_TOTAL) &&
+		     (*i).getType().isBitVector() &&
+		     !apartFromPartiallyDefinedArgument) {
+	    apartFromPartiallyDefinedArgument = true;
 	  } else {
 	    allChildrenConst = false;
 	    break;

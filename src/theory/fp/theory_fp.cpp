@@ -113,7 +113,9 @@ TheoryFp::TheoryFp(context::Context* c,
   conv(u),
   expansionRequested(false),
   conflict(c, false),
-  conflictNode(c, Node::null())
+  conflictNode(c, Node::null()),
+  minMap(u),
+  maxMap(u)
   {
 
     // Kinds that are to be handled in the congruence closure
@@ -128,8 +130,10 @@ TheoryFp::TheoryFp(context::Context* c,
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_SQRT);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_REM);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_RTI);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MIN); // Congruence for these
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MAX); // is OK as they are functions
+    //equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MIN); // Removed
+    //equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MAX); // Removed
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MIN_TOTAL);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MAX_TOTAL);
 
     // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_EQ); // Removed
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_LEQ);
@@ -167,25 +171,99 @@ TheoryFp::TheoryFp(context::Context* c,
 }/* TheoryFp::TheoryFp() */
 
 
+Node TheoryFp::minUF (Node node) {
+  Assert(node.getKind() == kind::FLOATINGPOINT_MIN);
+  TypeNode t(node.getType());
+  Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
+
+  NodeManager *nm = NodeManager::currentNM();
+  comparisonUFMap::const_iterator i(minMap.find(t));
+
+  Node fun;
+  if (i == minMap.end()) {
+    std::vector<TypeNode> args(2);
+    args[0] = t;
+    args[1] = t;
+    fun = nm->mkSkolem("floatingpoint_min_zero_case",
+		       nm->mkFunctionType(args,
+#ifdef SYMFPUPROPISBOOL
+					  nm->booleanType()
+#else
+					  nm->mkBitVectorType(1U)
+#endif
+					  ),
+		       "floatingpoint_min_zero_case",
+		       NodeManager::SKOLEM_EXACT_NAME);
+    minMap.insert(t,fun);
+  } else {
+    fun = (*i).second;
+  }
+  return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);  // Application reverses the order or arguments
+}
+
+
+Node TheoryFp::maxUF (Node node) {
+  Assert(node.getKind() == kind::FLOATINGPOINT_MAX);
+  TypeNode t(node.getType());
+  Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
+
+  NodeManager *nm = NodeManager::currentNM();
+  comparisonUFMap::const_iterator i(maxMap.find(t));
+
+  Node fun;
+  if (i == maxMap.end()) {
+    std::vector<TypeNode> args(2);
+    args[0] = t;
+    args[1] = t;
+    fun = nm->mkSkolem("floatingpoint_max_zero_case",
+		       nm->mkFunctionType(args,
+#ifdef SYMFPUPROPISBOOL
+					  nm->booleanType()
+#else
+					  nm->mkBitVectorType(1U)
+#endif
+					  ),
+		       "floatingpoint_max_zero_case",
+		       NodeManager::SKOLEM_EXACT_NAME);
+    maxMap.insert(t,fun);
+  } else {
+    fun = (*i).second;
+  }
+  return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
+}
+
 
 Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << std::endl;
 
   if (!this->expansionRequested) {
-    lr.widenLogic(THEORY_UF); // Needed for conversions to/from real
+    lr.widenLogic(THEORY_UF); // Needed for conversions to/from real and min/max
     lr.widenLogic(THEORY_BV);
     this->expansionRequested = true;
   }
 
+  Node res = node;
+
   if (node.getKind() == kind::FLOATINGPOINT_TO_FP_GENERIC) {
-    Node res(removeToFPGeneric::removeToFPGeneric(node));
+    res = removeToFPGeneric::removeToFPGeneric(node);
 
-    Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): TO_FP_GENERIC rewritten to " << res << std::endl;
+  } else if (node.getKind() == kind::FLOATINGPOINT_MIN) {
+    res = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_MIN_TOTAL,
+					   node[0], node[1], minUF(node));
 
-    return res;
+  } else if (node.getKind() == kind::FLOATINGPOINT_MAX) {
+    res = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_MAX_TOTAL,
+					   node[0], node[1], maxUF(node));
+
   } else {
-    return node;
+    // Do nothing
   }
+
+  if (res != node) {
+    Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << " rewritten to " << res << std::endl;
+  }
+
+  return res;
 }
 
 

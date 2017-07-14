@@ -106,7 +106,7 @@ namespace fp {
     roundingModeUF(Node::null()),
     NaNMap(user), infMap(user), zeroMap(user),
     signMap(user), exponentMap(user), significandMap(user),
-    minMap(user), maxMap(user), toUBVMap(user), toSBVMap(user),
+    toUBVMap(user), toSBVMap(user),
     additionalAssertions(user)
   {
     //    testMultiply();
@@ -293,65 +293,6 @@ namespace fp {
     return tmp;
   }
 
-  Node fpConverter::minUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_MIN);
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    comparisonUFMap::const_iterator i(minMap.find(t));
-
-    Node fun;
-    if (i == minMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = t;
-      args[1] = t;
-      fun = nm->mkSkolem("floatingpoint_min_zero_case",
-			 nm->mkFunctionType(args,
-#ifdef SYMFPUPROPISBOOL
-					    nm->booleanType()
-#else
-			                    nm->mkBitVectorType(1U)
-#endif
-					    ),
-			 "floatingpoint_min_zero_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      minMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);  // Application reverses the order or arguments
-  }
-
-  Node fpConverter::maxUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_MAX);
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    comparisonUFMap::const_iterator i(maxMap.find(t));
-
-    Node fun;
-    if (i == maxMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = t;
-      args[1] = t;
-      fun = nm->mkSkolem("floatingpoint_max_zero_case",
-			 nm->mkFunctionType(args,
-#ifdef SYMFPUPROPISBOOL
-					    nm->booleanType()
-#else
-			                    nm->mkBitVectorType(1U)
-#endif
-					    ),
-			 "floatingpoint_max_zero_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      maxMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
-  }
 
   Node fpConverter::toUBVUF (Node node) {
     Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV);
@@ -552,8 +493,6 @@ namespace fp {
 	      }
 	      break;
 
-	    case kind::FLOATINGPOINT_MIN :
-	    case kind::FLOATINGPOINT_MAX :
 	    case kind::FLOATINGPOINT_REM :
 	      {
 		fpMap::const_iterator arg1(f.find(current[0]));
@@ -567,29 +506,46 @@ namespace fp {
 		  continue;    // i.e. recurse!
 		}
 
+		f.insert(current, symfpu::remainder<traits>(fpt(current.getType()),
+							    (*arg1).second,
+							    (*arg2).second));
+	      }
+	      break;
+
+	    case kind::FLOATINGPOINT_MIN_TOTAL :
+	    case kind::FLOATINGPOINT_MAX_TOTAL :
+	      {
+		fpMap::const_iterator arg1(f.find(current[0]));
+		fpMap::const_iterator arg2(f.find(current[1]));
+		// Should not need to recurse down this argument
+		//ubvMap::const_iterator arg3(u.find(current[2]));
+
+		bool recurseNeeded = (arg1 == f.end()) || (arg2 == f.end());
+
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (arg1 == f.end()) { workStack.push(current[0]); }
+		  if (arg2 == f.end()) { workStack.push(current[1]); }
+		  continue;    // i.e. recurse!
+		}
+
 		switch (current.getKind()) {
-		case kind::FLOATINGPOINT_MAX :
+		case kind::FLOATINGPOINT_MAX_TOTAL :
 		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
 							(*arg1).second,
 							(*arg2).second,
-							maxUF(current)));
+							prop(current[2])));
 		  break;
 		  
-		case kind::FLOATINGPOINT_MIN :
-		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
+		case kind::FLOATINGPOINT_MIN_TOTAL :
+		  f.insert(current, symfpu::min<traits>(fpt(current.getType()),
 							(*arg1).second,
 							(*arg2).second,
-							minUF(current)));
-		  break;
-
-		case kind::FLOATINGPOINT_REM :
-		  f.insert(current, symfpu::remainder<traits>(fpt(current.getType()),
-							      (*arg1).second,
-							      (*arg2).second));
+							prop(current[2])));
 		  break;
 
 		default :
-		  Unreachable("Unknown binary floating-point function");
+		  Unreachable("Unknown binary floating-point partial function");
 		  break;
 		}
 	      }

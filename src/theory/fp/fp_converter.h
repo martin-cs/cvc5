@@ -97,14 +97,6 @@ namespace fp {
 
 
     /* Uninterpretted functions for partially defined functions. */
-    typedef context::CDHashMap<TypeNode, Node, TypeNodeHashFunction> comparisonUFMap;
-
-    comparisonUFMap minMap;
-    comparisonUFMap maxMap;
-
-    Node minUF(Node);
-    Node maxUF(Node);
-
     typedef context::CDHashMap<std::pair<TypeNode, TypeNode>, Node, PairTypeNodeHashFunction> conversionUFMap;
 
     conversionUFMap toUBVMap;

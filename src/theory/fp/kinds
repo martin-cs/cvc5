@@ -105,6 +105,12 @@ typerule FLOATINGPOINT_MIN   ::CVC4::theory::fp::FloatingPointOperationTypeRule
 operator FLOATINGPOINT_MAX 2 "floating-point maximum"
 typerule FLOATINGPOINT_MAX   ::CVC4::theory::fp::FloatingPointOperationTypeRule
 
+operator FLOATINGPOINT_MIN_TOTAL 3 "floating-point minimum (defined for all inputs)"
+typerule FLOATINGPOINT_MIN_TOTAL   ::CVC4::theory::fp::FloatingPointPartialOperationTypeRule
+
+operator FLOATINGPOINT_MAX_TOTAL 3 "floating-point maximum (defined for all inputs)"
+typerule FLOATINGPOINT_MAX_TOTAL   ::CVC4::theory::fp::FloatingPointPartialOperationTypeRule
+
 
 operator FLOATINGPOINT_LEQ 2: "floating-point less than or equal"
 typerule FLOATINGPOINT_LEQ   ::CVC4::theory::fp::FloatingPointTestTypeRule
