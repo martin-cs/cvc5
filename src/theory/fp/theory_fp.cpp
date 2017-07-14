@@ -407,8 +407,10 @@ Node TheoryFp::explain(TNode n) {
     return conv.getValue(d_valuation, var);
   }
 
-  void TheoryFp::collectModelInfo(TheoryModel *m, bool fullModel) {
+  void TheoryFp::collectModelInfo(TheoryModel *m) {
     std::set<Node> relevantTerms;
+
+    Trace("fp-collectModelInfo") << "TheoryFp::collectModelInfo(): begin" << std::endl;
 
     // Work out which variables are needed
     computeRelevantTerms(relevantTerms);

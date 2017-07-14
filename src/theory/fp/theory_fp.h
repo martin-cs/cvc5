@@ -86,7 +86,7 @@ public:
   void check(Effort);
 
   Node getModelValue(TNode var);
-  void collectModelInfo(TheoryModel *m, bool fullModel);
+  void collectModelInfo(TheoryModel *m);
 
   std::string identify() const {
     return "THEORY_FP";
