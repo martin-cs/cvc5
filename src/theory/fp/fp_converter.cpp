@@ -589,7 +589,7 @@ namespace fp {
 		  break;
 
 		default :
-		  Unreachable("Unknown rounded floating-point function");
+		  Unreachable("Unknown binary floating-point function");
 		  break;
 		}
 	      }
