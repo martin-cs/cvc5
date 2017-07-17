@@ -62,7 +62,8 @@ protected :
   void convertAndEquateTerm(TNode node);
 
 
-  /** General book-keeping **/
+  /** Interaction with the rest of the solver **/
+  void handleLemma(Node node);
   bool handlePropagation(TNode node);
   void handleConflict(TNode node);
 

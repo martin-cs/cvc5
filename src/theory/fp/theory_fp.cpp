@@ -396,15 +396,13 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
     Debug("fp-convertTerm") << "TheoryFp::convertTerm(): additional assertion  " << addA << std::endl;
 
 #ifdef SYMFPUPROPISBOOL    
-    d_out->lemma(addA, false, true);
+    handleLemma(addA, false, true);
 #else
     NodeManager *nm = NodeManager::currentNM();
 
-    d_out->lemma(nm->mkNode(kind::EQUAL,
-			    addA,
-			    nm->mkConst(::CVC4::BitVector(1U, 1U))),
-		 false,
-		 true);
+    handleLemma(nm->mkNode(kind::EQUAL,
+			   addA,
+			   nm->mkConst(::CVC4::BitVector(1U, 1U))));
 #endif
 
     ++oldAdditionalAssertions;
@@ -421,17 +419,13 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
       NodeManager *nm = NodeManager::currentNM();
 
 #ifdef SYMFPUPROPISBOOL
-      d_out->lemma(nm->mkNode(kind::EQUAL, node, converted),
-		   false,
-		   true);
+      handleLemma(nm->mkNode(kind::EQUAL, node, converted));
 #else
-      d_out->lemma(nm->mkNode(kind::EQUAL,
+      handleLemma(nm->mkNode(kind::EQUAL,
 			      node,
 			      nm->mkNode(kind::EQUAL,
 					 converted,
-					 nm->mkConst(::CVC4::BitVector(1U, 1U)))),
-		   false,
-		   true);
+					 nm->mkConst(::CVC4::BitVector(1U, 1U)))));
 #endif
 
     } else {
@@ -448,11 +442,7 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
     if (converted != node) {
       Assert(converted.getType().isBitVector());
 
-      NodeManager *nm = NodeManager::currentNM();
-
-      d_out->lemma(nm->mkNode(kind::EQUAL, node, converted),
-		   false,
-		   true);
+      handleLemma(NodeManager::currentNM()->mkNode(kind::EQUAL, node, converted));
 
     } else {
       #if 0
@@ -492,6 +482,15 @@ void TheoryFp::addSharedTerm(TNode node) {
   }
 
   convertAndEquateTerm(node);
+  return;
+}
+
+void TheoryFp::handleLemma(Node node) {
+  Trace("fp") << "TheoryFp::handleLemma(): asserting " << node << std::endl;
+
+  d_out->lemma(node, false, true);
+  // Ignore the LemmaStatus structure for now...
+
   return;
 }
 
