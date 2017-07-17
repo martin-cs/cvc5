@@ -96,16 +96,6 @@ namespace fp {
     uf buildComponents(TNode current);
 
 
-    /* Uninterpretted functions for partially defined functions. */
-    typedef context::CDHashMap<std::pair<TypeNode, TypeNode>, Node, PairTypeNodeHashFunction> conversionUFMap;
-
-    conversionUFMap toUBVMap;
-    conversionUFMap toSBVMap;
-
-    Node toUBVUF(Node);
-    Node toSBVUF(Node);
-
-
   public :
     context::CDList<Node> additionalAssertions;
 

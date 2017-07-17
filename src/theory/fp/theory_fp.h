@@ -78,6 +78,20 @@ protected :
   Node minUF(Node);
   Node maxUF(Node);
 
+  typedef context::CDHashMap<std::pair<TypeNode, TypeNode>, Node, PairTypeNodeHashFunction> conversionUFMap;
+
+  conversionUFMap toUBVMap;
+  conversionUFMap toSBVMap;
+
+  Node toUBVUF(Node);
+  Node toSBVUF(Node);
+
+
+  comparisonUFMap toRealMap;
+
+  Node toRealUF(Node);
+
+
 public:
 
   /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */

@@ -305,14 +305,25 @@ namespace CVC4 {
 
     FloatingPointToBV (unsigned s)
       : bvs(s) {}
+    FloatingPointToBV (const FloatingPointToBV &old) : bvs(old.bvs) {}
     operator unsigned () const { return bvs; }
   };
 
   class CVC4_PUBLIC FloatingPointToUBV : public FloatingPointToBV {
   public : FloatingPointToUBV (unsigned _s) : FloatingPointToBV(_s) {}
+    FloatingPointToUBV (const FloatingPointToBV &old) : FloatingPointToBV(old) {}
   };
   class CVC4_PUBLIC FloatingPointToSBV : public FloatingPointToBV {
   public : FloatingPointToSBV (unsigned _s) : FloatingPointToBV(_s) {}
+    FloatingPointToSBV (const FloatingPointToBV &old) : FloatingPointToBV(old) {}
+  };
+  class CVC4_PUBLIC FloatingPointToUBVTotal : public FloatingPointToBV {
+  public : FloatingPointToUBVTotal (unsigned _s) : FloatingPointToBV(_s) {}
+    FloatingPointToUBVTotal (const FloatingPointToBV &old) : FloatingPointToBV(old) {}
+  };
+  class CVC4_PUBLIC FloatingPointToSBVTotal : public FloatingPointToBV {
+  public : FloatingPointToSBVTotal (unsigned _s) : FloatingPointToBV(_s) {}
+    FloatingPointToSBVTotal (const FloatingPointToBV &old) : FloatingPointToBV(old) {}
   };
 
 

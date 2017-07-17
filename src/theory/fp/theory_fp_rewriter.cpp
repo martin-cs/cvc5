@@ -706,6 +706,93 @@ namespace constantFold {
     }
   }
 
+  RewriteResponse convertToUBVTotal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV_TOTAL);
+
+    TNode op = node.getOperator();
+    const FloatingPointToUBVTotal &param = op.getConst<FloatingPointToUBVTotal>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg(node[1].getConst<FloatingPoint>());
+
+    // Can be called with the third argument non-constant
+    if (node[2].getMetaKind() == kind::metakind::CONSTANT) {
+      BitVector partialValue(node[2].getConst<BitVector>());
+
+      BitVector folded(arg.convertToBVTotal(param.bvs, rm, false, partialValue));
+      Node lit = NodeManager::currentNM()->mkConst(folded);
+      return RewriteResponse(REWRITE_DONE, lit);
+
+    } else {
+      FloatingPoint::PartialBitVector res(arg.convertToBV(param.bvs, rm, false));
+
+      if (res.second) {
+	Node lit = NodeManager::currentNM()->mkConst(res.first);
+	return RewriteResponse(REWRITE_DONE, lit);
+      } else {
+	// Can't constant fold the underspecified case
+	return RewriteResponse(REWRITE_DONE, node);
+      }
+    }
+  }
+
+  RewriteResponse convertToSBVTotal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_SBV_TOTAL);
+
+    TNode op = node.getOperator();
+    const FloatingPointToSBVTotal &param = op.getConst<FloatingPointToSBVTotal>();
+
+    RoundingMode rm(node[0].getConst<RoundingMode>());
+    FloatingPoint arg(node[1].getConst<FloatingPoint>());
+
+    // Can be called with the third argument non-constant
+    if (node[2].getMetaKind() == kind::metakind::CONSTANT) {
+      BitVector partialValue(node[2].getConst<BitVector>());
+
+      BitVector folded(arg.convertToBVTotal(param.bvs, rm, true, partialValue));
+      Node lit = NodeManager::currentNM()->mkConst(folded);
+      return RewriteResponse(REWRITE_DONE, lit);
+
+    } else {
+
+      FloatingPoint::PartialBitVector res(arg.convertToBV(param.bvs, rm, true));
+
+      if (res.second) {
+	Node lit = NodeManager::currentNM()->mkConst(res.first);
+	return RewriteResponse(REWRITE_DONE, lit);
+      } else {
+	// Can't constant fold the underspecified case
+	return RewriteResponse(REWRITE_DONE, node);
+      }
+    }
+  }
+
+  RewriteResponse convertToRealTotal (TNode node, bool) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_REAL_TOTAL);
+
+    FloatingPoint arg(node[0].getConst<FloatingPoint>());
+
+    // Can be called with the third argument non-constant
+    if (node[1].getMetaKind() == kind::metakind::CONSTANT) {
+      Rational partialValue(node[1].getConst<Rational>());
+
+      Rational folded(arg.convertToRationalTotal(partialValue));
+      Node lit = NodeManager::currentNM()->mkConst(folded);
+      return RewriteResponse(REWRITE_DONE, lit);
+
+    } else {
+      FloatingPoint::PartialRational res(arg.convertToRational());
+
+      if (res.second) {
+	Node lit = NodeManager::currentNM()->mkConst(res.first);
+	return RewriteResponse(REWRITE_DONE, lit);
+      } else {
+	// Can't constant fold the underspecified case
+	return RewriteResponse(REWRITE_DONE, node);
+      }
+    }
+  }
+
 
   
   RewriteResponse componentFlag (TNode node, bool) {
@@ -868,6 +955,9 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     preRewriteTable[kind::FLOATINGPOINT_TO_UBV] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_TO_SBV] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_TO_REAL] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_TO_UBV_TOTAL] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_TO_SBV_TOTAL] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_TO_REAL_TOTAL] = rewrite::identity;
 
     /******** Variables ********/
     preRewriteTable[kind::VARIABLE] = rewrite::variable;
@@ -947,6 +1037,9 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     postRewriteTable[kind::FLOATINGPOINT_TO_UBV] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_TO_SBV] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_TO_REAL] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_TO_UBV_TOTAL] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_TO_SBV_TOTAL] = rewrite::identity;
+    postRewriteTable[kind::FLOATINGPOINT_TO_REAL_TOTAL] = rewrite::identity;
 
     /******** Variables ********/
     postRewriteTable[kind::VARIABLE] = rewrite::variable;
@@ -1028,6 +1121,9 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_TO_UBV] = constantFold::convertToUBV;
     constantFoldTable[kind::FLOATINGPOINT_TO_SBV] = constantFold::convertToSBV;
     constantFoldTable[kind::FLOATINGPOINT_TO_REAL] = constantFold::convertToReal;
+    constantFoldTable[kind::FLOATINGPOINT_TO_UBV_TOTAL] = constantFold::convertToUBVTotal;
+    constantFoldTable[kind::FLOATINGPOINT_TO_SBV_TOTAL] = constantFold::convertToSBVTotal;
+    constantFoldTable[kind::FLOATINGPOINT_TO_REAL_TOTAL] = constantFold::convertToRealTotal;
 
     /******** Variables ********/
     constantFoldTable[kind::VARIABLE] = rewrite::variable;
@@ -1114,8 +1210,12 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 	  if ((*i).getType().isRoundingMode() && !apartFromRoundingMode) {
 	    apartFromRoundingMode = true;
 	  } else if ((res.node.getKind() == kind::FLOATINGPOINT_MIN_TOTAL ||
-		      res.node.getKind() == kind::FLOATINGPOINT_MAX_TOTAL) &&
-		     (*i).getType().isBitVector() &&
+		      res.node.getKind() == kind::FLOATINGPOINT_MAX_TOTAL ||
+		      res.node.getKind() == kind::FLOATINGPOINT_TO_UBV_TOTAL ||
+		      res.node.getKind() == kind::FLOATINGPOINT_TO_SBV_TOTAL ||
+		      res.node.getKind() == kind::FLOATINGPOINT_TO_REAL_TOTAL) &&
+		     ((*i).getType().isBitVector() ||
+		      (*i).getType().isReal()) &&
 		     !apartFromPartiallyDefinedArgument) {
 	    apartFromPartiallyDefinedArgument = true;
 	  } else {

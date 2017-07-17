@@ -115,7 +115,10 @@ TheoryFp::TheoryFp(context::Context* c,
   conflict(c, false),
   conflictNode(c, Node::null()),
   minMap(u),
-  maxMap(u)
+  maxMap(u),
+  toUBVMap(u),
+  toSBVMap(u),
+  toRealMap(u)
   {
 
     // Kinds that are to be handled in the congruence closure
@@ -155,9 +158,12 @@ TheoryFp::TheoryFp(context::Context* c,
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR);
     // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_FP_GENERIC); // Needed in parsing, should be rewritten away
 
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_UBV);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_SBV);
-    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_REAL);
+    //equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_UBV); // Removed
+    //equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_SBV); // Removed
+    //equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_REAL); // Removed
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_UBV_TOTAL);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_SBV_TOTAL);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_TO_REAL_TOTAL);
 
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_NAN);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_INF);
@@ -232,6 +238,89 @@ Node TheoryFp::maxUF (Node node) {
   return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
 }
 
+Node TheoryFp::toUBVUF (Node node) {
+  Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV);
+
+  TypeNode target(node.getType());
+  Assert(target.getKind() == kind::BITVECTOR_TYPE);
+
+  TypeNode source(node[1].getType());
+  Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
+
+  std::pair<TypeNode, TypeNode> p(source, target);
+  NodeManager *nm = NodeManager::currentNM();
+  conversionUFMap::const_iterator i(toUBVMap.find(p));
+
+  Node fun;
+  if (i == toUBVMap.end()) {
+    std::vector<TypeNode> args(2);
+    args[0] = nm->roundingModeType();
+    args[1] = source;
+    fun = nm->mkSkolem("floatingpoint_to_ubv_out_of_range_case",
+		       nm->mkFunctionType(args, target),
+		       "floatingpoint_to_ubv_out_of_range_case",
+		       NodeManager::SKOLEM_EXACT_NAME);
+    toUBVMap.insert(p,fun);
+  } else {
+    fun = (*i).second;
+  }
+  return nm->mkNode(kind::APPLY_UF, fun, node[0], node[1]);
+}
+
+Node TheoryFp::toSBVUF (Node node) {
+  Assert(node.getKind() == kind::FLOATINGPOINT_TO_SBV);
+
+  TypeNode target(node.getType());
+  Assert(target.getKind() == kind::BITVECTOR_TYPE);
+
+  TypeNode source(node[1].getType());
+  Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
+
+  std::pair<TypeNode, TypeNode> p(source, target);
+  NodeManager *nm = NodeManager::currentNM();
+  conversionUFMap::const_iterator i(toSBVMap.find(p));
+
+  Node fun;
+  if (i == toSBVMap.end()) {
+    std::vector<TypeNode> args(2);
+    args[0] = nm->roundingModeType();
+    args[1] = source;
+    fun = nm->mkSkolem("floatingpoint_to_sbv_out_of_range_case",
+		       nm->mkFunctionType(args, target),
+		       "floatingpoint_to_sbv_out_of_range_case",
+		       NodeManager::SKOLEM_EXACT_NAME);
+    toSBVMap.insert(p,fun);
+  } else {
+    fun = (*i).second;
+  }
+  return nm->mkNode(kind::APPLY_UF, fun, node[0], node[1]);
+}
+
+Node TheoryFp::toRealUF (Node node) {
+  Assert(node.getKind() == kind::FLOATINGPOINT_TO_REAL);
+  TypeNode t(node[0].getType());
+  Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
+
+  NodeManager *nm = NodeManager::currentNM();
+  comparisonUFMap::const_iterator i(toRealMap.find(t));
+
+  Node fun;
+  if (i == toRealMap.end()) {
+    std::vector<TypeNode> args(2);
+    args[0] = t;
+    args[1] = t;
+    fun = nm->mkSkolem("floatingpoint_to_real_infinity_and_NaN_case",
+		       nm->mkFunctionType(t, nm->realType()),
+		       "floatingpoint_to_real_infinity_and_NaN_case",
+		       NodeManager::SKOLEM_EXACT_NAME);
+    toRealMap.insert(t,fun);
+  } else {
+    fun = (*i).second;
+  }
+  return nm->mkNode(kind::APPLY_UF, fun, node[0]);
+}
+
+
 
 Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << std::endl;
@@ -254,6 +343,26 @@ Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   } else if (node.getKind() == kind::FLOATINGPOINT_MAX) {
     res = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_MAX_TOTAL,
 					   node[0], node[1], maxUF(node));
+
+  } else if (node.getKind() == kind::FLOATINGPOINT_TO_UBV) {
+    FloatingPointToUBV info = node.getOperator().getConst<FloatingPointToUBV>();
+    FloatingPointToUBVTotal newInfo(info);
+
+    res = NodeManager::currentNM()->mkNode(//kind::FLOATINGPOINT_TO_UBV_TOTAL,
+					   NodeManager::currentNM()->mkConst(newInfo),
+					   node[0], node[1], toUBVUF(node));
+
+  } else if (node.getKind() == kind::FLOATINGPOINT_TO_SBV) {
+    FloatingPointToSBV info = node.getOperator().getConst<FloatingPointToSBV>();
+    FloatingPointToSBVTotal newInfo(info);
+
+    res = NodeManager::currentNM()->mkNode(//kind::FLOATINGPOINT_TO_SBV_TOTAL,
+					   NodeManager::currentNM()->mkConst(newInfo),
+					   node[0], node[1], toSBVUF(node));
+
+  } else if (node.getKind() == kind::FLOATINGPOINT_TO_REAL) {
+    res = NodeManager::currentNM()->mkNode(kind::FLOATINGPOINT_TO_REAL_TOTAL,
+					   node[0], toRealUF(node));
 
   } else {
     // Do nothing
@@ -333,6 +442,25 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
 	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_ZERO) ||
 	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGN) ||
 	     (node.getKind() == kind::EQUAL));
+    }
+
+  } else if (node.getType().isBitVector()) {
+    if (converted != node) {
+      Assert(converted.getType().isBitVector());
+
+      NodeManager *nm = NodeManager::currentNM();
+
+      d_out->lemma(nm->mkNode(kind::EQUAL, node, converted),
+		   false,
+		   true);
+
+    } else {
+      #if 0
+      Assert((node.getKind() == kind::FLOATINGPOINT_COMPONENT_EXPONENT) ||
+	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND) ||
+	     (node.getKind() == kind::APPLY) ||  // For the UF we generate
+	     (node.getKind() == kind::EQUAL));
+      #endif
     }
   }
 

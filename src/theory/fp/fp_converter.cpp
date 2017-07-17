@@ -106,7 +106,6 @@ namespace fp {
     roundingModeUF(Node::null()),
     NaNMap(user), infMap(user), zeroMap(user),
     signMap(user), exponentMap(user), significandMap(user),
-    toUBVMap(user), toSBVMap(user),
     additionalAssertions(user)
   {
     //    testMultiply();
@@ -294,63 +293,6 @@ namespace fp {
   }
 
 
-  Node fpConverter::toUBVUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV);
-
-    TypeNode target(node.getType());
-    Assert(target.getKind() == kind::BITVECTOR_TYPE);
-
-    TypeNode source(node[1].getType());
-    Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    std::pair<TypeNode, TypeNode> p(source, target);
-    NodeManager *nm = NodeManager::currentNM();
-    conversionUFMap::const_iterator i(toUBVMap.find(p));
-
-    Node fun;
-    if (i == toUBVMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = nm->roundingModeType();
-      args[1] = source;
-      fun = nm->mkSkolem("floatingpoint_to_ubv_out_of_range_case",
-			 nm->mkFunctionType(args, target),
-			 "floatingpoint_to_ubv_out_of_range_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      toUBVMap.insert(p,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
-  }
-
-  Node fpConverter::toSBVUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_TO_SBV);
-
-    TypeNode target(node.getType());
-    Assert(target.getKind() == kind::BITVECTOR_TYPE);
-
-    TypeNode source(node[1].getType());
-    Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    std::pair<TypeNode, TypeNode> p(source, target);
-    NodeManager *nm = NodeManager::currentNM();
-    conversionUFMap::const_iterator i(toSBVMap.find(p));
-
-    Node fun;
-    if (i == toSBVMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = nm->roundingModeType();
-      args[1] = source;
-      fun = nm->mkSkolem("floatingpoint_to_sbv_out_of_range_case",
-			 nm->mkFunctionType(args, target),
-			 "floatingpoint_to_sbv_out_of_range_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      toSBVMap.insert(p,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
-  }
 
 
 
@@ -903,7 +845,7 @@ namespace fp {
 
 	switch (current.getKind()) {
 	  /******** Conversions ********/
-	case kind::FLOATINGPOINT_TO_UBV :
+	case kind::FLOATINGPOINT_TO_UBV_TOTAL :
 	  {
 	    TypeNode childType (current[1].getType());
 	    ubvMap::const_iterator i(u.find(current));
@@ -920,15 +862,15 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 
-	      FloatingPointToUBV info =
-		current.getOperator().getConst<FloatingPointToUBV>();
+	      FloatingPointToUBVTotal info =
+		current.getOperator().getConst<FloatingPointToUBVTotal>();
 
 
 	      u.insert(current, symfpu::convertFloatToUBV<traits>(fpt(childType),
 								  (*mode).second,
 								  (*arg1).second,
 								  info.bvs,
-								  toUBVUF(current)));
+								  ubv(current[2])));
 	      i = u.find(current);
 	    }
 	      
@@ -936,7 +878,7 @@ namespace fp {
 	  }
 	  break;
 
-	case kind::FLOATINGPOINT_TO_SBV :
+	case kind::FLOATINGPOINT_TO_SBV_TOTAL :
 	  {
 	    TypeNode childType (current[1].getType());
 	    sbvMap::const_iterator i(s.find(current));
@@ -953,15 +895,15 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 
-	      FloatingPointToSBV info =
-		current.getOperator().getConst<FloatingPointToSBV>();
+	      FloatingPointToSBVTotal info =
+		current.getOperator().getConst<FloatingPointToSBVTotal>();
 
 
 	      s.insert(current, symfpu::convertFloatToSBV<traits>(fpt(childType),
 								  (*mode).second,
 								  (*arg1).second,
 								  info.bvs,
-								  toSBVUF(current)));
+								  sbv(current[2])));
 
 	      i = s.find(current);
 	    }
@@ -970,12 +912,20 @@ namespace fp {
 	  }
 	  break;
 
+	case kind::FLOATINGPOINT_TO_UBV :
+	  Unreachable("Partially defined fp.to_ubv should have been removed by expandDefinition");
+	  break;
+
+	case kind::FLOATINGPOINT_TO_SBV :
+	  Unreachable("Partially defined fp.to_sbv should have been removed by expandDefinition");
+	  break;
+
 	  // Again, no action is needed
 	case kind::FLOATINGPOINT_COMPONENT_EXPONENT :
 	case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND :
 	case kind::ROUNDINGMODE_BITBLAST :
 	  /* Fall through ... */
-      
+	  
 	default :
 	  PASSTHROUGH;
 	  break;
@@ -985,7 +935,7 @@ namespace fp {
 
 	switch (current.getKind()) {
 	  /******** Conversions ********/
-	case kind::FLOATINGPOINT_TO_REAL :
+	case kind::FLOATINGPOINT_TO_REAL_TOTAL :
 	  {
 	    // We need to recurse so that any variables that are only
 	    // used under this will have components created
@@ -1007,6 +957,10 @@ namespace fp {
 	    // its value.
 	  }
 
+	  break;
+
+	case kind::FLOATINGPOINT_TO_REAL :
+	  Unreachable("Partially defined fp.to_real should have been removed by expandDefinition");
 	  break;
 
 	default :

@@ -477,6 +477,86 @@ class FloatingPointToSBVTypeRule {
   }
 };
 
+class FloatingPointToUBVTotalTypeRule {
+ public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n,
+                                     bool check) {
+    TRACE("FloatingPointToUBVTotalTypeRule");
+
+    FloatingPointToUBVTotal info = n.getOperator().getConst<FloatingPointToUBVTotal>();
+
+    if (check) {
+      TypeNode roundingModeType = n[0].getType(check);
+
+      if (!roundingModeType.isRoundingMode()) {
+        throw TypeCheckingExceptionPrivate(
+            n, "first argument must be a rounding mode");
+      }
+
+      TypeNode operandType = n[1].getType(check);
+
+      if (!(operandType.isFloatingPoint())) {
+        throw TypeCheckingExceptionPrivate(n,
+                                           "conversion to unsigned bit vector total"
+                                           "used with a sort other than "
+                                           "floating-point");
+      }
+
+      TypeNode defaultValueType = n[2].getType(check);
+
+      if (!(defaultValueType.isBitVector()) ||
+	  !(defaultValueType.getBitVectorSize() == info)) {
+	throw TypeCheckingExceptionPrivate(n,
+					   "conversion to unsigned bit vector total"
+					   "needs a bit vector of the same length"
+					   "as last argument");
+      }
+    }
+
+    return nodeManager->mkBitVectorType(info.bvs);
+  }
+};
+
+class FloatingPointToSBVTotalTypeRule {
+ public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n,
+                                     bool check) {
+    TRACE("FloatingPointToSBVTotalTypeRule");
+
+    FloatingPointToSBVTotal info = n.getOperator().getConst<FloatingPointToSBVTotal>();
+
+    if (check) {
+      TypeNode roundingModeType = n[0].getType(check);
+
+      if (!roundingModeType.isRoundingMode()) {
+        throw TypeCheckingExceptionPrivate(
+            n, "first argument must be a rounding mode");
+      }
+
+      TypeNode operandType = n[1].getType(check);
+
+      if (!(operandType.isFloatingPoint())) {
+        throw TypeCheckingExceptionPrivate(n,
+                                           "conversion to signed bit vector "
+                                           "used with a sort other than "
+                                           "floating-point");
+      }
+
+      TypeNode defaultValueType = n[2].getType(check);
+
+      if (!(defaultValueType.isBitVector()) ||
+	  !(defaultValueType.getBitVectorSize() == info)) {
+	throw TypeCheckingExceptionPrivate(n,
+					   "conversion to signed bit vector total"
+					   "needs a bit vector of the same length"
+					   "as last argument");
+      }
+    }
+
+    return nodeManager->mkBitVectorType(info.bvs);
+  }
+};
+
 class FloatingPointToRealTypeRule {
  public:
   inline static TypeNode computeType(NodeManager* nodeManager, TNode n,
@@ -490,6 +570,33 @@ class FloatingPointToRealTypeRule {
         throw TypeCheckingExceptionPrivate(
             n, "floating-point to real applied to a non floating-point sort");
       }
+    }
+
+    return nodeManager->realType();
+  }
+};
+
+class FloatingPointToRealTotalTypeRule {
+ public:
+  inline static TypeNode computeType(NodeManager* nodeManager, TNode n,
+                                     bool check) {
+    TRACE("FloatingPointToRealTotalTypeRule");
+
+    if (check) {
+      TypeNode operandType = n[0].getType(check);
+
+      if (!operandType.isFloatingPoint()) {
+        throw TypeCheckingExceptionPrivate(
+            n, "floating-point to real total applied to a non floating-point sort");
+      }
+
+      TypeNode defaultValueType = n[1].getType(check);
+
+      if (!defaultValueType.isReal()) {
+        throw TypeCheckingExceptionPrivate(
+            n, "floating-point to real total needs a real second argument");
+      }
+
     }
 
     return nodeManager->realType();

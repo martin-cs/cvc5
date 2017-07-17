@@ -345,9 +345,9 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
   
   BitVector FloatingPoint::convertToBVTotal (BitVectorSize width, const RoundingMode &rm, bool signedBV, BitVector undefinedCase) const {
     if (signedBV)
-      return symfpu::convertFloatToSBV<symfpuLiteral::traits>(t, rm, fpl, width, BitVector(width, 0U));
+      return symfpu::convertFloatToSBV<symfpuLiteral::traits>(t, rm, fpl, width, undefinedCase);
     else
-      return symfpu::convertFloatToUBV<symfpuLiteral::traits>(t, rm, fpl, width, BitVector(width, 0U));
+      return symfpu::convertFloatToUBV<symfpuLiteral::traits>(t, rm, fpl, width, undefinedCase);
   }
 
   Rational FloatingPoint::convertToRationalTotal (Rational undefinedCase) const {
