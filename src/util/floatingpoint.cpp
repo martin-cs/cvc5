@@ -111,7 +111,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
       return FloatingPointLiteral::makeZero(ct, false); // In keeping with the SMT-LIB standard
     } else {
       int negative = (r.sgn() < 0) ? 1 : 0;
-      r.abs();
+      r = r.abs();
 
       // Compute the exponent
       Integer exp(0U);
