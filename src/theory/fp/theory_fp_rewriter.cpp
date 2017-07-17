@@ -1177,7 +1177,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 
 	if (constRes.node != res.node) {
 	  Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): before constant fold " << res.node << std::endl;
-	  Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): after constant fold" << constRes.node << std::endl;
+	  Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): after constant fold " << constRes.node << std::endl;
 	}
 
 	return constRes;
