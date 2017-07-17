@@ -78,9 +78,12 @@ template <class t>
   sbv exponent(uf.getExponent());
   bwt exponentWidth(exponent.getWidth());
   prop exponentEven((exponent & sbv::one(exponentWidth)).isAllZeros());
+  #if 0
   sbv exponentHalved(conditionalDecrement<t,sbv,prop>((exponent < sbv::zero(exponentWidth)) && !exponentEven,
 						      exponent.signExtendRightShift(sbv::one(exponentWidth))));
-  // Left shift rounds down for positive, but need to round away for negative
+  #endif
+  sbv exponentHalved(exponent.signExtendRightShift(sbv::one(exponentWidth)));
+  // Right shift rounds down for positive, and away for negative  (-5 >>> 1 == -3)
   //  sqrt(1.s * 2^{-(2n + 1)}) = sqrt(1.s * 2^{-2n - 2 + 1)})
   //                            = sqrt(1.s * 2^{-2(n + 1)} * 2) 
   //                            = sqrt(1.s * 2) * 2^{-(n + 1)}

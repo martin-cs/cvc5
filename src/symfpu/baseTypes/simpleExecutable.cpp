@@ -162,7 +162,7 @@ namespace symfpu {
       int64_t newValue;
       
       if (this->value < 0) {
-	newValue = -(-(this->value) >> op.value);
+	newValue = -(-(this->value) >> op.value) + ((this->value & 0x1) ? -1 : 0); // Rounds away
       } else {
 	newValue = this->value >> op.value;
       }
