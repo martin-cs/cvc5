@@ -427,7 +427,7 @@ namespace constantFold {
 
       FloatingPoint folded(arg1.minTotal(arg2, arg3.isBitSet(0)));
       Node lit = NodeManager::currentNM()->mkConst(folded);
-     return RewriteResponse(REWRITE_DONE, lit);
+      return RewriteResponse(REWRITE_DONE, lit);
 
     } else {
       FloatingPoint::PartialFloatingPoint res(arg1.min(arg2));
