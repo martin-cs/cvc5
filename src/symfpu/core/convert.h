@@ -203,7 +203,7 @@ template <class t>
   bwt actualExponentWidth(unpackedFloat<t>::exponentWidth(initialFormat));
 
   // Build
-  unpackedFloat<t> initial(prop(false), sbv(actualExponentWidth, inputWidth - decimalPointPosition), input);
+  unpackedFloat<t> initial(prop(false), sbv(actualExponentWidth, (inputWidth - 1) - decimalPointPosition), input);  // inputWidth - 1 as we want one bit above the decimal point
   
   // Normalise
   unpackedFloat<t> normalised(initial.normaliseUpDetectZero(initialFormat));
