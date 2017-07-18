@@ -385,11 +385,12 @@ template <class t>
 							targetWidth, decimalPointPosition));
 
    // Put the result together
+   bwt roundSigWidth(rounded.significand.getWidth());
    prop undefinedResult(earlyUndefinedResult ||
 			rounded.incrementExponent ||    // Definite Overflow
-			(rounded.significand.extract(rounded.significand.getWidth(),
-						     rounded.significand.getWidth()).isAllOnes() &&
-			 !(input.getSign() && rounded.significand.extract(rounded.significand.getWidth() - 1, 0).isAllZeros()))); // -2^{n-1} is non-overflow safe
+			(rounded.significand.extract(roundSigWidth - 1,
+						     roundSigWidth - 1).isAllOnes() &&
+			 !(input.getSign() && rounded.significand.extract(roundSigWidth - 2, 0).isAllZeros()))); // -2^{n-1} is the only safe "overflow" case
 
    
    sbv result(ITE(undefinedResult,
