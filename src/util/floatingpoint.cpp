@@ -125,11 +125,8 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
 	  exp -= inc;
 	  working /= two;
 	}
-	exp += inc;
-	working *= two;
-	
       } else {
-	while (r > working) {
+	while (r >= working) {
 	  exp += inc;
 	  working *= two;
 	}
@@ -145,13 +142,13 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
 
       Integer doubleInt(2);
       if (exp.strictlyPositive()) {
-	Integer representable(4);
-	while (representable < exp) {
+	Integer representable(4);     // 1 more than exactly representable with expBits
+	while (representable <= exp) {// hence <=
 	  representable *= doubleInt;
 	  ++expBits;
 	}
       } else if (exp.strictlyNegative()) {
-	Integer representable(-4);
+	Integer representable(-4);    // Exactly representable with expBits + sign
 	while (representable > exp) {
 	  representable *= doubleInt;
 	  ++expBits;
