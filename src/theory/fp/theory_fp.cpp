@@ -37,12 +37,11 @@ namespace removeToFPGeneric {
     size_t children = node.getNumChildren();
 
     Node op;
+    NodeManager *nm = NodeManager::currentNM();
 
     if (children == 1) {
-      op = NodeManager::currentNM()->mkConst(
-          FloatingPointToFPIEEEBitVector(info.t.exponent(),
-                                         info.t.significand()));
-      return NodeManager::currentNM()->mkNode(op, node[0]);
+      op = nm->mkConst(FloatingPointToFPIEEEBitVector(info));
+      return nm->mkNode(op, node[0]);
 
     } else {
       Assert(children == 2);
@@ -51,18 +50,11 @@ namespace removeToFPGeneric {
       TypeNode t = node[1].getType();
 
       if (t.isFloatingPoint()) {
-	op = NodeManager::currentNM()->mkConst(
-            FloatingPointToFPFloatingPoint(info.t.exponent(),
-                                           info.t.significand()));
+	op = nm->mkConst(FloatingPointToFPFloatingPoint(info));
       } else if (t.isReal()) {
-	op = NodeManager::currentNM()->mkConst(
-            FloatingPointToFPReal(info.t.exponent(),
-                                  info.t.significand()));
+	op = nm->mkConst(FloatingPointToFPReal(info));
       } else if (t.isBitVector()) {
-	op = NodeManager::currentNM()->mkConst(
-            FloatingPointToFPSignedBitVector(info.t.exponent(),
-                                             info.t.significand()));
-
+	op = nm->mkConst(FloatingPointToFPSignedBitVector(info));
       } else {
 	throw TypeCheckingExceptionPrivate(
             node,
@@ -70,7 +62,7 @@ namespace removeToFPGeneric {
             "argument");
       }
 
-      return NodeManager::currentNM()->mkNode(op, node[0], node[1]);
+      return nm->mkNode(op, node[0], node[1]);
     }
 
     Unreachable("to_fp generic not rewritten");
