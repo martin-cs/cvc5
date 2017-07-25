@@ -300,7 +300,7 @@ namespace fp {
   #define PASSTHROUGH   Assert(workStack.empty())
 
 
-  TNode fpConverter::convert (TNode node) {
+  Node fpConverter::convert (TNode node) {
     std::stack<TNode> workStack;
     TNode result = node;
 
