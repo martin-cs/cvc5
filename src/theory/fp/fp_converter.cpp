@@ -995,12 +995,40 @@ namespace fp {
 
     TypeNode t(var.getType());
 
+    NodeManager *nm = NodeManager::currentNM();
+
     if (t.isRoundingMode()) {
       rmMap::const_iterator i(r.find(var));
-      
+
       if (i == r.end()) {
 	Unreachable("Asking for the value of an unregistered expression");
       } else {
+	Node transVar = (*i).second.getNode();
+
+	Node RNE = traits::RNE().getNode();
+	Node RNA = traits::RNA().getNode();
+	Node RTP = traits::RTP().getNode();
+	Node RTN = traits::RTN().getNode();
+	Node RTZ = traits::RTZ().getNode();
+
+	Node value =
+	  nm->mkNode(kind::ITE,
+		     nm->mkNode(kind::EQUAL, transVar, RNE),
+		     nm->mkConst(roundNearestTiesToEven),
+		     nm->mkNode(kind::ITE,
+				nm->mkNode(kind::EQUAL, transVar, RNA),
+				nm->mkConst(roundNearestTiesToAway),
+				nm->mkNode(kind::ITE,
+					   nm->mkNode(kind::EQUAL, transVar, RTP),
+					   nm->mkConst(roundTowardPositive),
+					   nm->mkNode(kind::ITE,
+						      nm->mkNode(kind::EQUAL, transVar, RTN),
+						      nm->mkConst(roundTowardNegative),
+						      nm->mkConst(roundTowardZero)))));
+	return value;
+      }
+
+#ifdef REMOVE
 	Node rmValue = val.getModelValue((*i).second.getNode());
 	Assert(rmValue.isConst());
 	Assert(rmValue.getType().getKind() == kind::BITVECTOR_TYPE);
@@ -1021,6 +1049,7 @@ namespace fp {
 	  Unreachable("Bit-vector corresponding to a rounding mode contains an unrecognised value");
 	}
       }
+#endif
 
     } else if (t.isFloatingPoint()) {
 
@@ -1029,6 +1058,17 @@ namespace fp {
       if (i == f.end()) {
 	Unreachable("Asking for the value of an unregistered expression");
       } else {
+
+	// This is not entirely obvious but it builds a float from components
+	// Particularly, if the components can be constant folded, it should
+	// build a Node containing a constant FloatingPoint number
+
+	FloatingPointSize fps(t.getConst<FloatingPointSize>());
+	ubv packed(symfpu::pack<traits>(fpt(t),(*i).second));
+	return nm->mkNode(nm->mkConst(FloatingPointToFPIEEEBitVector(fps)),
+			  packed.getNode());
+
+#ifdef REMOVE
 	Node nanValue = val.getModelValue((*i).second.nan.getNode());
 	Assert(nanValue.isConst());
 	Assert(nanValue.getType().isBoolean());
@@ -1060,6 +1100,7 @@ namespace fp {
 				 exponentValue.getConst<BitVector>(),
 				 significandValue.getConst<BitVector>());
 	return NodeManager::currentNM()->mkConst(FloatingPoint(var.getType().getConst<FloatingPointSize>(), fpl));
+#endif
       }
 
     } else {
