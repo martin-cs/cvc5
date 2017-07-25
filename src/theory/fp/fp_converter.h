@@ -102,7 +102,7 @@ namespace fp {
     fpConverter (context::UserContext*);
 
     /** Adds a node to the conversion, returns the converted node */
-    TNode convert (TNode);
+    Node convert (TNode);
 
     /** Gives the node representing the value of a given variable */
     Node getValue (Valuation &, TNode);
