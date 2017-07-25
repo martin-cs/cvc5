@@ -616,7 +616,8 @@ namespace symfpu {
       bitWidthType packedWidth(void) const            { return this->exponentWidth() + this->significandWidth(); }
       bitWidthType packedExponentWidth(void) const    { return this->exponentWidth(); }
       bitWidthType packedSignificandWidth(void) const { return this->significandWidth() - 1; }
-      
+
+      ::CVC4::TypeNode getTypeNode (void) const { return type; }
     };
 
 
