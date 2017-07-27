@@ -389,7 +389,7 @@ namespace symfpu {
       
       static bitVector<isSigned> one (const bitWidthType &w) { return bitVector<isSigned>(w,1); }
       static bitVector<isSigned> zero (const bitWidthType &w)  { return bitVector<isSigned>(w,0); }
-      static bitVector<isSigned> allOnes (const bitWidthType &w)  { return bitVector<isSigned>( ~one(w) ); }
+      static bitVector<isSigned> allOnes (const bitWidthType &w)  { return bitVector<isSigned>( ~zero(w) ); }
       
       inline proposition isAllOnes() const {return (*this == bitVector<isSigned>::allOnes(this->getWidth()));}
       inline proposition isAllZeros() const {return (*this == bitVector<isSigned>::zero(this->getWidth()));}
