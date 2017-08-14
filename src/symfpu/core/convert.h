@@ -285,8 +285,8 @@ template <class t>
    sbv shiftAmount(collar<t>(expandingAdd<t>(exponent, sbv(exponentWidth, decimalPointPosition + 2)),
 			     sbv::zero(exponentWidth + 1),
 			     maxShiftAmount));
-   ubv convertedShiftAmount(shiftAmount.contract(bitsToRepresent(targetWidth + 1) + 1 /* +1 for sign bit, safe due to collar */
-						 ).toUnsigned().matchWidth(expandedSignificand));
+   ubv convertedShiftAmount(shiftAmount.resize(bitsToRepresent(targetWidth + 1) + 1 /* +1 for sign bit, safe due to collar */
+					       ).toUnsigned().matchWidth(expandedSignificand));
    ubv aligned(expandedSignificand << convertedShiftAmount); // Safe by collar
 
 
