@@ -281,7 +281,7 @@ template <class t>
    
    
    // Align
-   sbv maxShiftAmount(largestExponent.extend(1).increment());             // +1 to shift over the guard bit
+   sbv maxShiftAmount(exponentWidth + 1, targetWidth + 1);             // +1 to shift over the guard bit
    sbv shiftAmount(collar<t>(expandingAdd<t>(exponent, sbv(exponentWidth, decimalPointPosition + 2)),
 			     sbv::zero(exponentWidth + 1),
 			     maxShiftAmount));
