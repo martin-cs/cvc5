@@ -324,7 +324,9 @@ template <class t>
    sbv largestExponent(exponentWidth, targetWidth);
    prop tooLarge(input.getExponent() >= largestExponent);
 
-   prop tooNegative(input.getSign() && sbv::zero(exponentWidth) <= input.getExponent());  // Can't round to 0
+   prop tooNegative(input.getSign() &&
+		    !input.getZero() &&  // Zero is handled elsewhere
+		    sbv::zero(exponentWidth) <= input.getExponent());  // Can't round to 0
    
    prop earlyUndefinedResult(specialValue || tooLarge || tooNegative);
    probabilityAnnotation<t>(earlyUndefinedResult, LIKELY); // Convertable values are rare
