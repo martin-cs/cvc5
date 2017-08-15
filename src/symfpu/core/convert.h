@@ -265,27 +265,31 @@ template <class t>
 
    // TODO : fast path the RTZ case
 
-  
-   sbv exponent(input.getExponent());
-   bwt exponentWidth(exponent.getWidth());
+   bwt maxShift(targetWidth + 1); // + 1 as we have to shift over the guard bit
+   bwt maxShiftBits(bitsToRepresent(maxShift) + 1); // +1 as we want it to be signed
 
-   sbv largestExponent(exponentWidth, targetWidth);
+   bwt exponentWidth(input.getExponent().getWidth());
+   bwt workingExponentWidth((exponentWidth >= maxShiftBits) ?
+			    exponentWidth : maxShiftBits);
 
+   sbv maxShiftAmount(workingExponentWidth, targetWidth);
+   sbv exponent(input.getExponent().matchWidth(maxShiftAmount));
 
+   
    // Handle zero
    ubv significand(input.getSignificand());
    bwt significandWidth(significand.getWidth());
    ubv zerodSignificand(significand &
 			ITE(input.getZero(), ubv::zero(significandWidth), ubv::allOnes(significandWidth)));
-   ubv expandedSignificand(zerodSignificand.extend(targetWidth + 1)); // Start with the significand in the sticky position.
-   
+   ubv expandedSignificand(zerodSignificand.extend(maxShift)); // Start with the significand in the sticky position.
+                                                               // targetWidth +1 is for the guard bit
    
    // Align
-   sbv maxShiftAmount(exponentWidth + 1, targetWidth + 1);             // +1 to shift over the guard bit
-   sbv shiftAmount(collar<t>(expandingAdd<t>(exponent, sbv(exponentWidth, decimalPointPosition + 2)),
-			     sbv::zero(exponentWidth + 1),
-			     maxShiftAmount));
-   ubv convertedShiftAmount(shiftAmount.resize(bitsToRepresent(targetWidth + 1) + 1 /* +1 for sign bit, safe due to collar */
+   sbv shiftAmount(collar<t>(expandingAdd<t>(exponent,
+					     sbv(workingExponentWidth, decimalPointPosition + 2)),  // +1 to guard, +1 to LSB
+			     sbv::zero(workingExponentWidth + 1),
+			     maxShiftAmount.extend(1)));
+   ubv convertedShiftAmount(shiftAmount.resize(bitsToRepresent(maxShift) + 1 /* +1 for sign bit, safe due to collar */
 					       ).toUnsigned().matchWidth(expandedSignificand));
    ubv aligned(expandedSignificand << convertedShiftAmount); // Safe by collar
 
@@ -318,15 +322,21 @@ template <class t>
    // Invalid cases
    prop specialValue(input.getInf() || input.getNaN());
 
-   sbv exponent(input.getExponent());
-   bwt exponentWidth(exponent.getWidth());
+   bwt maxExponentValue(targetWidth);
+   bwt maxExponentBits(bitsToRepresent(maxExponentValue) + 1);
 
-   sbv largestExponent(exponentWidth, targetWidth);
-   prop tooLarge(input.getExponent() >= largestExponent);
+   bwt exponentWidth(input.getExponent().getWidth());
+   bwt workingExponentWidth((exponentWidth >= maxExponentBits) ?
+			    exponentWidth : maxExponentBits);
+
+   sbv maxExponent(workingExponentWidth, maxExponentValue);
+   sbv exponent(input.getExponent().matchWidth(maxExponent));
+
+   prop tooLarge(exponent >= maxExponent);
 
    prop tooNegative(input.getSign() &&
 		    !input.getZero() &&  // Zero is handled elsewhere
-		    sbv::zero(exponentWidth) <= input.getExponent());  // Can't round to 0
+		    sbv::zero(workingExponentWidth) <= exponent);  // Can't round to 0
    
    prop earlyUndefinedResult(specialValue || tooLarge || tooNegative);
    probabilityAnnotation<t>(earlyUndefinedResult, LIKELY); // Convertable values are rare
@@ -370,11 +380,17 @@ template <class t>
    // Invalid cases
    prop specialValue(input.getInf() || input.getNaN());
 
-   sbv exponent(input.getExponent());
-   bwt exponentWidth(exponent.getWidth());
+   bwt maxExponentValue(targetWidth);
+   bwt maxExponentBits(bitsToRepresent(maxExponentValue) + 1);
 
-   sbv largestExponent(exponentWidth, targetWidth);
-   prop tooLarge(input.getExponent() >= largestExponent);
+   bwt exponentWidth(input.getExponent().getWidth());
+   bwt workingExponentWidth((exponentWidth >= maxExponentBits) ?
+			    exponentWidth : maxExponentBits);
+
+   sbv maxExponent(workingExponentWidth, maxExponentValue);
+   sbv exponent(input.getExponent().matchWidth(maxExponent));
+
+   prop tooLarge(exponent >= maxExponent);
 
    prop earlyUndefinedResult(specialValue || tooLarge);
    probabilityAnnotation<t>(earlyUndefinedResult, LIKELY); // Convertable values are rare
