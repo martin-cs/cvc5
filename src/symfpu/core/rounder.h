@@ -206,7 +206,7 @@ namespace symfpu {
     // Extract
     ubv extractedSignificand(significand.extract(sigWidth - 1, sigWidth - targetWidth).extend(1)); // extended to catch the overflow
 
-    prop significandEven(extractedSignificand.extract(1,0).isAllZeros());
+    prop significandEven(extractedSignificand.extract(0,0).isAllZeros());
 
     
     // Normal guard and sticky bits
