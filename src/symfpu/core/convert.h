@@ -272,7 +272,7 @@ template <class t>
    bwt workingExponentWidth((exponentWidth >= maxShiftBits) ?
 			    exponentWidth : maxShiftBits);
 
-   sbv maxShiftAmount(workingExponentWidth, targetWidth);
+   sbv maxShiftAmount(workingExponentWidth, maxShift);
    sbv exponent(input.getExponent().matchWidth(maxShiftAmount));
 
    
