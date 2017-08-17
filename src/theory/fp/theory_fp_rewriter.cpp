@@ -36,6 +36,7 @@
 #include "base/cvc4_assert.h"
 #include "theory/fp/theory_fp_rewriter.h"
 #include "theory/fp/fp_converter.h"
+#include "theory/theory.h"
 
 namespace CVC4 {
 namespace theory {
@@ -1271,6 +1272,37 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 	  RewriteResponse tmp = constantFoldTable [res.node.getKind()] (res.node, false);
 	  rs = tmp.status;
 	  rn = tmp.node;
+
+	  #define CHECK_SYMBOLIC_BACK_END
+	  #ifdef CHECK_SYMBOLIC_BACK_END
+
+	  Kind k = res.node.getKind(); // Before the constant rewrite
+
+	  // Avoid loops
+	  if ((!Theory::isLeafOf(res.node, THEORY_FP)) &&
+	      (res.node.getMetaKind() != kind::metakind::CONSTANT) &&
+	      (k != kind::FLOATINGPOINT_FP) &&
+	      (k != kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR)) {
+
+	    context::UserContext c;
+	    fpConverter fpconv(&c);
+
+	    Node cf = fpconv.constantFold(res.node);
+
+	    if (cf != Node::null()) {
+	      if (rn == cf) {
+		Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): symbolic constant rewrite correct" << std::endl;
+	      } else {
+		Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): symbolic constant rewrite incorrect" << std::endl;
+		Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): literal constant rewrite result " << rn << std::endl;
+		Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): symbolic constant rewrite result " << cf << std::endl;
+		Assert(0);
+	      }
+	    } else {
+	      Debug("fp-rewrite") << "TheoryFpRewriter::postRewrite(): no symbolic constant rewrite" << std::endl;
+	    }
+	  }
+	  #endif
 	}
 
 	RewriteResponse constRes(rs,rn);

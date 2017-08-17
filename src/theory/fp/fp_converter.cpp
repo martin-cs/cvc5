@@ -16,6 +16,9 @@
 // Only needed for the leaf test
 #include "theory/theory.h"
 
+// Only for the constant rewrite with symbolic back-end
+#include "theory/rewriter.h"
+
 #include "theory/fp/fp_converter.h"
 
 #include <stack>
@@ -1164,6 +1167,72 @@ namespace fp {
 
 
     Unreachable("Unable to find value");
+    return Node::null();
+  }
+
+
+
+  Node fpConverter::constantFold (TNode node) {
+
+    // First convert
+    // This should put the right value in cache
+    Node tmp = convert(node);
+
+    // Depending on the type, attempt to rewrite back to a constant
+    TypeNode t(node.getType());
+
+    Node converted = Node::null();
+
+    // This is a lovely example of the boiler-plate caused by
+    // strong and static typing...
+    if (t.isRoundingMode()) {
+      rmMap::const_iterator i(r.find(node));
+      Assert(i != r.end());  // Because of previous conversion
+
+      converted = rmToNode((*i).second);
+
+    } else if (t.isFloatingPoint()) {
+      fpMap::const_iterator i(f.find(node));
+      Assert(i != f.end());  // Because of previous conversion
+
+      converted = ufToNode(fpt(t), (*i).second);
+
+    } else if (t.isBoolean()) {
+      boolMap::const_iterator i(b.find(node));
+      Assert(i != b.end());  // Because of previous conversion
+
+      converted = propToNode((*i).second);
+
+    } else if (t.isBitVector()) {
+
+      if (node.getKind() == kind::FLOATINGPOINT_TO_UBV_TOTAL) {
+	ubvMap::const_iterator i(u.find(node));
+	Assert(i != u.end());  // Because of previous conversion
+
+	converted = ubvToNode((*i).second);
+
+      } else if (node.getKind() == kind::FLOATINGPOINT_TO_SBV_TOTAL) {
+	sbvMap::const_iterator i(s.find(node));
+	Assert(i != s.end());  // Because of previous conversion
+
+	converted = sbvToNode((*i).second);
+
+      } else {
+	Unreachable("Unknown conversion to bit-vectors");
+      }
+
+    } else if (t.isReal()) {
+      /* Nothing we can do here at the moment */
+    }
+
+    // Use the rewriter to simplify
+    if (converted != Node::null()) {
+      Node rewritten = Rewriter::rewrite(converted);
+
+      if (rewritten.getMetaKind() == kind::metakind::CONSTANT) {
+	return rewritten;
+      }
+    }
     return Node::null();
   }
 

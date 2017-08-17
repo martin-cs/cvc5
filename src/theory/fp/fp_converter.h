@@ -23,6 +23,7 @@
 
 #include "util/floatingpoint.h"
 
+#define SYMBOLIC_EVAL
 #include "symfpu/core/unpackedFloat.h"
 #include "symfpu/baseTypes/cvc4_symbolic.h"
 
@@ -120,6 +121,8 @@ namespace fp {
     /** Gives the node representing the value of a given variable */
     Node getValue (Valuation &, TNode);
 
+    /** Uses the symbolic encoding to constant fold where possible */
+    Node constantFold (TNode);
   };
 
 
