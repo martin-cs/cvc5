@@ -27,13 +27,6 @@
 **
 */
 
-/*
- * BUGS : 
- * 1. sign of zero different for exact 0 and underflow
- * 2. large * -large  + inf  = inf  not NaN
- * 3. rounder decision bugs : one looks like an issue with too-eager overflow,
- *    one looks like a misplaced decision on highest subnormal exponent
- */
 
 #include "symfpu/core/unpackedFloat.h"
 #include "symfpu/core/ite.h"
@@ -48,9 +41,96 @@
 
 namespace symfpu {
 
-
  template <class t>
    unpackedFloat<t> fma (const typename t::fpt &format,
+			 const typename t::rm &roundingMode,
+			 const unpackedFloat<t> &leftMultiply,
+			 const unpackedFloat<t> &rightMultiply,
+			 const unpackedFloat<t> &addArgument) {
+   
+   //   typedef typename t::bwt bwt;
+   typedef typename t::prop prop;
+   //typedef typename t::ubv ubv;
+   //typedef typename t::sbv sbv;
+   typedef typename t::fpt fpt;
+  
+   PRECONDITION(leftMultiply.valid(format));
+   PRECONDITION(rightMultiply.valid(format));
+   PRECONDITION(addArgument.valid(format));
+
+   /* First multiply */
+   unpackedFloat<t> arithmeticMultiplyResult(arithmeticMultiply(format, leftMultiply, rightMultiply));
+   
+   fpt extendedFormat(format.exponentWidth() + 1, format.significandWidth() * 2);
+   INVARIANT(arithmeticMultiplyResult.valid(extendedFormat));
+
+   
+
+   /* Then add */
+   
+   // Rounding mode doesn't matter as this is a strict extension
+   unpackedFloat<t> extendedAddArgument(convertFloatToFloat(format, extendedFormat, t::RTZ(), addArgument));
+
+   unpackedFloat<t> additionResult(arithmeticAdd(extendedFormat, roundingMode, arithmeticMultiplyResult, extendedAddArgument, prop(true), prop(false)).uf);
+   // Custom rounder flags are ignored as they are not applicable in this case
+
+   fpt evenMoreExtendedFormat(extendedFormat.exponentWidth() + 1, extendedFormat.significandWidth() + 2);
+   INVARIANT(additionResult.valid(evenMoreExtendedFormat));
+
+
+   /* Then round */
+   
+   unpackedFloat<t> roundedResult(rounder(format, roundingMode, additionResult));
+   INVARIANT(roundedResult.valid(format));
+   
+   // This result is correct as long as neither of multiplyResult or extendedAddArgument is
+   // 0, Inf or NaN.  Note that roundedResult may be zero from cancelation or underflow
+   // or infinity due to rounding. If it is, it has the correct sign.
+
+
+
+   /* Finally, the special cases */
+   
+   // One disadvantage to having a flag for zero and default exponents and significands for zero
+   // that are not (min, 0) is that the x + (+/-)0 case has to be handled by the addition special cases.
+   // This means that you need the value of x, rounded to the correct format.
+   // arithmeticMultiplyResult is in extended format, thus we have to use a second rounder just for this case.
+   // It is not zero, inf or NaN so it only matters when addArgument is zero when it would be returned.
+   unpackedFloat<t> roundedMultiplyResult(rounder(format, roundingMode, arithmeticMultiplyResult));
+
+   
+   // We need the flags from the multiply special cases, determined on the arithemtic result,
+   // i.e. handling special values and not the underflow / overflow of the result.
+   // But we will use roundedMultiplyResult instead of the value so ...
+   unpackedFloat<t> dummyZero(unpackedFloat<t>::makeZero(format, prop(false)));
+   unpackedFloat<t> dummyValue(dummyZero.getSign(), dummyZero.getExponent(), dummyZero.getSignificand());
+
+   unpackedFloat<t> multiplyResultWithSpecialCases(addMultiplySpecialCases(format, leftMultiply, rightMultiply, arithmeticMultiplyResult.getSign(), dummyValue));
+
+   
+   unpackedFloat<t> result(addAdditionSpecialCasesWithID(format,
+							 roundingMode,
+							 multiplyResultWithSpecialCases,
+							 roundedMultiplyResult, // for the identity case
+							 addArgument,
+							 roundedResult,
+							 prop(true)));
+   
+   POSTCONDITION(result.valid(format));
+   
+   return result;
+ }
+
+/*
+ * BUGS : 
+ * 1. sign of zero different for exact 0 and underflow
+ * 2. large * -large  + inf  = inf  not NaN
+ * 3. rounder decision bugs : one looks like an issue with too-eager overflow,
+ *    one looks like a misplaced decision on highest subnormal exponent
+ */
+ 
+ template <class t>
+   unpackedFloat<t> fmaBroken (const typename t::fpt &format,
 			 const typename t::rm &roundingMode,
 			 const unpackedFloat<t> &leftMultiply,
 			 const unpackedFloat<t> &rightMultiply,

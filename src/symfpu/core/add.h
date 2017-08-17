@@ -59,13 +59,18 @@
 
 namespace symfpu {
 
+  // leftID is the value returned in the idLeft case (i.e. when left is not a
+  // special number and right is zero).  This is needed by FMA as the flags
+  // for left and leftID are computed differently and need to be handled differently.
 template <class t>
-  unpackedFloat<t> addAdditionSpecialCases (const typename t::fpt &format,
-					    const typename t::rm &roundingMode,
-					    const unpackedFloat<t> &left,
-					    const unpackedFloat<t> &right,
-					    const unpackedFloat<t> &additionResult,
-					    const typename t::prop &isAdd) {
+  unpackedFloat<t> addAdditionSpecialCasesWithID (const typename t::fpt &format,
+						  const typename t::rm &roundingMode,
+						  const unpackedFloat<t> &left,
+						  const unpackedFloat<t> &leftID,
+						  const unpackedFloat<t> &right,
+						  const unpackedFloat<t> &additionResult,
+						  const typename t::prop &isAdd) {
+
   typedef typename t::prop prop;
 
   // NaN
@@ -103,14 +108,27 @@ template <class t>
 		 ITE(bothZero,
 		     unpackedFloat<t>::makeZero(format, signOfZero),
 		     ITE(idLeft,
-			 left,
+			 leftID,
 			 ITE(idRight,
 			     ITE(isAdd,
 				 right,
 				 negate(format, right)),
 			     additionResult)))));
  }
- 
+
+  // This is the usual case; use this one!
+  template <class t>
+  unpackedFloat<t> addAdditionSpecialCases (const typename t::fpt &format,
+					    const typename t::rm &roundingMode,
+					    const unpackedFloat<t> &left,
+					    const unpackedFloat<t> &right,
+					    const unpackedFloat<t> &additionResult,
+					    const typename t::prop &isAdd) {
+    return addAdditionSpecialCasesWithID<t>(format, roundingMode, left, left,
+					    right, additionResult, isAdd);
+  }
+
+
 
   /* Computes the normal / subnormal case only.
    * This allows multiple versions of the first phase to be used and
