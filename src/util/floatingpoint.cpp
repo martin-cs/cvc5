@@ -370,7 +370,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
     } else {
 
       Integer sign((this->fpl.getSign()) ? -1 : 1); 
-      Integer exp(this->fpl.getExponent().toInteger() - Integer(t.significand()));
+      Integer exp(this->fpl.getExponent().toInteger() - (Integer(t.significand() - 1))); // -1 as normalised into the [1,2) range
       Integer significand(this->fpl.getSignificand().toInteger());
       Integer signedSignificand(sign * significand);
       
