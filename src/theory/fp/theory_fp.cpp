@@ -102,6 +102,7 @@ TheoryFp::TheoryFp(context::Context* c,
   Theory(THEORY_FP, c, u, out, valuation, logicInfo),
   notification(*this),
   equalityEngine(notification, c, "theory::fp::TheoryFp", true),
+  registeredTerms(u),
   conv(u),
   expansionRequested(false),
   conflict(c, false),
@@ -448,31 +449,39 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
   return;
 }
 
+void TheoryFp::registerTerm(TNode node) {
+  Trace("fp-registerTerm") << "TheoryFp::registerTerm(): " << node << std::endl;
+
+  if (!isRegistered(node)) {
+    bool success = registeredTerms.insert(node);
+    Assert(success);
+
+    // Add to the equality engine
+    if (node.getKind() == kind::EQUAL) {
+      equalityEngine.addTriggerEquality(node);
+    } else {
+      equalityEngine.addTerm(node);
+    }
+
+    convertAndEquateTerm(node);
+  }
+  return;
+}
+
+bool TheoryFp::isRegistered(TNode node) {
+  return !(registeredTerms.find(node) == registeredTerms.end());
+}
+
 void TheoryFp::preRegisterTerm(TNode node) {
   Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
-
-  // Add to the equality engine
-  if (node.getKind() == kind::EQUAL) {
-    equalityEngine.addTriggerEquality(node);
-  } else {
-    equalityEngine.addTerm(node);
-  }
-
-  convertAndEquateTerm(node);
+  registerTerm(node);
   return;
 }
 
 void TheoryFp::addSharedTerm(TNode node) {
   Trace("fp-addSharedTerm") << "TheoryFp::addSharedTerm(): " << node << std::endl;
-
-  // Add to the equality engine
-  if (node.getKind() == kind::EQUAL) {
-    equalityEngine.addTriggerEquality(node);
-  } else {
-    equalityEngine.addTerm(node);
-  }
-
-  convertAndEquateTerm(node);
+  // A system-wide invariant; terms must be registered before they are shared
+  Assert(isRegistered(node));
   return;
 }
 
@@ -527,6 +536,14 @@ void TheoryFp::check(Effort level) {
     TNode predicate = negated ? fact[0] : fact;
 
     if (predicate.getKind() == kind::EQUAL) {
+      Assert(!(predicate[0].getType().isFloatingPoint() ||
+	       predicate[0].getType().isRoundingMode()) ||
+	     isRegistered(predicate[0]));
+      Assert(!(predicate[1].getType().isFloatingPoint() ||
+	       predicate[1].getType().isRoundingMode()) ||
+	     isRegistered(predicate[1]));
+      registerTerm(predicate);            // Needed for float equalities
+
       if (negated) {
 	Debug("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0] << std::endl;
 	equalityEngine.assertEquality(predicate, false, fact);
@@ -536,6 +553,9 @@ void TheoryFp::check(Effort level) {
 	equalityEngine.assertEquality(predicate, true, fact);
       }
     } else {
+      // A system-wide invariant; predicates are registered before they are asserted
+      Assert(isRegistered(predicate));
+
       if (equalityEngine.isFunctionKind(predicate.getKind())) {
 	Debug("fp-eq") << "TheoryFp::check(): adding predicate " << predicate << " is " << !negated << std::endl;
 	equalityEngine.assertPredicate(predicate, !negated, fact);
