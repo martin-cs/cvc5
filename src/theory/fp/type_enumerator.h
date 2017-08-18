@@ -82,6 +82,45 @@ public:
 
 };/* FloatingPointEnumerator */
 
+class RoundingModeEnumerator : public TypeEnumeratorBase<RoundingModeEnumerator> {
+
+  RoundingMode rm;
+  bool enumerationComplete;
+
+public:
+
+  RoundingModeEnumerator(TypeNode type, TypeEnumeratorProperties * tep = NULL) throw(AssertionException) :
+    TypeEnumeratorBase<RoundingModeEnumerator>(type),
+      rm(roundNearestTiesToEven),
+      enumerationComplete(false)
+    {}
+
+
+  Node operator*() throw(NoMoreValuesException) {
+    if (enumerationComplete) {
+      throw NoMoreValuesException(getType());
+    }
+    return NodeManager::currentNM()->mkConst(rm);
+  }
+
+  RoundingModeEnumerator& operator++() throw() {
+    switch (rm) {
+    case roundNearestTiesToEven : rm = roundTowardPositive; break;
+    case roundTowardPositive : rm = roundTowardNegative; break;
+    case roundTowardNegative : rm = roundTowardZero; break;
+    case roundTowardZero : rm = roundNearestTiesToAway; break;
+    case roundNearestTiesToAway : enumerationComplete = true; break;
+    default : Unreachable("Unknown rounding mode?"); break;
+    }
+    return *this;
+  }
+
+  bool isFinished() throw() {
+    return enumerationComplete;
+  }
+
+};/* RoundingModeEnumerator */
+
 }/* CVC4::theory::fp namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

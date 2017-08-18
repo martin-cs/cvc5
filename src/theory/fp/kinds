@@ -38,6 +38,11 @@ sort ROUNDINGMODE_TYPE \
     "expr/node_manager.h" \
     "floating-point rounding mode"
 
+enumerator ROUNDINGMODE_TYPE \
+    "::CVC4::theory::fp::RoundingModeEnumerator" \
+    "theory/fp/type_enumerator.h"
+
+
 
 constant FLOATINGPOINT_TYPE \
     ::CVC4::FloatingPointSize \
