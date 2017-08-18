@@ -55,6 +55,10 @@ protected :
   eq::EqualityEngine equalityEngine;
 
 
+  /** General utility **/
+  void registerTerm(TNode node);
+
+
   /** Bit-blasting conversion */
   fpConverter conv;
   bool expansionRequested;

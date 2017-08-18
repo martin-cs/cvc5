@@ -449,8 +449,8 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
   return;
 }
 
-void TheoryFp::preRegisterTerm(TNode node) {
-  Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
+void TheoryFp::registerTerm(TNode node) {
+  Trace("fp-registerTerm") << "TheoryFp::registerTerm(): " << node << std::endl;
 
   // Add to the equality engine
   if (node.getKind() == kind::EQUAL) {
@@ -463,17 +463,16 @@ void TheoryFp::preRegisterTerm(TNode node) {
   return;
 }
 
+
+void TheoryFp::preRegisterTerm(TNode node) {
+  Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
+  registerTerm(node);
+  return;
+}
+
 void TheoryFp::addSharedTerm(TNode node) {
   Trace("fp-addSharedTerm") << "TheoryFp::addSharedTerm(): " << node << std::endl;
-
-  // Add to the equality engine
-  if (node.getKind() == kind::EQUAL) {
-    equalityEngine.addTriggerEquality(node);
-  } else {
-    equalityEngine.addTerm(node);
-  }
-
-  convertAndEquateTerm(node);
+  registerTerm(node);
   return;
 }
 
