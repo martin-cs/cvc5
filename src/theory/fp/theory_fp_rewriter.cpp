@@ -248,6 +248,19 @@ namespace rewrite {
     } 
   }
 
+  RewriteResponse isNaNToEquality (TNode node, bool isPreRewrite) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISNAN);
+    Assert(isPreRewrite);   // Regarded as removed later on
+
+    NodeManager *nm = NodeManager::currentNM();
+
+    // IsNaN is effectively equality but syntactic equality is of more use so...
+    return RewriteResponse(REWRITE_DONE,
+			   nm->mkNode(kind::EQUAL,
+				      node[0],
+				      nm->mkConst(FloatingPoint::makeNaN(node[0].getType().getConst<FloatingPointSize>()))));
+  }
+
 }; /* CVC4::theory::fp::rewrite */
 
 
@@ -941,7 +954,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     preRewriteTable[kind::FLOATINGPOINT_ISSN] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_ISZ] = rewrite::identity;  
     preRewriteTable[kind::FLOATINGPOINT_ISINF] = rewrite::identity;
-    preRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::isNaNToEquality;
     preRewriteTable[kind::FLOATINGPOINT_ISNEG] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_ISPOS] = rewrite::identity;
 
@@ -1023,7 +1036,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     postRewriteTable[kind::FLOATINGPOINT_ISSN] = rewrite::removeSignOperations;
     postRewriteTable[kind::FLOATINGPOINT_ISZ] = rewrite::removeSignOperations;
     postRewriteTable[kind::FLOATINGPOINT_ISINF] = rewrite::removeSignOperations;
-    postRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::removeSignOperations;
+    postRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::removed;
     postRewriteTable[kind::FLOATINGPOINT_ISNEG] = rewrite::identity;
     postRewriteTable[kind::FLOATINGPOINT_ISPOS] = rewrite::identity;
 
@@ -1107,7 +1120,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     constantFoldTable[kind::FLOATINGPOINT_ISSN] = constantFold::isSubnormal;
     constantFoldTable[kind::FLOATINGPOINT_ISZ] = constantFold::isZero;
     constantFoldTable[kind::FLOATINGPOINT_ISINF] = constantFold::isInfinite;
-    constantFoldTable[kind::FLOATINGPOINT_ISNAN] = constantFold::isNaN;
+    constantFoldTable[kind::FLOATINGPOINT_ISNAN] = rewrite::removed;
     constantFoldTable[kind::FLOATINGPOINT_ISNEG] = constantFold::isNegative;
     constantFoldTable[kind::FLOATINGPOINT_ISPOS] = constantFold::isPositive;
 
