@@ -390,6 +390,11 @@ void LogicInfo::setLogicString(std::string logicString) throw(IllegalArgumentExc
       }
       if(!strncmp(p, "FP", 2)) {
         enableTheory(THEORY_FP);
+	// THEORY_BV is needed for bit-blasting.
+	// We have to set this here rather than in expandDefinition as it
+	// is possible to create variables without any theory specific
+	// operations, so expandDefinition won't be called.
+	enableTheory(THEORY_BV);
         p += 2;
       }
       if(!strncmp(p, "DT", 2)) {
