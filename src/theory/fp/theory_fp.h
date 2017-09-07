@@ -78,6 +78,8 @@ protected :
   context::CDO<Node> conflictNode;
 
   /** Uninterpretted functions for partially defined functions. **/
+  void enableUF(LogicRequest &lr);
+
   typedef context::CDHashMap<TypeNode, Node, TypeNodeHashFunction> comparisonUFMap;
 
   comparisonUFMap minMap;
