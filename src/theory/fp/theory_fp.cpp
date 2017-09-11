@@ -681,7 +681,7 @@ Node TheoryFp::explain(TNode n) {
 
 
   bool TheoryFp::NotifyClass::eqNotifyTriggerEquality(TNode equality, bool value) {
-    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerEquality(): call back as equality" << equality << " is " << value << std::endl;
+    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerEquality(): call back as equality " << equality << " is " << value << std::endl;
 
     if (value) {
       return theorySolver.handlePropagation(equality);
@@ -691,7 +691,7 @@ Node TheoryFp::explain(TNode n) {
   }
 
   bool TheoryFp::NotifyClass::eqNotifyTriggerPredicate(TNode predicate, bool value) {
-    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerPredicate(): call back as predicate" << predicate << " is " << value << std::endl;
+    Debug("fp-eq") << "TheoryFp::eqNotifyTriggerPredicate(): call back as predicate " << predicate << " is " << value << std::endl;
 
     if (value) {
       return theorySolver.handlePropagation(predicate);
