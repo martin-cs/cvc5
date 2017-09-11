@@ -1243,7 +1243,8 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
 	Node rn = res.node;                 // RewriteResponse is too functional..
 
 	if (apartFromRoundingMode) {
-	  if (!(res.node.getKind() == kind::EQUAL)) {  // Avoid infinite recursion...
+	  if (!(res.node.getKind() == kind::EQUAL) &&  // Avoid infinite recursion...
+	      !(res.node.getKind() == kind::ROUNDINGMODE_BITBLAST)) {  // Don't eliminate the bit-blast
 	    // We are close to being able to constant fold this
 	    // and in many cases the rounding mode really doesn't matter.
 	    // So we can try brute forcing our way through them.
