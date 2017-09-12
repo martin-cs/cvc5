@@ -489,12 +489,7 @@ void TheoryFp::preRegisterTerm(TNode node) {
 void TheoryFp::addSharedTerm(TNode node) {
   Trace("fp-addSharedTerm") << "TheoryFp::addSharedTerm(): " << node << std::endl;
   // A system-wide invariant; terms must be registered before they are shared
-  // Assert(isRegistered(node));
-  if (!isRegistered(node)) {
-    // It is not clear if this is the case
-    Debug("fp-systemInvariant") << "TheoryFp::addSharedTerm(): ERROR unregistered term " << node << std::endl;
-    registerTerm(node);
-  }
+  Assert(isRegistered(node));
   return;
 }
 
@@ -548,15 +543,11 @@ void TheoryFp::check(Effort level) {
     bool negated = fact.getKind() == kind::NOT;
     TNode predicate = negated ? fact[0] : fact;
 
-    // A system-wide invariant; things must be registered before they are asserted
-    // Assert(isRegistered(predicate));
-    if (!isRegistered(predicate)) {
-      // BUT at the moment, in the case of array extensionality, it is not the case
-      Debug("fp-systemInvariant") << "TheoryFp::check(): ERROR unregistered term " << predicate << std::endl;
-      registerTerm(predicate);
-    }
-
     if (predicate.getKind() == kind::EQUAL) {
+      Assert(isRegistered(predicate[0]));
+      Assert(isRegistered(predicate[1]));
+      registerTerm(predicate);            // Needed for float equalities
+
       if (negated) {
 	Debug("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0] << std::endl;
 	equalityEngine.assertEquality(predicate, false, fact);
@@ -566,6 +557,9 @@ void TheoryFp::check(Effort level) {
 	equalityEngine.assertEquality(predicate, true, fact);
       }
     } else {
+      // A system-wide invariant; predicates are registered before they are asserted
+      Assert(isRegistered(predicate));
+
       if (equalityEngine.isFunctionKind(predicate.getKind())) {
 	Debug("fp-eq") << "TheoryFp::check(): adding predicate " << predicate << " is " << !negated << std::endl;
 	equalityEngine.assertPredicate(predicate, !negated, fact);
