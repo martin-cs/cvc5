@@ -349,9 +349,10 @@ template <class t>
   // Also, do not round special values.
   // Note that this relies on these having default values and 
   // the code that calls the rounder constructing uf from parts.
-  PRECONDITION(!uf.getNaN());
-  PRECONDITION(!uf.getInf());
-  //PRECONDITION(!uf.getZero());   // The safe choice of default values means this should work OK
+  //PRECONDITION(!uf.getNaN());
+  //PRECONDITION(!uf.getInf());
+  //PRECONDITION(!uf.getZero());
+  // The safe choice of default values means this should work OK
 
 
 

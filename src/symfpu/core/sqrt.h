@@ -134,11 +134,14 @@ template <class t>
 
   unpackedFloat<t> sqrtResult(arithmeticSqrt(format, uf));
 
-  // Exponent is divided by two, thus it can't overflow, underflow or generate a subnormal number
+  // Exponent is divided by two, thus it can't overflow, underflow or generate a subnormal number.
   // The last one is quite subtle but you can show that the largest number generatable
-  // by arithmeticSqrt is 111...111:0:1 with the last two as the guard and sticky bits
-  // thus only round up will increment this and so only round up can increment the significand.
-  customRounderInfo<t> cri(prop(true), prop(true), prop(false), prop(true), !(roundingMode == t::RTP()));
+  // by arithmeticSqrt is 111...111:0:1 with the last two as the guard and sticky bits.
+  // Round up (when the sign is positive) and round down (when the sign is negative --
+  // the result will be computed but then discarded) are the only cases when this can increment the significand.
+  customRounderInfo<t> cri(prop(true), prop(true), prop(false), prop(true),
+			   !((roundingMode == t::RTP() && !sqrtResult.getSign()) ||
+			     (roundingMode == t::RTN() &&  sqrtResult.getSign())));
   unpackedFloat<t> roundedSqrtResult(customRounder(format, roundingMode, sqrtResult, cri));
   
   unpackedFloat<t> result(addSqrtSpecialCases(format, uf, roundedSqrtResult.getSign(), roundedSqrtResult));
