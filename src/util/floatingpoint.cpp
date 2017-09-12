@@ -137,7 +137,7 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
       Assert(working <= r);
       Assert(r < working * two);
 
-      // Work out the number of bits required to represent the exponent
+      // Work out the number of bits required to represent the exponent for a normal number
       unsigned expBits = 2; // No point starting with an invalid amount
 
       Integer doubleInt(2);
@@ -149,7 +149,8 @@ FloatingPointSize::FloatingPointSize (const FloatingPointSize &old) : e(old.e), 
 	}
       } else if (exp.strictlyNegative()) {
 	Integer representable(-4);    // Exactly representable with expBits + sign
-	while (representable > exp) {
+	                              // but -2^n and -(2^n - 1) are both subnormal
+	while ((representable + doubleInt) > exp) {
 	  representable *= doubleInt;
 	  ++expBits;
 	}
