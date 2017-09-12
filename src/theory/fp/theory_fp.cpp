@@ -461,21 +461,19 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
 void TheoryFp::registerTerm(TNode node) {
   Trace("fp-registerTerm") << "TheoryFp::registerTerm(): " << node << std::endl;
 
-  if (isRegistered(node)) {
-    // Do nothing for now
-  } else {
+  if (!isRegistered(node)) {
     bool success = registeredTerms.insert(node);
     Assert(success);
-  }
 
-  // Add to the equality engine
-  if (node.getKind() == kind::EQUAL) {
-    equalityEngine.addTriggerEquality(node);
-  } else {
-    equalityEngine.addTerm(node);
-  }
+    // Add to the equality engine
+    if (node.getKind() == kind::EQUAL) {
+      equalityEngine.addTriggerEquality(node);
+    } else {
+      equalityEngine.addTerm(node);
+    }
 
-  convertAndEquateTerm(node);
+    convertAndEquateTerm(node);
+  }
   return;
 }
 
@@ -496,8 +494,8 @@ void TheoryFp::addSharedTerm(TNode node) {
   if (!isRegistered(node)) {
     // It is not clear if this is the case
     Debug("fp-systemInvariant") << "TheoryFp::addSharedTerm(): ERROR unregistered term " << node << std::endl;
+    registerTerm(node);
   }
-  registerTerm(node);
   return;
 }
 
