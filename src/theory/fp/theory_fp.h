@@ -57,6 +57,9 @@ protected :
 
   /** General utility **/
   void registerTerm(TNode node);
+  bool isRegistered(TNode node);
+
+  context::CDHashSet<Node, NodeHashFunction> registeredTerms;
 
 
   /** Bit-blasting conversion */

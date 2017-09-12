@@ -102,6 +102,7 @@ TheoryFp::TheoryFp(context::Context* c,
   Theory(THEORY_FP, c, u, out, valuation, logicInfo),
   notification(*this),
   equalityEngine(notification, c, "theory::fp::TheoryFp", true),
+  registeredTerms(u),
   conv(u),
   expansionRequested(false),
   conflict(c, false),
@@ -460,6 +461,13 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
 void TheoryFp::registerTerm(TNode node) {
   Trace("fp-registerTerm") << "TheoryFp::registerTerm(): " << node << std::endl;
 
+  if (isRegistered(node)) {
+    // Do nothing for now
+  } else {
+    bool success = registeredTerms.insert(node);
+    Assert(success);
+  }
+
   // Add to the equality engine
   if (node.getKind() == kind::EQUAL) {
     equalityEngine.addTriggerEquality(node);
@@ -471,6 +479,9 @@ void TheoryFp::registerTerm(TNode node) {
   return;
 }
 
+bool TheoryFp::isRegistered(TNode node) {
+  return !(registeredTerms.find(node) == registeredTerms.end());
+}
 
 void TheoryFp::preRegisterTerm(TNode node) {
   Trace("fp-preRegisterTerm") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
@@ -480,6 +491,12 @@ void TheoryFp::preRegisterTerm(TNode node) {
 
 void TheoryFp::addSharedTerm(TNode node) {
   Trace("fp-addSharedTerm") << "TheoryFp::addSharedTerm(): " << node << std::endl;
+  // A system-wide invariant; terms must be registered before they are shared
+  // Assert(isRegistered(node));
+  if (!isRegistered(node)) {
+    // It is not clear if this is the case
+    Debug("fp-systemInvariant") << "TheoryFp::addSharedTerm(): ERROR unregistered term " << node << std::endl;
+  }
   registerTerm(node);
   return;
 }
@@ -533,6 +550,14 @@ void TheoryFp::check(Effort level) {
 
     bool negated = fact.getKind() == kind::NOT;
     TNode predicate = negated ? fact[0] : fact;
+
+    // A system-wide invariant; things must be registered before they are asserted
+    // Assert(isRegistered(predicate));
+    if (!isRegistered(predicate)) {
+      // BUT at the moment, in the case of array extensionality, it is not the case
+      Debug("fp-systemInvariant") << "TheoryFp::check(): ERROR unregistered term " << predicate << std::endl;
+      registerTerm(predicate);
+    }
 
     if (predicate.getKind() == kind::EQUAL) {
       if (negated) {
