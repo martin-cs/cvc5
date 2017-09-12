@@ -102,6 +102,21 @@ protected :
   Node toRealUF(Node);
 
 
+  /** Uninterpretted functions for lazy handling of conversions **/
+  typedef comparisonUFMap conversionAbstractionMap;
+
+  conversionAbstractionMap realToFloatMap;
+  conversionAbstractionMap floatToRealMap;
+
+  Node abstractRealToFloat(Node);
+  Node abstractFloatToReal(Node);
+
+  typedef context::CDHashMap<Node, Node, NodeHashFunction> abstractionMapType;
+  abstractionMapType abstractionMap; // abstract -> original
+
+  bool refineAbstraction(TheoryModel *m, TNode abstract, TNode concrete);
+
+
 public:
 
   /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */
@@ -116,7 +131,11 @@ public:
   void preRegisterTerm(TNode node);
   void addSharedTerm(TNode node);
 
+  Node ppRewrite(TNode node);
+
   void check(Effort);
+
+  bool needsCheckLastEffort() { return true; }
 
   Node getModelValue(TNode var);
   void collectModelInfo(TheoryModel *m);
