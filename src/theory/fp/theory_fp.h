@@ -44,7 +44,7 @@ protected :
     bool eqNotifyTriggerPredicate(TNode predicate, bool value);
     bool eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value);
     void eqNotifyConstantTermMerge(TNode t1, TNode t2);
-    void eqNotifyNewClass(TNode t) { }
+    void eqNotifyNewClass(TNode t);
     void eqNotifyPreMerge(TNode t1, TNode t2) { }
     void eqNotifyPostMerge(TNode t1, TNode t2) { }
     void eqNotifyDisequal(TNode t1, TNode t2, TNode reason) { }
@@ -67,6 +67,8 @@ protected :
   bool expansionRequested;
 
   void convertAndEquateTerm(TNode node);
+
+  bool handleExtendedTerms(std::vector<Node> &terms);
 
 
   /** Interaction with the rest of the solver **/

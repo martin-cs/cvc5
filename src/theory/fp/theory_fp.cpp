@@ -166,6 +166,9 @@ TheoryFp::TheoryFp(context::Context* c,
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND);
     equalityEngine.addFunctionKind(kind::ROUNDINGMODE_BITBLAST);
 
+    setupExtTheory();
+    getExtTheory()->addFunctionKind(kind::FLOATINGPOINT_TO_FP_REAL);
+    getExtTheory()->addFunctionKind(kind::FLOATINGPOINT_TO_REAL_TOTAL);
 
 }/* TheoryFp::TheoryFp() */
 
@@ -576,6 +579,13 @@ void TheoryFp::check(Effort level) {
 
   }
 
+  //if (level == Theory::EFFORT_LAST_CALL) {
+  if (level == Theory::EFFORT_FULL) {
+    Trace("fp") << "TheoryFp::check(): handling extended terms" << std::endl;
+    std::vector<Node> nred = getExtTheory()->getActive();
+    handleExtendedTerms(nred);
+  }
+
   Trace("fp") << "TheoryFp::check(): completed" << std::endl;
 
   /* Checking should be handled by the bit-vector engine */
@@ -606,6 +616,16 @@ void TheoryFp::check(Effort level) {
 
 }/* TheoryFp::check() */
 
+
+bool TheoryFp::handleExtendedTerms(std::vector<Node> &terms) {
+  std::vector<Node> notReduced;
+  //  if (getExtTheory()->doReductions(0, terms, notReduced)) {
+  if (getExtTheory()->doInferences(0, terms, notReduced)) {
+    return true;
+  }
+  Assert (notReduced.empty());
+  return false;
+}
 
 void TheoryFp::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   equalityEngine.setMasterEqualityEngine(eq);
@@ -742,6 +762,11 @@ Node TheoryFp::explain(TNode n) {
     Node conflict = helper::buildConjunct(assumptions);
 
     theorySolver.handleConflict(conflict);
+  }
+
+  void TheoryFp::NotifyClass::eqNotifyNewClass(TNode t) {
+    Assert(theorySolver.getExtTheory() != NULL);
+    theorySolver.getExtTheory()->registerTerm(t);
   }
 
 
