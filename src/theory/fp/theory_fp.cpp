@@ -646,7 +646,7 @@ Node TheoryFp::explain(TNode n) {
     }
 
 
-    std::hash_set<TNode, TNodeHashFunction> visited;
+    std::set<TNode> visited;
     std::stack<TNode> working;
     std::set<TNode> relevantVariables;
     for (std::set<Node>::const_iterator i(relevantTerms.begin());
