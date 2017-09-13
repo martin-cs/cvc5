@@ -72,6 +72,19 @@ namespace fp {
     sbvMap s;
 
 
+    /* These functions take a symfpu object and convert it to a node.
+     * These should ensure that constant folding it will give a
+     * constant of the right type.
+     */
+
+    Node ufToNode (const fpt &,const uf &) const;
+    Node rmToNode (const rm &) const;
+    Node propToNode (const prop &) const;
+    Node ubvToNode (const ubv &) const;
+    Node sbvToNode (const sbv &) const;
+
+
+
     /* Store the uninterpretted functions used to create
      * non-deterministic components of non-deterministic floats. */
 

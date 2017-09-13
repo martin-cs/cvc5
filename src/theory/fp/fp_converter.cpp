@@ -111,7 +111,66 @@ namespace fp {
     //    testMultiply();
   }
 
+  Node fpConverter::ufToNode (const fpt &format, const uf &u) const {
+    NodeManager *nm = NodeManager::currentNM();
 
+    FloatingPointSize fps(format.getTypeNode().getConst<FloatingPointSize>());
+
+    // This is not entirely obvious but it builds a float from components
+    // Particularly, if the components can be constant folded, it should
+    // build a Node containing a constant FloatingPoint number
+
+    ubv packed(symfpu::pack<traits>(format, u));
+    Node value = nm->mkNode(nm->mkConst(FloatingPointToFPIEEEBitVector(fps)),
+			    packed.getNode());
+    return value;
+  }
+
+  Node fpConverter::rmToNode (const rm &r) const {
+    NodeManager *nm = NodeManager::currentNM();
+
+    Node transVar = r.getNode();
+
+    Node RNE = traits::RNE().getNode();
+    Node RNA = traits::RNA().getNode();
+    Node RTP = traits::RTP().getNode();
+    Node RTN = traits::RTN().getNode();
+    Node RTZ = traits::RTZ().getNode();
+
+    Node value =
+      nm->mkNode(kind::ITE,
+		 nm->mkNode(kind::EQUAL, transVar, RNE),
+		 nm->mkConst(roundNearestTiesToEven),
+		 nm->mkNode(kind::ITE,
+			    nm->mkNode(kind::EQUAL, transVar, RNA),
+			    nm->mkConst(roundNearestTiesToAway),
+			    nm->mkNode(kind::ITE,
+				       nm->mkNode(kind::EQUAL, transVar, RTP),
+				       nm->mkConst(roundTowardPositive),
+				       nm->mkNode(kind::ITE,
+						  nm->mkNode(kind::EQUAL, transVar, RTN),
+						  nm->mkConst(roundTowardNegative),
+						  nm->mkConst(roundTowardZero)))));
+    return value;
+  }
+
+  Node fpConverter::propToNode (const prop &p) const {
+#ifdef SYMFPUPROPISBOOL
+    Node value = p.getNode();
+#else
+    NodeManager *nm = NodeManager::currentNM();
+    Node value = nm->mkNode(kind::EQUAL,
+			    p.getNode(),
+			    nm->mkConst(::CVC4::BitVector(1U, 1U)));
+#endif
+    return value;
+  }
+  Node fpConverter::ubvToNode (const ubv &u) const {
+    return u.getNode();
+  }
+  Node fpConverter::sbvToNode (const sbv &s) const {
+    return s.getNode();
+  }
 
 
 
@@ -995,7 +1054,9 @@ namespace fp {
 
     TypeNode t(var.getType());
 
+#ifdef REMOVE
     NodeManager *nm = NodeManager::currentNM();
+#endif
 
     if (t.isRoundingMode()) {
       rmMap::const_iterator i(r.find(var));
@@ -1003,28 +1064,7 @@ namespace fp {
       if (i == r.end()) {
 	Unreachable("Asking for the value of an unregistered expression");
       } else {
-	Node transVar = (*i).second.getNode();
-
-	Node RNE = traits::RNE().getNode();
-	Node RNA = traits::RNA().getNode();
-	Node RTP = traits::RTP().getNode();
-	Node RTN = traits::RTN().getNode();
-	Node RTZ = traits::RTZ().getNode();
-
-	Node value =
-	  nm->mkNode(kind::ITE,
-		     nm->mkNode(kind::EQUAL, transVar, RNE),
-		     nm->mkConst(roundNearestTiesToEven),
-		     nm->mkNode(kind::ITE,
-				nm->mkNode(kind::EQUAL, transVar, RNA),
-				nm->mkConst(roundNearestTiesToAway),
-				nm->mkNode(kind::ITE,
-					   nm->mkNode(kind::EQUAL, transVar, RTP),
-					   nm->mkConst(roundTowardPositive),
-					   nm->mkNode(kind::ITE,
-						      nm->mkNode(kind::EQUAL, transVar, RTN),
-						      nm->mkConst(roundTowardNegative),
-						      nm->mkConst(roundTowardZero)))));
+	Node value = rmToNode((*i).second);
 	return value;
       }
 
@@ -1059,14 +1099,8 @@ namespace fp {
 	Unreachable("Asking for the value of an unregistered expression");
       } else {
 
-	// This is not entirely obvious but it builds a float from components
-	// Particularly, if the components can be constant folded, it should
-	// build a Node containing a constant FloatingPoint number
-
-	FloatingPointSize fps(t.getConst<FloatingPointSize>());
-	ubv packed(symfpu::pack<traits>(fpt(t),(*i).second));
-	return nm->mkNode(nm->mkConst(FloatingPointToFPIEEEBitVector(fps)),
-			  packed.getNode());
+	Node value = ufToNode(fpt(t), (*i).second);
+	return value;
 
 #ifdef REMOVE
 	Node nanValue = val.getModelValue((*i).second.nan.getNode());
