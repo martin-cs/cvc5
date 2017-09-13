@@ -544,8 +544,12 @@ void TheoryFp::check(Effort level) {
     TNode predicate = negated ? fact[0] : fact;
 
     if (predicate.getKind() == kind::EQUAL) {
-      Assert(isRegistered(predicate[0]));
-      Assert(isRegistered(predicate[1]));
+      Assert(!(predicate[0].getType().isFloatingPoint() ||
+	       predicate[0].getType().isRoundingMode()) ||
+	     isRegistered(predicate[0]));
+      Assert(!(predicate[1].getType().isFloatingPoint() ||
+	       predicate[1].getType().isRoundingMode()) ||
+	     isRegistered(predicate[1]));
       registerTerm(predicate);            // Needed for float equalities
 
       if (negated) {
