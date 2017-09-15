@@ -508,7 +508,7 @@ namespace fp {
 							     (*arg1).second,
 							     (*arg2).second));
 		  */
-		  Unimplemented("Remainder not yet supported in symfpu");
+		  Unimplemented("Remainder with rounding mode not yet supported in symfpu");
 		  break;
 
 		default :
