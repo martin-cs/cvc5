@@ -89,6 +89,8 @@ namespace fp {
     Node buildExponentUFApp (Node);
     Node buildSignificandUFApp (Node);
 
+    uf buildComponents(TNode current);
+
   public :
     context::CDList<Node> additionalAssertions;
 

@@ -257,6 +257,35 @@ namespace fp {
   }
 
 
+  // Creates the components constraint
+  fpConverter::uf fpConverter::buildComponents(TNode current) {
+    Assert(Theory::isLeafOf(current, THEORY_FP) ||
+	   current.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
+
+    //symfpu::unpackedFloat<traits> tmp(symfpu::NONDET, fpt(current.getType()));
+    /*
+      symfpu::unpackedFloat<traits>
+        tmp(buildNaNUFApp(current),
+            buildInfUFApp(current),
+            buildZeroUFApp(current),
+            buildSignUFApp(current),
+            buildExponentUFApp(current),
+            buildSignificandUFApp(current));
+    */
+
+    NodeManager *nm = NodeManager::currentNM();
+    uf tmp(nm->mkNode(kind::FLOATINGPOINT_COMPONENT_NAN, current),
+	   nm->mkNode(kind::FLOATINGPOINT_COMPONENT_INF, current),
+	   nm->mkNode(kind::FLOATINGPOINT_COMPONENT_ZERO, current),
+	   nm->mkNode(kind::FLOATINGPOINT_COMPONENT_SIGN, current),
+	   nm->mkNode(kind::FLOATINGPOINT_COMPONENT_EXPONENT, current),
+	   nm->mkNode(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND, current));
+
+    additionalAssertions.push_back(tmp.valid(fpt(current.getType())).getNode());
+
+    return tmp;
+  }
+
 
   // Non-convertible things should only be added to the stack at the very start, thus...
   #define PASSTHROUGH   Assert(workStack.empty())
@@ -324,26 +353,7 @@ namespace fp {
 
 	    } else {
 	      /******** Variables ********/
-	      //symfpu::unpackedFloat<traits> tmp(symfpu::NONDET, fpt(current.getType()));
-	      /*
-		symfpu::unpackedFloat<traits>
-		  tmp(buildNaNUFApp(current),
-		      buildInfUFApp(current),
-		      buildZeroUFApp(current),
-		      buildSignUFApp(current),
-		      buildExponentUFApp(current),
-		      buildSignificandUFApp(current));
-	    */
-	      NodeManager *nm = NodeManager::currentNM();
-	      symfpu::unpackedFloat<traits>
-		tmp(nm->mkNode(kind::FLOATINGPOINT_COMPONENT_NAN, current),
-		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_INF, current),
-		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_ZERO, current),
-		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_SIGN, current),
-		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_EXPONENT, current),
-		    nm->mkNode(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND, current));
-	      f.insert(current, tmp);
-	      additionalAssertions.push_back(tmp.valid(fpt(current.getType())).getNode());
+	      f.insert(current, buildComponents(current));
 	    }
 
 	  } else {
@@ -620,7 +630,11 @@ namespace fp {
 	      break;
 
 	    case kind::FLOATINGPOINT_TO_FP_REAL :
-	      Unimplemented("Conversion from real to floating-point not supported with bit-blasting theory solver");
+	      {
+		f.insert(current, buildComponents(current));
+		// Rely on the real theory and theory combination
+		// to handle the value
+	      }
 	      break;
 	      
 	    case kind::FLOATINGPOINT_TO_FP_GENERIC :
