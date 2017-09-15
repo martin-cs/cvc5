@@ -329,6 +329,10 @@ libcvc4_la_SOURCES = \
 	theory/fp/theory_fp_rewriter.cpp \
 	theory/fp/theory_fp_rewriter.h \
 	theory/fp/theory_fp_type_rules.h \
+	theory/fp/fp_converter.h \
+	theory/fp/fp_converter.cpp \
+	symfpu/baseTypes/cvc4_symbolic.cpp \
+	symfpu/baseTypes/cvc4_literal.cpp \
 	theory/idl/idl_assertion.cpp \
 	theory/idl/idl_assertion.h \
 	theory/idl/idl_assertion_db.cpp \
@@ -461,6 +465,8 @@ libcvc4_la_SOURCES = \
 	theory/uf/theory_uf_strong_solver.h \
 	theory/uf/theory_uf_type_rules.h
 
+
+
 nodist_libcvc4_la_SOURCES = \
 	theory/rewriter_tables.h \
 	theory/theory_traits.h \
@@ -473,7 +479,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/expr/libexpr.la \
 	@builddir@/smt_util/libsmtutil.la \
 	@builddir@/prop/minisat/libminisat.la \
-	@builddir@/prop/bvminisat/libbvminisat.la
+	@builddir@/prop/bvminisat/libbvminisat.la 
+
 if CVC4_PROOF
 libcvc4_la_LIBADD += \
 	@top_builddir@/proofs/signatures/libsignatures.la
