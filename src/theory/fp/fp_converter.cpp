@@ -13,6 +13,9 @@
  **
  **/
 
+// Only needed for the leaf test
+#include "theory/theory.h"
+
 #include "theory/fp/fp_converter.h"
 
 #include <stack>
@@ -298,7 +301,8 @@ namespace fp {
 	    case kind::VARIABLE :
 	    case kind::BOUND_VARIABLE :
 	    case kind::SKOLEM :
-	      Unreachable("Kind " + kindToString(current.getKind()) + " should have been handled as a leaf.");
+	      // Unreachable("Kind " + kindToString(current.getKind()) + " should have been handled as a leaf.");
+	      Unreachable("Kind should have been handled as a leaf.");
 	      break;
 	      
 	      /******** Operations ********/
@@ -583,6 +587,14 @@ namespace fp {
 	    Unreachable("Kind should have been removed by rewriter.");
 	    break;
 
+	    // Components will be registered as they are owned by
+	    // the floating-point theory.  No action is required.
+	  case kind::FLOATINGPOINT_COMPONENT_NAN :
+	  case kind::FLOATINGPOINT_COMPONENT_INF :
+	  case kind::FLOATINGPOINT_COMPONENT_ZERO :
+	  case kind::FLOATINGPOINT_COMPONENT_SIGN :
+	    /* Fall through... */
+
 	  default :
 	    PASSTHROUGH;
 	    return result;
@@ -657,6 +669,12 @@ namespace fp {
 	    result = (*i).second.getNode();
 	  }
 	  break;
+
+	  // Again, no action is needed
+	case kind::FLOATINGPOINT_COMPONENT_EXPONENT :
+	case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND :
+	case kind::ROUNDINGMODE_BITBLAST :
+	  /* Fall through ... */
       
 	default :
 	  PASSTHROUGH;
