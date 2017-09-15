@@ -154,17 +154,13 @@ namespace CVC4 {
   public :
     FloatingPointSize t;
 
-    #if 0
-    FloatingPoint (unsigned e, unsigned s, double d);
-    FloatingPoint (unsigned e, unsigned s, const std::string &bitString);
-    #endif
     FloatingPoint (unsigned e, unsigned s, const BitVector &bv);
     FloatingPoint (const FloatingPointSize &oldt, const FloatingPointLiteral &oldfpl) : fpl(oldfpl), t(oldt) {}
     FloatingPoint (const FloatingPoint &fp) : fpl(fp.fpl), t(fp.t) {}
     FloatingPoint (const FloatingPointSize &ct, const RoundingMode &rm, const BitVector &bv, bool signedBV);
     FloatingPoint (const FloatingPointSize &ct, const RoundingMode &rm, const Rational &r);
-    
-    
+
+
     static FloatingPoint makeNaN (const FloatingPointSize &t);
     static FloatingPoint makeInf (const FloatingPointSize &t, bool sign);
     static FloatingPoint makeZero (const FloatingPointSize &t, bool sign);
@@ -198,7 +194,7 @@ namespace CVC4 {
     PartialFloatingPoint max (const FloatingPoint &arg) const;
     PartialFloatingPoint min (const FloatingPoint &arg) const;
 
-    
+
     bool operator ==(const FloatingPoint& fp) const;
     bool operator <= (const FloatingPoint &arg) const;
     bool operator < (const FloatingPoint &arg) const;
@@ -221,12 +217,11 @@ namespace CVC4 {
     // These detect when the answer is defined
     typedef std::pair<BitVector, bool> PartialBitVector;
     typedef std::pair<Rational, bool> PartialRational;
-    
+
     PartialBitVector convertToBV (BitVectorSize width, const RoundingMode &rm,
 				bool signedBV) const;
     PartialRational convertToRational (void) const;
 
-    
   }; /* class FloatingPoint */
 
 
@@ -234,7 +229,7 @@ namespace CVC4 {
     size_t operator() (const FloatingPoint& fp) const {
       FloatingPointSizeHashFunction fpshf;
       BitVectorHashFunction bvhf;
-      
+
       return fpshf(fp.t) ^ bvhf(fp.pack());
     }
   }; /* struct FloatingPointHashFunction */
@@ -373,7 +368,7 @@ namespace CVC4 {
     unsigned largestSignificandBit = fp.t.significand() - 2; // -1 for -inclusive, -1 for hidden
     unsigned largestExponentBit = (fp.t.exponent() - 1) + (largestSignificandBit + 1);
 
-    return os 
+    return os
       << "(fp #b" << bv.extract(largestExponentBit + 1, largestExponentBit + 1)
       << " #b" << bv.extract(largestExponentBit, largestSignificandBit + 1)
       << " #b" << bv.extract(largestSignificandBit, 0)
