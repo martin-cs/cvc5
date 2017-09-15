@@ -24,6 +24,7 @@
 #include "symfpu/core/sign.h"
 #include "symfpu/core/add.h"
 #include "symfpu/core/multiply.h"
+#include "symfpu/core/fma.h"
 #include "symfpu/core/compare.h"
 #include "symfpu/core/classify.h"
 #include "symfpu/core/convert.h"
@@ -380,9 +381,34 @@ namespace fp {
 		}
 	      }
 	      break;
+
+	    case kind::FLOATINGPOINT_FMA :
+	      {
+		rmMap::const_iterator mode(r.find(current[0]));
+		fpMap::const_iterator arg1(f.find(current[1]));
+		fpMap::const_iterator arg2(f.find(current[2]));
+		fpMap::const_iterator arg3(f.find(current[3]));
+		bool recurseNeeded = (mode == r.end()) || (arg1 == f.end()) || (arg2 == f.end() || (arg3 == f.end()));
+	      
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (mode == r.end()) { workStack.push(current[0]); }
+		  if (arg1 == f.end()) { workStack.push(current[1]); }
+		  if (arg2 == f.end()) { workStack.push(current[2]); }
+		  if (arg3 == f.end()) { workStack.push(current[3]); }
+		  continue;    // i.e. recurse!
+		}
+
+		f.insert(current, symfpu::fma<traits>(fpt(current.getType()),
+						      (*mode).second,
+						      (*arg1).second,
+						      (*arg2).second,
+						      (*arg3).second));
+	      }
+	      break;
+
 	    
 	    case kind::FLOATINGPOINT_DIV :
-	    case kind::FLOATINGPOINT_FMA :
 	    case kind::FLOATINGPOINT_SQRT :
 	    case kind::FLOATINGPOINT_REM :
 	    case kind::FLOATINGPOINT_RTI :
