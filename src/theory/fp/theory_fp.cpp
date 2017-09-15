@@ -128,8 +128,8 @@ TheoryFp::TheoryFp(context::Context* c,
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_SQRT);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_REM);
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_RTI);
-    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MIN); // Care needed w.r.t. +/-0
-    // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MAX);
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MIN); // Congruence for these
+    equalityEngine.addFunctionKind(kind::FLOATINGPOINT_MAX); // is OK as they are functions
 
     // equalityEngine.addFunctionKind(kind::FLOATINGPOINT_EQ); // Removed
     equalityEngine.addFunctionKind(kind::FLOATINGPOINT_LEQ);
