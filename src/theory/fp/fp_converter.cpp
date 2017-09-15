@@ -25,6 +25,8 @@
 #include "symfpu/core/add.h"
 #include "symfpu/core/multiply.h"
 #include "symfpu/core/fma.h"
+#include "symfpu/core/sqrt.h"
+#include "symfpu/core/divide.h"
 #include "symfpu/core/compare.h"
 #include "symfpu/core/classify.h"
 #include "symfpu/core/convert.h"
@@ -380,10 +382,72 @@ namespace fp {
 		
 	      }
 	      break;
+
+	    case kind::FLOATINGPOINT_SQRT :
+	      {
+		rmMap::const_iterator mode(r.find(current[0]));
+		fpMap::const_iterator arg1(f.find(current[1]));
+		bool recurseNeeded = (mode == r.end()) || (arg1 == f.end());
+	      
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (mode == r.end()) { workStack.push(current[0]); }
+		  if (arg1 == f.end()) { workStack.push(current[1]); }
+		  continue;    // i.e. recurse!
+		}
+
+		switch (current.getKind()) {
+		case kind::FLOATINGPOINT_SQRT :
+		  f.insert(current, symfpu::sqrt<traits>(fpt(current.getType()),
+							(*mode).second,
+							 (*arg1).second));
+		  break;
+		default :
+		  Unreachable("Unknown unary rounded floating-point function");
+		  break;
+		}
+	      }
+	      break;
+
+	    case kind::FLOATINGPOINT_MIN :
+	    case kind::FLOATINGPOINT_MAX :
+	      {
+		fpMap::const_iterator arg1(f.find(current[0]));
+		fpMap::const_iterator arg2(f.find(current[1]));
+		bool recurseNeeded = (arg1 == f.end()) || (arg2 == f.end());
+	      
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (arg1 == f.end()) { workStack.push(current[0]); }
+		  if (arg2 == f.end()) { workStack.push(current[1]); }
+		  continue;    // i.e. recurse!
+		}
+
+		switch (current.getKind()) {
+		case kind::FLOATINGPOINT_MAX :
+		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
+							(*arg1).second,
+							(*arg2).second));
+		  break;
+		  
+		case kind::FLOATINGPOINT_MIN :
+		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
+							(*arg1).second,
+							(*arg2).second));
+		  break;
+
+		default :
+		  Unreachable("Unknown binary floating-point function");
+		  break;
+		}
+	      }
+	      break;
+	      
 	      
 	    case kind::FLOATINGPOINT_PLUS :
 	    case kind::FLOATINGPOINT_SUB :
 	    case kind::FLOATINGPOINT_MULT :
+	    case kind::FLOATINGPOINT_DIV :
 	      {
 		rmMap::const_iterator mode(r.find(current[0]));
 		fpMap::const_iterator arg1(f.find(current[1]));
@@ -423,8 +487,14 @@ namespace fp {
 							     (*arg1).second,
 							     (*arg2).second));
 		  break;
+		case kind::FLOATINGPOINT_DIV :
+		  f.insert(current, symfpu::divide<traits>(fpt(current.getType()),
+							     (*mode).second,
+							     (*arg1).second,
+							     (*arg2).second));
+		  break;
 		default :
-		  Unreachable("Unknown binary floating-point function");
+		  Unreachable("Unknown binary rounded floating-point function");
 		  break;
 		}
 	      }
@@ -456,12 +526,8 @@ namespace fp {
 	      break;
 
 	    
-	    case kind::FLOATINGPOINT_DIV :
-	    case kind::FLOATINGPOINT_SQRT :
 	    case kind::FLOATINGPOINT_REM :
 	    case kind::FLOATINGPOINT_RTI :
-	    case kind::FLOATINGPOINT_MIN :
-	    case kind::FLOATINGPOINT_MAX :
 	      Unimplemented("Operation not yet supported in symfpu");
 	      break;
 	      
@@ -479,10 +545,10 @@ namespace fp {
 		  continue;    // i.e. recurse!
 		}
 		
-		f.insert(current, symfpu::convert<traits>(fpt(current[1].getType()),
-							  fpt(current.getType()),
-							  (*mode).second,
-							  (*arg1).second));
+		f.insert(current, symfpu::convertFloatToFloat<traits>(fpt(current[1].getType()),
+								      fpt(current.getType()),
+								      (*mode).second,
+								      (*arg1).second));
 	      }
 	      break;
 
