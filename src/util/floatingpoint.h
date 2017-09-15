@@ -114,31 +114,38 @@ namespace CVC4 {
     }
   }; /* struct RoundingModeHashFunction */
 
+};
+
+
+/* The symfpu CVC4/literal back-end makes uses of the types above and
+   so the headers need to be included here. */
+#include "symfpu/baseTypes/cvc4_literal.h"
+#include "symfpu/core/unpackedFloat.h"
+
+
+namespace CVC4 {
+
+  /**
+   * Use symfpu to handle literals
+   */
+  // To simplify the naming of various types
+  namespace symfpuLiteral {
+    typedef ::symfpu::cvc4_literal::traits traits;   // Use the CVC4 literal back-end
+    typedef ::symfpu::unpackedFloat<traits> uf;
+    typedef traits::rm rm;
+    typedef traits::fpt fpt;
+    typedef traits::prop prop;
+    typedef traits::ubv ubv;
+    typedef traits::sbv sbv;
+  };
+
+
 
   /**
    * A concrete floating point number
    */
+  typedef symfpuLiteral::uf FloatingPointLiteral;
 
-  class CVC4_PUBLIC FloatingPointLiteral {
-  public :
-    // This intentional left unfinished as the choice of literal
-    // representation is solver specific.
-    void unfinished (void) const;
-
-    FloatingPointLiteral(unsigned, unsigned, double) { unfinished(); }
-    FloatingPointLiteral(unsigned, unsigned, const std::string &) { unfinished(); }
-    FloatingPointLiteral(const FloatingPointLiteral &) { unfinished(); }
-
-    bool operator == (const FloatingPointLiteral &op) const {
-      unfinished();
-      return false;
-    }
-
-    size_t hash (void) const {
-      unfinished();
-      return 23;
-    }
-  };
 
   class CVC4_PUBLIC FloatingPoint {
   protected :
