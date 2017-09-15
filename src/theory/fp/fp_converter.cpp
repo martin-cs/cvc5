@@ -895,7 +895,27 @@ namespace fp {
 	switch (current.getKind()) {
 	  /******** Conversions ********/
 	case kind::FLOATINGPOINT_TO_REAL :
-	  Unimplemented("Conversion from floating-point to real not supported with bit-blasting theory solver");
+	  {
+	    // We need to recurse so that any variables that are only
+	    // used under this will have components created
+	    // (via auxiliary constraints)
+
+	    TypeNode childType (current[0].getType());
+	    fpMap::const_iterator arg1(f.find(current[0]));
+
+	    if (arg1 == f.end()) {
+	      workStack.push(current);
+	      workStack.push(current[0]);
+	      continue;    // i.e. recurse!
+	    }
+
+	    // However we don't need to do anything explicitly with
+	    // this as it will be treated as an uninterpreted function
+	    // by the real theory and we don't need to bit-blast the
+	    // float expression unless we need to say something about
+	    // its value.
+	  }
+
 	  break;
 
 	default :
