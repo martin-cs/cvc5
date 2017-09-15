@@ -93,6 +93,12 @@ namespace fp {
     return;
   }
 #endif
+
+  size_t PairTypeNodeHashFunction::operator()(const std::pair<TypeNode, TypeNode> &p) const {
+    TypeNodeHashFunction h;
+    return h(p.first) ^ h(p.second);
+  }
+
   
 
   fpConverter::fpConverter (context::UserContext* user) :
@@ -100,6 +106,7 @@ namespace fp {
     roundingModeUF(Node::null()),
     NaNMap(user), infMap(user), zeroMap(user),
     signMap(user), exponentMap(user), significandMap(user),
+    minMap(user), maxMap(user), toUBVMap(user), toSBVMap(user),
     additionalAssertions(user)
   {
     //    testMultiply();
@@ -286,6 +293,125 @@ namespace fp {
     return tmp;
   }
 
+  Node fpConverter::minUF (Node node) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MIN);
+    TypeNode t(node.getType());
+    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
+
+    NodeManager *nm = NodeManager::currentNM();
+    comparisonUFMap::const_iterator i(minMap.find(t));
+
+    Node fun;
+    if (i == minMap.end()) {
+      std::vector<TypeNode> args(2);
+      args[0] = t;
+      args[1] = t;
+      fun = nm->mkSkolem("floatingpoint_min_zero_case",
+			 nm->mkFunctionType(args,
+#ifdef SYMFPUPROPISBOOL
+					    nm->booleanType()
+#else
+			                    nm->mkBitVectorType(1U)
+#endif
+					    ),
+			 "floatingpoint_min_zero_case",
+			 NodeManager::SKOLEM_EXACT_NAME);
+      minMap.insert(t,fun);
+    } else {
+      fun = (*i).second;
+    }
+    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);  // Application reverses the order or arguments
+  }
+
+  Node fpConverter::maxUF (Node node) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_MAX);
+    TypeNode t(node.getType());
+    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
+
+    NodeManager *nm = NodeManager::currentNM();
+    comparisonUFMap::const_iterator i(maxMap.find(t));
+
+    Node fun;
+    if (i == maxMap.end()) {
+      std::vector<TypeNode> args(2);
+      args[0] = t;
+      args[1] = t;
+      fun = nm->mkSkolem("floatingpoint_max_zero_case",
+			 nm->mkFunctionType(args,
+#ifdef SYMFPUPROPISBOOL
+					    nm->booleanType()
+#else
+			                    nm->mkBitVectorType(1U)
+#endif
+					    ),
+			 "floatingpoint_max_zero_case",
+			 NodeManager::SKOLEM_EXACT_NAME);
+      maxMap.insert(t,fun);
+    } else {
+      fun = (*i).second;
+    }
+    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
+  }
+
+  Node fpConverter::toUBVUF (Node node) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV);
+
+    TypeNode target(node.getType());
+    Assert(target.getKind() == kind::BITVECTOR_TYPE);
+
+    TypeNode source(node[1].getType());
+    Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
+
+    std::pair<TypeNode, TypeNode> p(source, target);
+    NodeManager *nm = NodeManager::currentNM();
+    conversionUFMap::const_iterator i(toUBVMap.find(p));
+
+    Node fun;
+    if (i == toUBVMap.end()) {
+      std::vector<TypeNode> args(2);
+      args[0] = nm->roundingModeType();
+      args[1] = source;
+      fun = nm->mkSkolem("floatingpoint_to_ubv_out_of_range_case",
+			 nm->mkFunctionType(args, target),
+			 "floatingpoint_to_ubv_out_of_range_case",
+			 NodeManager::SKOLEM_EXACT_NAME);
+      toUBVMap.insert(p,fun);
+    } else {
+      fun = (*i).second;
+    }
+    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
+  }
+
+  Node fpConverter::toSBVUF (Node node) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_TO_SBV);
+
+    TypeNode target(node.getType());
+    Assert(target.getKind() == kind::BITVECTOR_TYPE);
+
+    TypeNode source(node[1].getType());
+    Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
+
+    std::pair<TypeNode, TypeNode> p(source, target);
+    NodeManager *nm = NodeManager::currentNM();
+    conversionUFMap::const_iterator i(toSBVMap.find(p));
+
+    Node fun;
+    if (i == toSBVMap.end()) {
+      std::vector<TypeNode> args(2);
+      args[0] = nm->roundingModeType();
+      args[1] = source;
+      fun = nm->mkSkolem("floatingpoint_to_sbv_out_of_range_case",
+			 nm->mkFunctionType(args, target),
+			 "floatingpoint_to_sbv_out_of_range_case",
+			 NodeManager::SKOLEM_EXACT_NAME);
+      toSBVMap.insert(p,fun);
+    } else {
+      fun = (*i).second;
+    }
+    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
+  }
+
+
 
   // Non-convertible things should only be added to the stack at the very start, thus...
   #define PASSTHROUGH   Assert(workStack.empty())
@@ -445,13 +571,15 @@ namespace fp {
 		case kind::FLOATINGPOINT_MAX :
 		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
 							(*arg1).second,
-							(*arg2).second));
+							(*arg2).second,
+							maxUF(current)));
 		  break;
 		  
 		case kind::FLOATINGPOINT_MIN :
 		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
 							(*arg1).second,
-							(*arg2).second));
+							(*arg2).second,
+							minUF(current)));
 		  break;
 
 		case kind::FLOATINGPOINT_REM :
@@ -851,7 +979,7 @@ namespace fp {
 								  (*mode).second,
 								  (*arg1).second,
 								  info.bvs,
-								  NodeManager::currentNM()->mkConst(BitVector(info.bvs, 0U))));  // TODO change to an undefined function
+								  toUBVUF(current)));
 	      i = u.find(current);
 	    }
 	      
@@ -884,7 +1012,7 @@ namespace fp {
 								  (*mode).second,
 								  (*arg1).second,
 								  info.bvs,
-								  NodeManager::currentNM()->mkConst(BitVector(info.bvs, 0U))));  // TODO change to an undefined function
+								  toSBVUF(current)));
 
 	      i = s.find(current);
 	    }
