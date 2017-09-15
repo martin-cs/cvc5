@@ -106,7 +106,6 @@ namespace fp {
     roundingModeUF(Node::null()),
     NaNMap(user), infMap(user), zeroMap(user),
     signMap(user), exponentMap(user), significandMap(user),
-    minMap(user), maxMap(user), toUBVMap(user), toSBVMap(user),
     additionalAssertions(user)
   {
     //    testMultiply();
@@ -293,123 +292,7 @@ namespace fp {
     return tmp;
   }
 
-  Node fpConverter::minUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_MIN);
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
 
-    NodeManager *nm = NodeManager::currentNM();
-    comparisonUFMap::const_iterator i(minMap.find(t));
-
-    Node fun;
-    if (i == minMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = t;
-      args[1] = t;
-      fun = nm->mkSkolem("floatingpoint_min_zero_case",
-			 nm->mkFunctionType(args,
-#ifdef SYMFPUPROPISBOOL
-					    nm->booleanType()
-#else
-			                    nm->mkBitVectorType(1U)
-#endif
-					    ),
-			 "floatingpoint_min_zero_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      minMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);  // Application reverses the order or arguments
-  }
-
-  Node fpConverter::maxUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_MAX);
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    comparisonUFMap::const_iterator i(maxMap.find(t));
-
-    Node fun;
-    if (i == maxMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = t;
-      args[1] = t;
-      fun = nm->mkSkolem("floatingpoint_max_zero_case",
-			 nm->mkFunctionType(args,
-#ifdef SYMFPUPROPISBOOL
-					    nm->booleanType()
-#else
-			                    nm->mkBitVectorType(1U)
-#endif
-					    ),
-			 "floatingpoint_max_zero_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      maxMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
-  }
-
-  Node fpConverter::toUBVUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_TO_UBV);
-
-    TypeNode target(node.getType());
-    Assert(target.getKind() == kind::BITVECTOR_TYPE);
-
-    TypeNode source(node[1].getType());
-    Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    std::pair<TypeNode, TypeNode> p(source, target);
-    NodeManager *nm = NodeManager::currentNM();
-    conversionUFMap::const_iterator i(toUBVMap.find(p));
-
-    Node fun;
-    if (i == toUBVMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = nm->roundingModeType();
-      args[1] = source;
-      fun = nm->mkSkolem("floatingpoint_to_ubv_out_of_range_case",
-			 nm->mkFunctionType(args, target),
-			 "floatingpoint_to_ubv_out_of_range_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      toUBVMap.insert(p,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
-  }
-
-  Node fpConverter::toSBVUF (Node node) {
-    Assert(node.getKind() == kind::FLOATINGPOINT_TO_SBV);
-
-    TypeNode target(node.getType());
-    Assert(target.getKind() == kind::BITVECTOR_TYPE);
-
-    TypeNode source(node[1].getType());
-    Assert(source.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    std::pair<TypeNode, TypeNode> p(source, target);
-    NodeManager *nm = NodeManager::currentNM();
-    conversionUFMap::const_iterator i(toSBVMap.find(p));
-
-    Node fun;
-    if (i == toSBVMap.end()) {
-      std::vector<TypeNode> args(2);
-      args[0] = nm->roundingModeType();
-      args[1] = source;
-      fun = nm->mkSkolem("floatingpoint_to_sbv_out_of_range_case",
-			 nm->mkFunctionType(args, target),
-			 "floatingpoint_to_sbv_out_of_range_case",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      toSBVMap.insert(p,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node[1], node[0]);
-  }
 
 
 
@@ -552,8 +435,6 @@ namespace fp {
 	      }
 	      break;
 
-	    case kind::FLOATINGPOINT_MIN :
-	    case kind::FLOATINGPOINT_MAX :
 	    case kind::FLOATINGPOINT_REM :
 	      {
 		fpMap::const_iterator arg1(f.find(current[0]));
@@ -567,29 +448,46 @@ namespace fp {
 		  continue;    // i.e. recurse!
 		}
 
+		f.insert(current, symfpu::remainder<traits>(fpt(current.getType()),
+							    (*arg1).second,
+							    (*arg2).second));
+	      }
+	      break;
+
+	    case kind::FLOATINGPOINT_MIN_TOTAL :
+	    case kind::FLOATINGPOINT_MAX_TOTAL :
+	      {
+		fpMap::const_iterator arg1(f.find(current[0]));
+		fpMap::const_iterator arg2(f.find(current[1]));
+		// Should not need to recurse down this argument
+		//ubvMap::const_iterator arg3(u.find(current[2]));
+
+		bool recurseNeeded = (arg1 == f.end()) || (arg2 == f.end());
+
+		if (recurseNeeded) {
+		  workStack.push(current);
+		  if (arg1 == f.end()) { workStack.push(current[0]); }
+		  if (arg2 == f.end()) { workStack.push(current[1]); }
+		  continue;    // i.e. recurse!
+		}
+
 		switch (current.getKind()) {
-		case kind::FLOATINGPOINT_MAX :
+		case kind::FLOATINGPOINT_MAX_TOTAL :
 		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
 							(*arg1).second,
 							(*arg2).second,
-							maxUF(current)));
+							prop(current[2])));
 		  break;
 		  
-		case kind::FLOATINGPOINT_MIN :
-		  f.insert(current, symfpu::max<traits>(fpt(current.getType()),
+		case kind::FLOATINGPOINT_MIN_TOTAL :
+		  f.insert(current, symfpu::min<traits>(fpt(current.getType()),
 							(*arg1).second,
 							(*arg2).second,
-							minUF(current)));
-		  break;
-
-		case kind::FLOATINGPOINT_REM :
-		  f.insert(current, symfpu::remainder<traits>(fpt(current.getType()),
-							      (*arg1).second,
-							      (*arg2).second));
+							prop(current[2])));
 		  break;
 
 		default :
-		  Unreachable("Unknown binary floating-point function");
+		  Unreachable("Unknown binary floating-point partial function");
 		  break;
 		}
 	      }
@@ -954,7 +852,7 @@ namespace fp {
 
 	switch (current.getKind()) {
 	  /******** Conversions ********/
-	case kind::FLOATINGPOINT_TO_UBV :
+	case kind::FLOATINGPOINT_TO_UBV_TOTAL :
 	  {
 	    TypeNode childType (current[1].getType());
 	    ubvMap::const_iterator i(u.find(current));
@@ -971,15 +869,15 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 
-	      FloatingPointToUBV info =
-		current.getOperator().getConst<FloatingPointToUBV>();
+	      FloatingPointToUBVTotal info =
+		current.getOperator().getConst<FloatingPointToUBVTotal>();
 
 
 	      u.insert(current, symfpu::convertFloatToUBV<traits>(fpt(childType),
 								  (*mode).second,
 								  (*arg1).second,
 								  info.bvs,
-								  toUBVUF(current)));
+								  ubv(current[2])));
 	      i = u.find(current);
 	    }
 	      
@@ -987,7 +885,7 @@ namespace fp {
 	  }
 	  break;
 
-	case kind::FLOATINGPOINT_TO_SBV :
+	case kind::FLOATINGPOINT_TO_SBV_TOTAL :
 	  {
 	    TypeNode childType (current[1].getType());
 	    sbvMap::const_iterator i(s.find(current));
@@ -1004,15 +902,15 @@ namespace fp {
 		continue;    // i.e. recurse!
 	      }
 
-	      FloatingPointToSBV info =
-		current.getOperator().getConst<FloatingPointToSBV>();
+	      FloatingPointToSBVTotal info =
+		current.getOperator().getConst<FloatingPointToSBVTotal>();
 
 
 	      s.insert(current, symfpu::convertFloatToSBV<traits>(fpt(childType),
 								  (*mode).second,
 								  (*arg1).second,
 								  info.bvs,
-								  toSBVUF(current)));
+								  sbv(current[2])));
 
 	      i = s.find(current);
 	    }
@@ -1021,12 +919,20 @@ namespace fp {
 	  }
 	  break;
 
+	case kind::FLOATINGPOINT_TO_UBV :
+	  Unreachable("Partially defined fp.to_ubv should have been removed by expandDefinition");
+	  break;
+
+	case kind::FLOATINGPOINT_TO_SBV :
+	  Unreachable("Partially defined fp.to_sbv should have been removed by expandDefinition");
+	  break;
+
 	  // Again, no action is needed
 	case kind::FLOATINGPOINT_COMPONENT_EXPONENT :
 	case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND :
 	case kind::ROUNDINGMODE_BITBLAST :
 	  /* Fall through ... */
-      
+	  
 	default :
 	  PASSTHROUGH;
 	  break;
@@ -1036,7 +942,7 @@ namespace fp {
 
 	switch (current.getKind()) {
 	  /******** Conversions ********/
-	case kind::FLOATINGPOINT_TO_REAL :
+	case kind::FLOATINGPOINT_TO_REAL_TOTAL :
 	  {
 	    // We need to recurse so that any variables that are only
 	    // used under this will have components created
@@ -1058,6 +964,10 @@ namespace fp {
 	    // its value.
 	  }
 
+	  break;
+
+	case kind::FLOATINGPOINT_TO_REAL :
+	  Unreachable("Partially defined fp.to_real should have been removed by expandDefinition");
 	  break;
 
 	default :
