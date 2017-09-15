@@ -22,11 +22,20 @@
 
 #include "theory/theory.h"
 
+#include "theory/fp/fp_converter.h"
+
+
 namespace CVC4 {
 namespace theory {
 namespace fp {
 
 class TheoryFp : public Theory {
+protected :
+  fpConverter conv;
+  bool expansionRequested;
+
+  void convertAndEquateTerm(TNode node);
+
 public:
 
   /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */
@@ -36,9 +45,14 @@ public:
            Valuation valuation,
            const LogicInfo& logicInfo);
 
-  Node expandDefinition(LogicRequest &, Node node);
+  Node expandDefinition(LogicRequest &lr, Node node);
+
+  void preRegisterTerm(TNode node);
+  void addSharedTerm(TNode node);
 
   void check(Effort);
+
+  Node getModelValue(TNode var);
 
   std::string identify() const {
     return "THEORY_FP";
