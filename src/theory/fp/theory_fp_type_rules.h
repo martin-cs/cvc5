@@ -17,6 +17,9 @@
 
 #include "cvc4_private.h"
 
+// \todo : this is only needed for checking that components are only applied to leaves, probably should remove
+#include "theory/theory.h"
+
 #ifndef __CVC4__THEORY__FP__THEORY_FP_TYPE_RULES_H
 #define __CVC4__THEORY__FP__THEORY_FP_TYPE_RULES_H
 
@@ -477,7 +480,11 @@ public :
 
     }
 
+    #ifdef SYMFPUPROPISBOOL
     return nodeManager->booleanType();
+    #else
+    return nodeManager->mkBitVectorType(1);
+    #endif
   }
 };
 
@@ -503,8 +510,10 @@ public :
     /* Need to create some symfpu objects as the size of bit-vector
      * that is needed for this component is dependent on the encoding
      * used (i.e. whether subnormals are forcibly normalised or not).
-     * Here we use types from floatingpoint.h */
-    symfpuLiteral::fpt format(operandType);  // The symfpu interface to type info
+     * Here we use types from floatingpoint.h which are the literal 
+     * back-end but it should't make a difference. */
+    FloatingPointSize fps = operandType.getConst<FloatingPointSize>();
+    symfpuLiteral::fpt format(fps);  // The symfpu interface to type info
     unsigned bw = symfpuLiteral::uf::exponentWidth(format);
 
     return nodeManager->mkBitVectorType(bw);
@@ -531,7 +540,8 @@ public :
     }
 
     /* As before we need to use some of sympfu. */
-    symfpuLiteral::fpt format(operandType);
+    FloatingPointSize fps = operandType.getConst<FloatingPointSize>();
+    symfpuLiteral::fpt format(fps);
     unsigned bw = symfpuLiteral::uf::significandWidth(format);
 
     return nodeManager->mkBitVectorType(bw);
@@ -557,7 +567,7 @@ public :
     }
 
     /* Uses sympfu for the macro. */
-    return nodeManager->mkBitVectorType(NUMRM);
+    return nodeManager->mkBitVectorType(SYMFPU_NUMBER_OF_ROUNDING_MODES);
   }
 };
 
