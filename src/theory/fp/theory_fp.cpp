@@ -79,13 +79,71 @@ namespace removeToFPGeneric {
 
 
 /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */
+<<<<<<< HEAD
 TheoryFp::TheoryFp(context::Context* c, context::UserContext* u,
                    OutputChannel& out, Valuation valuation,
                    const LogicInfo& logicInfo)
     : Theory(THEORY_FP, c, u, out, valuation, logicInfo),
+  /*
+    notification(*this),
+    equalityEngine(notification, c, "theory::fp::TheoryFp", true);
+  */
       conv(u),
       expansionRequested(false)
-{}/* TheoryFp::TheoryFp() */
+{
+  /*
+    // Kinds that are to be handled in the congruence closure
+
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ABS);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_NEG);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_PLUS);
+    //equalityEngine.addFunction(kind::FLOATINGPOINT_SUB); // Removed
+    equalityEngine.addFunction(kind::FLOATINGPOINT_MULT);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_DIV);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_FMA);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_SQRT);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_REM);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_RTI);
+    // equalityEngine.addFunction(kind::FLOATINGPOINT_MIN); // Care needed w.r.t. +/-0
+    // equalityEngine.addFunction(kind::FLOATINGPOINT_MAX);
+
+    // equalityEngine.addFunction(kind::FLOATINGPOINT_EQ); // Removed
+    equalityEngine.addFunction(kind::FLOATINGPOINT_LEQ);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_LT);
+    // equalityEngine.addFunction(kind::FLOATINGPOINT_GEQ); // Removed
+    // equalityEngine.addFunction(kind::FLOATINGPOINT_GT); // Removed
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISN);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISSN);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISZ);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISINF);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISNAN);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISNEG);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_ISPOS);
+
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR_OP);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT_OP);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_REAL_OP);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR_OP);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR_OP);
+    // equalityEngine.addFunction(kind::FLOATINGPOINT_TO_FP_GENERIC_OP); // Needed in parsing, should be rewritten away
+
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_UBV_OP);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_SBV_OP);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_TO_REAL);
+
+    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_NAN);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_INF);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_ZERO);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_SIGN);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_EXPONENT);
+    equalityEngine.addFunction(kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND);
+    equalityEngine.addFunction(kind::ROUNDINGMODE_BITBLAST);
+
+   */
+
+
+}/* TheoryFp::TheoryFp() */
+
 
 
 Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
@@ -133,14 +191,21 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
   }
 
 
-  // Equate the floating-point atom and the converted one
-  // Also adds the bit-vectors to the bit-vector solver
+  // Equate the floating-point atom and the converted one.
+  // Also adds the bit-vectors to the bit-vector solver.
   if (node.getType().isBoolean()) {
-    Assert(converted != node);
-
-    d_out->lemma(NodeManager::currentNM()->mkNode(kind::IFF, node, converted),
-		 false,
-		 true);
+    if (converted != node) {
+      d_out->lemma(NodeManager::currentNM()->mkNode(kind::IFF, node, converted),
+		   false,
+		   true);
+    } else {
+      // Component bits should not be altered.
+      // These are the only bits that should be allowed through
+      Assert((node.getKind() == kind::FLOATINGPOINT_COMPONENT_NAN) ||
+	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_INF) ||
+	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_ZERO) ||
+	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGN));
+    }
   }
 
   return;

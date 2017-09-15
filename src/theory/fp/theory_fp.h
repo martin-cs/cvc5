@@ -31,6 +31,29 @@ namespace fp {
 
 class TheoryFp : public Theory {
 protected :
+  /** Equality engine */
+    /*
+  class NotifyClass : public eq::EqualityEngineNotify {
+    protected :
+      TheoryFp& theorySolver;
+
+    public:
+    NotifyClass(TheoryFp& solver): theorySolver(solver) {}
+    bool eqNotifyTriggerEquality(TNode equality, bool value);
+    bool eqNotifyTriggerPredicate(TNode predicate, bool value);
+    bool eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value);
+    void eqNotifyConstantTermMerge(TNode t1, TNode t2);
+    void eqNotifyNewClass(TNode t) { }
+    void eqNotifyPreMerge(TNode t1, TNode t2) { }
+    void eqNotifyPostMerge(TNode t1, TNode t2) { }
+    void eqNotifyDisequal(TNode t1, TNode t2, TNode reason) { }
+  };
+  
+  NotifyClass notification;
+  eq::EqualityEngine equalityEngine;
+  */
+
+  /** Bit-blasting conversion */
   fpConverter conv;
   bool expansionRequested;
 
