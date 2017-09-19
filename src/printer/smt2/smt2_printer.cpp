@@ -554,6 +554,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
   case kind::FLOATINGPOINT_ISNAN:
   case kind::FLOATINGPOINT_ISNEG:
   case kind::FLOATINGPOINT_ISPOS:
+  case kind::FLOATINGPOINT_ISFIN:
   case kind::FLOATINGPOINT_TO_REAL:
   case kind::FLOATINGPOINT_COMPONENT_NAN:
   case kind::FLOATINGPOINT_COMPONENT_INF:
@@ -921,6 +922,7 @@ static string smtKindString(Kind k) throw() {
   case kind::FLOATINGPOINT_ISNAN: return "fp.isNaN";
   case kind::FLOATINGPOINT_ISNEG: return "fp.isNegative";
   case kind::FLOATINGPOINT_ISPOS: return "fp.isPositive";
+  case kind::FLOATINGPOINT_ISFIN: return "fp.isFinite";
 
   case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR: return "to_fp";
   case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT: return "to_fp";

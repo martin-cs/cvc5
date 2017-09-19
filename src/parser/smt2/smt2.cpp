@@ -158,6 +158,7 @@ void Smt2::addFloatingPointOperators() {
   addOperator(kind::FLOATINGPOINT_ISNAN, "fp.isNaN");
   addOperator(kind::FLOATINGPOINT_ISNEG, "fp.isNegative");
   addOperator(kind::FLOATINGPOINT_ISPOS, "fp.isPositive");
+  addOperator(kind::FLOATINGPOINT_ISFIN, "fp.isFinite");
   addOperator(kind::FLOATINGPOINT_TO_REAL, "fp.to_real");
 
   Parser::addOperator(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
