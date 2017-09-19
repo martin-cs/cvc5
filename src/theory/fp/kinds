@@ -152,6 +152,9 @@ typerule FLOATINGPOINT_ISNEG   ::CVC4::theory::fp::FloatingPointTestTypeRule
 operator FLOATINGPOINT_ISPOS 1 "floating-point is positive"
 typerule FLOATINGPOINT_ISPOS   ::CVC4::theory::fp::FloatingPointTestTypeRule
 
+operator FLOATINGPOINT_ISFIN 1 "floating-point is finite"
+typerule FLOATINGPOINT_ISFIN   ::CVC4::theory::fp::FloatingPointTestTypeRule
+
 
 
 constant FLOATINGPOINT_TO_FP_IEEE_BITVECTOR_OP \

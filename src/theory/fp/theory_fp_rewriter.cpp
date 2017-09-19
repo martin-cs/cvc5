@@ -261,6 +261,19 @@ namespace rewrite {
 				      nm->mkConst(FloatingPoint::makeNaN(node[0].getType().getConst<FloatingPointSize>()))));
   }
 
+  RewriteResponse isFiniteToZeroSubnormalOrNormal (TNode node, bool isPreRewrite) {
+    Assert(node.getKind() == kind::FLOATINGPOINT_ISFIN);
+    Assert(isPreRewrite);   // Regarded as removed later on
+
+    NodeManager *nm = NodeManager::currentNM();
+
+    return RewriteResponse(REWRITE_DONE,
+			   nm->mkNode(kind::NOT,
+				      nm->mkNode(kind::OR,
+						 nm->mkNode(kind::FLOATINGPOINT_ISINF, node[0]),
+						 nm->mkNode(kind::FLOATINGPOINT_ISNAN, node[0]))));
+  }
+
 }; /* CVC4::theory::fp::rewrite */
 
 
@@ -957,6 +970,7 @@ RewriteFunction TheoryFpRewriter::constantFoldTable[kind::LAST_KIND];
     preRewriteTable[kind::FLOATINGPOINT_ISNAN] = rewrite::isNaNToEquality;
     preRewriteTable[kind::FLOATINGPOINT_ISNEG] = rewrite::identity;
     preRewriteTable[kind::FLOATINGPOINT_ISPOS] = rewrite::identity;
+    preRewriteTable[kind::FLOATINGPOINT_ISFIN] = rewrite::isFiniteToZeroSubnormalOrNormal;
 
     /******** Conversions ********/
     preRewriteTable[kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR] = rewrite::identity;
