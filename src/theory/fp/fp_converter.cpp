@@ -1114,28 +1114,3 @@ namespace fp {
 }/* CVC4::theory::fp namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-
-
-
-#if 0
-  // Need an expand definition which enables bit-vectors when needed
-
-
-
-
-
-  void TheoryFp::preRegisterTerm(TNode node) {
-    // Don't recurse!
-
-    // Things can be registered multiple times -- be careful
-    // addSharedTerm needed as well
-    // staticLearning is early and gets the full thing
-    // Lemma to add
-
-    Trace("fp") << "TheoryFp::preRegisterTerm(): " << node << std::endl;
-
-    return;
-
-  }/* TheoryFp::preRegisterTerm() */
-
-#endif
