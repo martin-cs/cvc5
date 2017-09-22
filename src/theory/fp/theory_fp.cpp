@@ -795,14 +795,6 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
       Assert(converted.getType().isBitVector());
 
       handleLemma(NodeManager::currentNM()->mkNode(kind::EQUAL, node, converted));
-
-    } else {
-      #if 0
-      Assert((node.getKind() == kind::FLOATINGPOINT_COMPONENT_EXPONENT) ||
-	     (node.getKind() == kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND) ||
-	     (node.getKind() == kind::APPLY) ||  // For the UF we generate
-	     (node.getKind() == kind::EQUAL));
-      #endif
     }
   }
 
