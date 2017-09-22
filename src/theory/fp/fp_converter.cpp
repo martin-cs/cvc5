@@ -32,17 +32,6 @@
 #include "symfpu/core/convert.h"
 #include "symfpu/core/remainder.h"
 
-#if 0
-// \todo Fix this ugly hack
-// So, the problem is that the CVC4 back-end is not just a .h file, it
-// also requires some code.  This code, currently, should sit in the
-// symfpu repository.  But it can't be built there because it needs
-// the CVC4 infrastructure and I don't want to get the CVC4 build to
-// run make in that directory and patch things together.  So ...
-
-#include "symfpu/baseTypes/cvc4_symbolic.cpp"
-#include "symfpu/baseTypes/cvc4_literal.cpp"
-#endif
 
 namespace CVC4 {
 namespace theory {
