@@ -83,29 +83,7 @@ namespace fp {
     Node ubvToNode (const ubv &) const;
     Node sbvToNode (const sbv &) const;
 
-
-
-    /* Store the uninterpretted functions used to create
-     * non-deterministic components of non-deterministic floats. */
-
-    typedef context::CDHashMap<TypeNode, Node, TypeNodeHashFunction> uninterprettedFunctionMap;
-
-    Node roundingModeUF;
-    uninterprettedFunctionMap NaNMap;
-    uninterprettedFunctionMap infMap;
-    uninterprettedFunctionMap zeroMap;
-    uninterprettedFunctionMap signMap;
-    uninterprettedFunctionMap exponentMap;
-    uninterprettedFunctionMap significandMap;
-
-    Node buildRoundingModeUFApp (Node);
-    Node buildNaNUFApp (Node);
-    Node buildInfUFApp (Node);
-    Node buildZeroUFApp (Node);
-    Node buildSignUFApp (Node);
-    Node buildExponentUFApp (Node);
-    Node buildSignificandUFApp (Node);
-
+    /* Creates the relevant components for a variable */
     uf buildComponents(TNode current);
 
 

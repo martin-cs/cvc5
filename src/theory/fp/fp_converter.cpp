@@ -47,9 +47,6 @@ namespace fp {
 
   fpConverter::fpConverter (context::UserContext* user) :
     f(user), r(user), b(user), u(user), s(user), 
-    roundingModeUF(Node::null()),
-    NaNMap(user), infMap(user), zeroMap(user),
-    signMap(user), exponentMap(user), significandMap(user),
     additionalAssertions(user)
   {
   }
@@ -116,170 +113,11 @@ namespace fp {
   }
 
 
-
-  Node fpConverter::buildRoundingModeUFApp (Node node) {
-    Assert(node.isVar());
-    Assert(node.getType().isRoundingMode());
-
-    NodeManager *nm = NodeManager::currentNM();
-    if (roundingModeUF == Node::null()) {
-      roundingModeUF = nm->mkSkolem("roundingMode_to_BV",
-				    nm->mkFunctionType(nm->roundingModeType(),
-						       nm->mkBitVectorType(SYMFPU_NUMBER_OF_ROUNDING_MODES)),
-				    "roundingMode_to_BV",
-				    NodeManager::SKOLEM_EXACT_NAME);
-    }
-    return nm->mkNode(kind::APPLY_UF, roundingModeUF, node);
-  }
-
-
-  Node fpConverter::buildNaNUFApp (Node node) {
-    Assert(node.isVar());
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    uninterprettedFunctionMap::const_iterator i(NaNMap.find(t));
-
-    Node fun;
-    if (i == NaNMap.end()) {
-      fun = nm->mkSkolem("floating_point_to_BV_NaN",
-			 nm->mkFunctionType(t, nm->booleanType()),
-			 "floating_point_to_BV_NaN",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      NaNMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node);
-  }
-
-
-  Node fpConverter::buildInfUFApp (Node node) {
-    Assert(node.isVar());
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    uninterprettedFunctionMap::const_iterator i(infMap.find(t));
-
-    Node fun;
-    if (i == infMap.end()) {
-      fun = nm->mkSkolem("floating_point_to_BV_inf",
-			 nm->mkFunctionType(t, nm->booleanType()),
-			 "floating_point_to_BV_inf",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      infMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node);
-  }
-
-
-  Node fpConverter::buildZeroUFApp (Node node) {
-    Assert(node.isVar());
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    uninterprettedFunctionMap::const_iterator i(zeroMap.find(t));
-
-    Node fun;
-    if (i == zeroMap.end()) {
-      fun = nm->mkSkolem("floating_point_to_BV_zero",
-			 nm->mkFunctionType(t, nm->booleanType()),
-			 "floating_point_to_BV_zero",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      zeroMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node);
-  }
-
-  Node fpConverter::buildSignUFApp (Node node) {
-    Assert(node.isVar());
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    uninterprettedFunctionMap::const_iterator i(signMap.find(t));
-
-    Node fun;
-    if (i == signMap.end()) {
-      fun = nm->mkSkolem("floating_point_to_BV_sign",
-			 nm->mkFunctionType(t, nm->booleanType()),
-			 "floating_point_to_BV_sign",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      signMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node);
-  }
-
-
-  Node fpConverter::buildExponentUFApp (Node node) {
-    Assert(node.isVar());
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    uninterprettedFunctionMap::const_iterator i(exponentMap.find(t));
-
-    Node fun;
-    if (i == exponentMap.end()) {
-      traits::fpt fmt(t);
-      fun = nm->mkSkolem("floating_point_to_BV_exponent",
-			 nm->mkFunctionType(t, nm->mkBitVectorType(uf::exponentWidth(fmt))),
-			 "floating_point_to_BV_exponent",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      exponentMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node);
-  }
-
-  Node fpConverter::buildSignificandUFApp (Node node) {
-    Assert(node.isVar());
-    TypeNode t(node.getType());
-    Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
-
-    NodeManager *nm = NodeManager::currentNM();
-    uninterprettedFunctionMap::const_iterator i(significandMap.find(t));
-
-    Node fun;
-    if (i == significandMap.end()) {
-      traits::fpt fmt(t);
-      fun = nm->mkSkolem("floating_point_to_BV_significand",
-			 nm->mkFunctionType(t, nm->mkBitVectorType(uf::significandWidth(fmt))),
-			 "floating_point_to_BV_significand",
-			 NodeManager::SKOLEM_EXACT_NAME);
-      significandMap.insert(t,fun);
-    } else {
-      fun = (*i).second;
-    }
-    return nm->mkNode(kind::APPLY_UF, fun, node);
-  }
-
-
   // Creates the components constraint
   fpConverter::uf fpConverter::buildComponents(TNode current) {
     Assert(Theory::isLeafOf(current, THEORY_FP) ||
 	   current.getKind() == kind::FLOATINGPOINT_TO_FP_REAL);
 
-    //symfpu::unpackedFloat<traits> tmp(symfpu::NONDET, fpt(current.getType()));
-    /*
-      symfpu::unpackedFloat<traits>
-        tmp(buildNaNUFApp(current),
-            buildInfUFApp(current),
-            buildZeroUFApp(current),
-            buildSignUFApp(current),
-            buildExponentUFApp(current),
-            buildSignificandUFApp(current));
-    */
 
     NodeManager *nm = NodeManager::currentNM();
     uf tmp(nm->mkNode(kind::FLOATINGPOINT_COMPONENT_NAN, current),
