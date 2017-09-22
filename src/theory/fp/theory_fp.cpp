@@ -948,29 +948,6 @@ void TheoryFp::check(Effort level) {
   /* Checking should be handled by the bit-vector engine */
   return;
 
-#if 0
-  if (done() && !fullEffort(level)) {
-    return;
-  }
-
-  while(!done()) {
-    // Get all the assertions
-    Assertion assertion = get();
-    TNode fact = assertion.assertion;
-
-    Debug("fp") << "TheoryFp::check(): processing " << fact << std::endl;
-
-    // Do the work
-    switch(fact.getKind()) {
-
-    /* cases for all the theory's kinds go here... */
-
-    default:
-      Unhandled(fact.getKind());
-    }
-  }
-#endif
-
 }/* TheoryFp::check() */
 
 
