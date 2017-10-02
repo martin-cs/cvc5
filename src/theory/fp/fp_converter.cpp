@@ -334,6 +334,7 @@ namespace fp {
 	      break;
 	      
 	    case kind::FLOATINGPOINT_PLUS :
+	    case kind::FLOATINGPOINT_SUB :
 	    case kind::FLOATINGPOINT_MULT :
 	    case kind::FLOATINGPOINT_DIV :
 	      {
@@ -359,6 +360,16 @@ namespace fp {
 							prop(true)));
 		  break;
 		  
+		case kind::FLOATINGPOINT_SUB :
+		  // Should have been removed by the rewriter
+		  Unreachable("Floating-point subtraction should be removed by the rewriter.");
+		  f.insert(current, symfpu::add<traits>(fpt(current.getType()),
+							(*mode).second,
+							(*arg1).second,
+							(*arg2).second,
+							prop(false)));
+		  break;
+
 		case kind::FLOATINGPOINT_MULT :
 		  f.insert(current, symfpu::multiply<traits>(fpt(current.getType()),
 							     (*mode).second,
@@ -490,10 +501,6 @@ namespace fp {
 		// Rely on the real theory and theory combination
 		// to handle the value
 	      }
-	      break;
-
-	    case kind::FLOATINGPOINT_SUB :
-	      Unreachable("Floating-point subtraction should be removed by the rewriter.");
 	      break;
 	      
 	    case kind::FLOATINGPOINT_TO_FP_GENERIC :
