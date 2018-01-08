@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -406,6 +406,18 @@ namespace symfpu {
 
 }
 
+
+// For testing only; bitwise implementation is way slower for software
+#if 0
+#include "../core/operations.h"
+
+namespace symfpu {
+
+  template <>
+    simpleExecutable::traits::ubv orderEncode<simpleExecutable::traits, simpleExecutable::traits::ubv> (const simpleExecutable::traits::ubv &b);
+
+}
+#endif
 
 
 #endif

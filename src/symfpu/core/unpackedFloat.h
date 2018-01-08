@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -243,20 +243,25 @@ namespace symfpu {
       return maxNormalExp - minSubnormalExp;
     }
     
-    
-    inline prop inNormalRange(const fpt &format) const {
+    // knownInFormat uses the format invariant to simplify the test
+    inline prop inNormalRange(const fpt &format, const prop &knownInFormat) const {
       return ((minNormalExponent(format) <= exponent) &&
-	      (exponent <= maxNormalExponent(format)));
+	      ((exponent <= maxNormalExponent(format) || knownInFormat)));
     }
 
-    inline prop inSubnormalRange(const fpt &format) const {
-      return ((minSubnormalExponent(format) <= exponent) &&
-	      (exponent <= maxSubnormalExponent(format)));
+    // knownInFormat uses the format invariant to simplify the test
+    inline prop inSubnormalRange(const fpt &format, const prop &knownInFormat) const {
+      // To share tests with the inNormalRange test...
+      prop upperBound(!(minNormalExponent(format) <= exponent));
+      INVARIANT(upperBound == (exponent <= maxSubnormalExponent(format)));
+
+      return (((minSubnormalExponent(format) <= exponent) || knownInFormat) &&
+	      upperBound);
     }
 
-    inline prop inNormalOrSubnormalRange(const fpt &format) const {
+    inline prop inNormalOrSubnormalRange(const fpt &format, const prop &knownInFormat) const {
       return ((minSubnormalExponent(format) <= exponent) &&
-	      (exponent <= maxNormalExponent(format)));
+	      (exponent <= maxNormalExponent(format))) || knownInFormat;
     }
 
 
@@ -303,6 +308,42 @@ namespace symfpu {
     unpackedFloat<t> normaliseUp (const fpt &/*format*/) const {
       PRECONDITION(!(nan || inf || zero));  // Should not be attempting to normalise these.
 
+      normaliseShiftResult<t> normal(normaliseShift<t>(this->significand));
+
+      bwt exponentWidth(this->exponent.getWidth());
+      INVARIANT(normal.shiftAmount.getWidth() < exponentWidth); // May loose data / be incorrect for very small exponents and very large significands
+      
+      sbv signedAlignAmount(normal.shiftAmount.resize(exponentWidth).toSigned());
+      sbv correctedExponent(this->exponent - signedAlignAmount);
+
+      // Optimisation : could move the zero detect version in if used in all cases
+      //  catch - it zero detection in unpacking is different.
+      return unpackedFloat<t>(this->sign, correctedExponent, normal.normalised);
+    }
+
+    
+    unpackedFloat<t> normaliseUpDetectZero (const fpt &format) const {
+      PRECONDITION(!(nan || inf || zero));  // Should not be attempting to normalise these.
+
+      normaliseShiftResult<t> normal(normaliseShift<t>(this->significand));
+
+      bwt exponentWidth(this->exponent.getWidth());
+      INVARIANT(normal.shiftAmount.getWidth() < exponentWidth); // May loose data / be incorrect for very small exponents and very large significands
+      
+      sbv signedAlignAmount(normal.shiftAmount.resize(exponentWidth).toSigned());
+      sbv correctedExponent(this->exponent - signedAlignAmount);
+
+      return ITE(normal.isZero,
+		 unpackedFloat<t>::makeZero(format, this->sign),
+		 unpackedFloat<t>(this->sign, correctedExponent, normal.normalised));
+    }
+
+#if 0
+    // Moves the leading 1 up to the correct position, adjusting the
+    // exponent as required.
+    unpackedFloat<t> normaliseUp (const fpt &/*format*/) const {
+      PRECONDITION(!(nan || inf || zero));  // Should not be attempting to normalise these.
+
       ubv alignAmount(countLeadingZeros<t>(this->significand));
       
       ubv alignedSignificand(this->significand.modularLeftShift(alignAmount)); // CLZ means data is not lost
@@ -322,7 +363,7 @@ namespace symfpu {
 		 unpackedFloat<t>::makeZero(format, this->sign),
 		 normal);
     }
-
+#endif
 
     
 #if 0
@@ -381,7 +422,7 @@ namespace symfpu {
       prop NaNImpliesSignFalse(IMPLIES(nan, !sign));
 
       // Exponent is in range
-      prop exponentInRange(inNormalOrSubnormalRange(format));
+      prop exponentInRange(inNormalOrSubnormalRange(format, prop(false)));
 
       // Has a leading one
       prop hasLeadingOne(!(leadingOne(unpackedFloat<t>::significandWidth(format)) & significand).isAllZeros());
@@ -397,7 +438,7 @@ namespace symfpu {
 
       prop correctlyAbbreviated((mask & significand).isAllZeros());
 
-      prop subnormalImpliesTrailingZeros(IMPLIES(inSubnormalRange(format), correctlyAbbreviated));
+      prop subnormalImpliesTrailingZeros(IMPLIES(inSubnormalRange(format, prop(false)), correctlyAbbreviated));
 
       
       return (atMostOneFlag &&
@@ -440,8 +481,8 @@ namespace symfpu {
 
 
 
-      prop normalCase   (!nan && !inf && !zero && inNormalRange(format)    && hasLeadingOne);
-      prop subnormalCase(!nan && !inf && !zero && inSubnormalRange(format) && hasLeadingOne && correctlyAbbreviated);
+      prop normalCase   (!nan && !inf && !zero && inNormalRange(format, prop(false))    && hasLeadingOne);
+      prop subnormalCase(!nan && !inf && !zero && inSubnormalRange(format, prop(false)) && hasLeadingOne && correctlyAbbreviated);
 
 
     

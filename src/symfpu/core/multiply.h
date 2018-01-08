@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -79,18 +79,6 @@ template <class t>
   // Compute sign
   prop multiplySign(left.getSign() ^ right.getSign());
 
-  // Add up exponents
-  sbv exponentSum(expandingAdd<t>(left.getExponent(),right.getExponent()));
-  // Optimisation : do this late and use the increment as a carry in
-
-  sbv min(unpackedFloat<t>::minSubnormalExponent(format));
-  sbv max(unpackedFloat<t>::maxNormalExponent(format));
-  INVARIANT(expandingAdd<t>(min,min) <= exponentSum);
-  INVARIANT(exponentSum <= expandingAdd<t>(max, max));
-  // Optimisation : use the if-then-lazy-else to avoid multiplying for underflow and overflow
-  //                subnormal * subnormal does not need to be evaluated
-
-
   // Multiply the significands
   ubv significandProduct(expandingMultiply<t>(left.getSignificand(), right.getSignificand()));
   // Optimisation : low bits are not needed apart from the guard and sticky bits
@@ -106,11 +94,23 @@ template <class t>
   prop topBitSet(topBit.isAllOnes());
   INVARIANT(topBitSet || nextBit.isAllOnes());
   probabilityAnnotation<t>(topBitSet, LIKELY);
-  
 
   // Re-align
-  sbv alignedExponent(conditionalIncrement<t>(topBitSet, exponentSum)); // Will not overflow as previously expanded
   ubv alignedSignificand(conditionalLeftShiftOne<t>(!topBitSet, significandProduct)); // Will not loose information
+
+  // Add up exponents
+  #if 0
+  sbv exponentSum(expandingAdd<t>(left.getExponent(),right.getExponent()));
+  sbv min(unpackedFloat<t>::minSubnormalExponent(format));
+  sbv max(unpackedFloat<t>::maxNormalExponent(format));
+  INVARIANT(expandingAdd<t>(min,min) <= exponentSum);
+  INVARIANT(exponentSum <= expandingAdd<t>(max, max));
+  // Optimisation : use the if-then-lazy-else to avoid multiplying for underflow and overflow
+  //                subnormal * subnormal does not need to be evaluated
+  //                may be best done in the rounder along with underflow
+  #endif
+  
+  sbv alignedExponent(expandingAddWithCarryIn<t>(left.getExponent(),right.getExponent(), topBitSet));
 
   
   // Put back together

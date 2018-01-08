@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -38,6 +38,22 @@ namespace symfpu {
     uint64_t next = current << 1;
     
     while (next < x) {
+      current = next;
+      next <<= 1;
+    }
+
+    return current;
+  }
+
+  
+  uint64_t leftmostBit (uint64_t x) {
+    assert(x > 1);
+    //PRECONDITION(x > 1);
+
+    uint64_t current = 1;
+    uint64_t next = current << 1;
+    
+    while (next <= x) {
       current = next;
       next <<= 1;
     }

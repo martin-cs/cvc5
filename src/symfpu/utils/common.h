@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -36,8 +36,9 @@
 
 namespace symfpu {
   uint64_t previousPowerOfTwo (uint64_t x);
-
-  // The number of bits required to represet a number
+  uint64_t leftmostBit (uint64_t x);
+  
+  // The number of bits required to represent a number
   //  == the position of the leading 0 + 1
   //  == ceil(log_2(value + 1))
   template <class T>
@@ -59,7 +60,7 @@ namespace symfpu {
     //PRECONDITION(value != 0);
     assert(value != 0);
 
-    T i = -1;
+    T i = 0;
     //unsigned T working = *((unsigned T)&value);   // Implementation defined for signed types
     T working = value;
 
@@ -68,7 +69,7 @@ namespace symfpu {
       working >>= 1;
     }
 
-    return i;
+    return i - 1;
   }
 }
 

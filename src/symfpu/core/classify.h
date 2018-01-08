@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ template <class t>
   typename t::prop isNormal (const typename t::fpt &format, const unpackedFloat<t> &uf) {
   PRECONDITION(uf.valid(format));
 
-  return !uf.getNaN() && !uf.getInf() && !uf.getZero() && uf.inNormalRange(format);
+  return !uf.getNaN() && !uf.getInf() && !uf.getZero() && uf.inNormalRange(format, typename t::prop(true));
  }
 
 
@@ -45,7 +45,7 @@ template <class t>
   typename t::prop isSubnormal (const typename t::fpt &format, const unpackedFloat<t> &uf) {
   PRECONDITION(uf.valid(format));
 
-  return !uf.getNaN() && !uf.getInf() && !uf.getZero() && uf.inSubnormalRange(format);
+  return !uf.getNaN() && !uf.getInf() && !uf.getZero() && uf.inSubnormalRange(format, typename t::prop(true));
  }
 
 

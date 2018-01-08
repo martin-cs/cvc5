@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -188,11 +188,16 @@ namespace symfpu {
     }
 
 
-    // Only instantiated for unsigned
     template <>
     bitVector<uint64_t> bitVector<uint64_t>::modularNegate (void) const {
       return bitVector<uint64_t>(this->width, 
 				 bitVector<uint64_t>::makeRepresentable(this->width, ~this->value + 1));
+    }
+
+    template <>
+    bitVector<int64_t> bitVector<int64_t>::modularNegate (void) const {
+      return bitVector<int64_t>(this->width, 
+				bitVector<int64_t>::makeRepresentable(this->width, -this->value));
     }
 
 
@@ -236,4 +241,12 @@ namespace symfpu {
     roundingMode traits::RTZ (void) { return roundingMode(FE_TOWARDZERO); }
 
   }
+
+  #if 0
+  template <>
+  simpleExecutable::traits::ubv orderEncode<simpleExecutable::traits, simpleExecutable::traits::ubv> (const simpleExecutable::traits::ubv &b) {
+    return orderEncodeBitwise<simpleExecutable::traits, simpleExecutable::traits::ubv>(b);
+  }
+  #endif
+  
 }

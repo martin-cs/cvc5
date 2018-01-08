@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -101,18 +101,21 @@ template <class t>
   prop  idLeft(!left.getZero() &&  right.getZero());
   prop idRight( left.getZero() && !right.getZero());
 
-  return ITE(generatesNaN,
-	     unpackedFloat<t>::makeNaN(format),
-	     ITE(generatesInf,
-		 unpackedFloat<t>::makeInf(format, signOfInf),
-		 ITE(bothZero,
-		     unpackedFloat<t>::makeZero(format, signOfZero),
-		     ITE(idLeft,
-			 leftID,
-			 ITE(idRight,
-			     ITE(isAdd,
-				 right,
-				 negate(format, right)),
+  // Subtle trick : as the input to this will have been rounded it will have
+  // an ITE with the default values "on top", thus doing the special cases
+  // first (inner) rather than last (outer) allows them to be compacted better
+  return ITE(idLeft,
+	     leftID,
+	     ITE(idRight,
+		 ITE(isAdd,
+		     right,
+		     negate(format, right)),
+		 ITE(generatesNaN,
+		     unpackedFloat<t>::makeNaN(format),
+		     ITE(generatesInf,
+			 unpackedFloat<t>::makeInf(format, signOfInf),
+			 ITE(bothZero,
+			     unpackedFloat<t>::makeZero(format, signOfZero),
 			     additionResult)))));
  }
 
@@ -135,6 +138,87 @@ template <class t>
    * the first phase to be used for other things (e.g. FMA).
    */
 
+template <class t>
+struct exponentCompareInfo {
+  typedef typename t::sbv sbv;
+  typedef typename t::prop prop;
+
+  prop leftIsMax;
+  sbv maxExponent;
+  sbv absoluteExponentDifference;
+  prop diffIsZero;
+  prop diffIsOne;
+  prop diffIsGreaterThanPrecision;
+  prop diffIsTwoToPrecision;
+  prop diffIsGreaterThanPrecisionPlusOne;
+
+  exponentCompareInfo(const prop &lil, const sbv &me, const sbv &aed,
+		      const prop &diz, const prop &dio, const prop &digtp, const prop &dittp, const prop &disgtppo) :
+    leftIsMax(lil), maxExponent(me), absoluteExponentDifference(aed),
+      diffIsZero(diz), diffIsOne(dio), diffIsGreaterThanPrecision(digtp), diffIsTwoToPrecision(dittp), diffIsGreaterThanPrecisionPlusOne(disgtppo) {}
+
+  exponentCompareInfo(const exponentCompareInfo<t> &old) :
+    leftIsMax(old.leftIsMax), maxExponent(old.maxExponent), absoluteExponentDifference(old.absoluteExponentDifference),
+    diffIsZero(old.diffIsZero), diffIsOne(old.diffIsOne),
+    diffIsGreaterThanPrecision(old.diffIsGreaterThanPrecision),
+    diffIsTwoToPrecision(old.diffIsTwoToPrecision),
+    diffIsGreaterThanPrecisionPlusOne(old.diffIsGreaterThanPrecisionPlusOne) {}
+};
+
+template <class t>
+  exponentCompareInfo<t> addExponentCompare(const typename t::bwt exponentWidth,
+					    const typename t::bwt significandWidth,
+					    const typename t::sbv &leftExponent,
+					    const typename t::sbv &rightExponent,
+					    const typename t::prop &knownInCorrectOrder) {
+  PRECONDITION( leftExponent.getWidth() + 1 == exponentWidth);
+  PRECONDITION(rightExponent.getWidth() + 1 == exponentWidth);
+  
+   typedef typename t::prop prop;
+   typedef typename t::sbv sbv;
+
+#if 0
+   // The obvious implementation
+   
+   // Compute exponent distance
+   sbv maxExponent(max<t,sbv>(leftExponent.extend(1), rightExponent.extend(1)));
+   sbv minExponent(min<t,sbv>(leftExponent.extend(1), rightExponent.extend(1)));
+   sbv absoluteExponentDifference(maxExponent - minExponent);
+
+   prop leftIsMax(knownInCorrectOrder || leftExponent.extend(1) == maxExponent);
+#else
+   
+   // A better implementation(?)
+   sbv exponentDifference(leftExponent.extend(1) - rightExponent.extend(1));
+
+   prop signBit(exponentDifference.toUnsigned().extract(exponentWidth - 1, exponentWidth - 1).isAllOnes());
+   prop leftIsMax(knownInCorrectOrder || !signBit);
+
+   sbv maxExponent(ITE(leftIsMax, leftExponent.extend(1), rightExponent.extend(1)));
+   sbv absoluteExponentDifference(ITE(leftIsMax, exponentDifference, exponentDifference.modularNegate()));  // Largest negative value not obtainable so negate is safe
+#endif
+
+   INVARIANT(sbv::zero(exponentWidth) <= absoluteExponentDifference);
+
+   // Optimisation : compact these comparisons at the bit-level
+   prop diffIsZero(absoluteExponentDifference == sbv::zero(exponentWidth));
+   prop diffIsOne(absoluteExponentDifference == sbv::one(exponentWidth));
+   prop diffIsGreaterThanPrecision(sbv(exponentWidth, significandWidth) < absoluteExponentDifference);  // Assumes this is representable
+   prop diffIsTwoToPrecision(!diffIsZero && !diffIsOne && !diffIsGreaterThanPrecision);
+   prop diffIsGreaterThanPrecisionPlusOne(sbv(exponentWidth, significandWidth + 1) < absoluteExponentDifference);
+  
+   probabilityAnnotation<t,prop>(diffIsZero, UNLIKELY);
+   probabilityAnnotation<t,prop>(diffIsOne, UNLIKELY);
+   probabilityAnnotation<t,prop>(diffIsGreaterThanPrecision, LIKELY);  // In proving if not execution
+   probabilityAnnotation<t,prop>(diffIsGreaterThanPrecisionPlusOne, LIKELY);  // In proving if not execution
+
+
+   return exponentCompareInfo<t>(leftIsMax,
+				 maxExponent, absoluteExponentDifference,
+				 diffIsZero, diffIsOne, diffIsGreaterThanPrecision, diffIsTwoToPrecision, diffIsGreaterThanPrecisionPlusOne);
+ }
+  
+  
 
 // Note that the arithmetic part of add needs the rounding mode.
 // This is an oddity due to the way that the sign of zero is generated.
@@ -170,10 +254,10 @@ template <class t>
    
    // Compute exponent distance
    bwt exponentWidth(left.getExponent().getWidth() + 1);
-   sbv maxExponent(max<t,sbv>(left.getExponent().extend(1), right.getExponent().extend(1)));
-   sbv minExponent(min<t,sbv>(left.getExponent().extend(1), right.getExponent().extend(1)));
-   sbv exponentDifference(maxExponent - minExponent);
-   INVARIANT(sbv::zero(exponentWidth) <= exponentDifference);
+   bwt significandWidth(left.getSignificand().getWidth());
+   exponentCompareInfo<t> ec(addExponentCompare<t>(exponentWidth, significandWidth,
+						   left.getExponent(), right.getExponent(),
+						   knownInCorrectOrder));
    
    /* Exponent difference and effective add implies a large amount about the output exponent and flags
    ** R denotes that this is possible via rounding up and incrementing the exponent
@@ -194,33 +278,26 @@ template <class t>
    */
    // Optimisation : add 'bypass' invariants that link the final exponent to the input using this.
    
-   prop diffIsZero(exponentDifference == sbv::zero(exponentWidth));
-   prop diffIsOne(exponentDifference == sbv::one(exponentWidth));
-   prop diffIsGreaterThanPrecision(sbv(exponentWidth, left.getSignificand().getWidth()) < exponentDifference);  // Assumes this is representable
-   prop diffIsTwoToPrecision(!diffIsZero && !diffIsOne && !diffIsGreaterThanPrecision);
-
-   probabilityAnnotation<t,prop>(diffIsZero, UNLIKELY);
-   probabilityAnnotation<t,prop>(diffIsOne, UNLIKELY);
-   probabilityAnnotation<t,prop>(diffIsGreaterThanPrecision, LIKELY);  // In proving if not execution
-   
    
    // Rounder flags
    prop noOverflow(!effectiveAdd);
    prop noUnderflow(true);
    //prop exact(); // Need to see if it cancels, see below
    prop subnormalExact(true);
-   prop noSignificandOverflow((effectiveAdd && diffIsZero) ||
-			      (!effectiveAdd && (diffIsZero || diffIsOne)));
+   prop noSignificandOverflow((effectiveAdd && ec.diffIsZero) ||
+			      (!effectiveAdd && (ec.diffIsZero || ec.diffIsOne)));
 
-   prop stickyBitIsZero(diffIsZero || diffIsOne);
+   prop stickyBitIsZero(ec.diffIsZero || ec.diffIsOne);
 
 
    // Work out ordering
    prop leftLarger(knownInCorrectOrder ||
-		   (left.getExponent().extend(1) == maxExponent &&
-		    ITE(!diffIsZero,
+		   (ec.leftIsMax &&
+		    ITE(!ec.diffIsZero,
 			prop(true),
 			left.getSignificand() >= right.getSignificand())));
+   // Optimisation : can we avoid this comparison completely and allow the result to be negative?
+   // This may be hard as a compare is cheaper than a negate after, particularly as there has to be an ITE here
 
    // Extend the significands to give room for carry plus guard and sticky bits
    ubv lsig((ITE(leftLarger, left.getSignificand(), right.getSignificand())).extend(1).append(ubv::zero(2)));
@@ -233,20 +310,23 @@ template <class t>
    // Extended so no info lost, negate before shift so that sign-extension works
    ubv negatedSmaller(conditionalNegate<t,ubv,prop>(!effectiveAdd, ssig));
 
-   ubv shiftAmount(exponentDifference.toUnsigned() // Safe as >= 0
+   ubv shiftAmount(ec.absoluteExponentDifference.toUnsigned() // Safe as >= 0
 		   .resize(negatedSmaller.getWidth()));  // Safe as long as the significand has more bits than the exponent
-   INVARIANT(exponentWidth <= format.significandWidth());
+   INVARIANT(exponentWidth <= significandWidth);
 
 
-   ubv negatedAlignedSmaller(ITE(sbv(exponentWidth, left.getSignificand().getWidth() + 1) < exponentDifference,   // Fast path the common case, +1 to avoid issues with the guard bit
+   // Shift the smaller significand
+   stickyRightShiftResult<t> shifted(stickyRightShift<t>(negatedSmaller, shiftAmount));
+   
+   ubv negatedAlignedSmaller(ITE(ec.diffIsGreaterThanPrecisionPlusOne, // Fast path the common case, +1 to avoid issues with the guard bit
 				 ITE(effectiveAdd,
 				      ubv::zero(negatedSmaller.getWidth()),
 				     ~ubv::zero(negatedSmaller.getWidth())),				     
-				 negatedSmaller.signExtendRightShift(shiftAmount)));
-   ubv shiftedStickyBit(ITE(diffIsGreaterThanPrecision,
+				 shifted.signExtendedResult));
+   ubv shiftedStickyBit(ITE(ec.diffIsGreaterThanPrecision,
 			    ubv::one(negatedSmaller.getWidth()),
-			    rightShiftStickyBit<t>(negatedSmaller, shiftAmount)));  // Have to separate otherwise align up may convert it to the guard bit
-
+			    shifted.stickyBit));  // Have to separate otherwise align up may convert it to the guard bit
+   
    
    // Sum and re-align
    ubv sum(lsig.modularAdd(negatedAlignedSmaller));
@@ -269,22 +349,27 @@ template <class t>
    probabilityAnnotation<t,prop>(majorCancel, VERYUNLIKELY);
    probabilityAnnotation<t,prop>(fullCancel, VERYUNLIKELY);
 
-   INVARIANT(IMPLIES(effectiveAdd && diffIsZero, overflow));
-   INVARIANT(IMPLIES(overflow, effectiveAdd && (!diffIsGreaterThanPrecision))); // That case can only overflow by rounding
+   INVARIANT(IMPLIES(effectiveAdd && ec.diffIsZero, overflow));
+   INVARIANT(IMPLIES(overflow, effectiveAdd && (!ec.diffIsGreaterThanPrecision))); // That case can only overflow by rounding
    INVARIANT(IMPLIES(cancel, !effectiveAdd));
-   INVARIANT(IMPLIES(majorCancel, diffIsZero || diffIsOne));
+   INVARIANT(IMPLIES(majorCancel, ec.diffIsZero || ec.diffIsOne));
    
-   probabilityAnnotation<t,prop>(overflow && diffIsTwoToPrecision, UNLIKELY);
-   probabilityAnnotation<t,prop>(cancel && diffIsTwoToPrecision, UNLIKELY);
-   probabilityAnnotation<t,prop>(cancel && diffIsGreaterThanPrecision, VERYUNLIKELY);
+   probabilityAnnotation<t,prop>(overflow && ec.diffIsTwoToPrecision, UNLIKELY);
+   probabilityAnnotation<t,prop>(cancel && ec.diffIsTwoToPrecision, UNLIKELY);
+   probabilityAnnotation<t,prop>(cancel && ec.diffIsGreaterThanPrecision, VERYUNLIKELY);
    
-   prop exact(cancel && (diffIsZero || diffIsOne)); // For completeness
+   prop exact(cancel && (ec.diffIsZero || ec.diffIsOne)); // For completeness
    
    ubv alignedSum(conditionalLeftShiftOne<t,ubv,prop>(minorCancel,
 						      conditionalRightShiftOne<t,ubv,prop>(overflow, sum)));
 
-   sbv correctedExponent(conditionalDecrement<t,sbv,prop>(minorCancel,
-							  conditionalIncrement<t,sbv,prop>(overflow,maxExponent)));
+   sbv exponentCorrectionTerm(ITE(minorCancel,
+				  -sbv::one(exponentWidth),
+				  ITE(overflow,
+				      sbv::one(exponentWidth),
+				      sbv::zero(exponentWidth))));
+   
+   sbv correctedExponent(ec.maxExponent + exponentCorrectionTerm); // Safe due to extension
 
    // Watch closely...
    ubv stickyBit(ITE(stickyBitIsZero || majorCancel,
@@ -300,7 +385,9 @@ template <class t>
    //  *. Two extra significand bits for the guard and sticky bits
    fpt extendedFormat(format.exponentWidth() + 1, format.significandWidth() + 2);
    
-   // Deal with the major cancelation case
+   // Deal with the major cancellation case
+   // It would be nice to use normaliseUpDetectZero but the sign
+   // of the zero depends on the rounding mode.
    unpackedFloat<t> additionResult(ITE(fullCancel,
 				       unpackedFloat<t>::makeZero(extendedFormat, roundingMode == t::RTN()),
 				       ITE(majorCancel,

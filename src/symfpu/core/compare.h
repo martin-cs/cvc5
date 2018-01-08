@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 */
 
 #include "symfpu/core/unpackedFloat.h"
+#include "symfpu/core/ite.h"
 
 #ifndef SYMFPU_COMPARE
 #define SYMFPU_COMPARE
@@ -38,18 +39,29 @@ namespace symfpu {
     typename t::prop smtlibEqual (const typename t::fpt &format, 
 				  const unpackedFloat<t> &left,
 				  const unpackedFloat<t> &right) {
+    typedef typename t::prop prop;
+    
     PRECONDITION(left.valid(format));
     PRECONDITION(right.valid(format));
 
     // Relies on a number of properties of the unpacked format
     // particularly the use of default exponents, significands and signs
 
-    return (left.getNaN() == right.getNaN()) &&
-      (left.getInf() == right.getInf()) &&
-      (left.getZero() == right.getZero()) &&
-      (left.getSign() == right.getSign()) &&
-      (left.getExponent() == right.getExponent()) &&
-      (left.getSignificand() == right.getSignificand());
+    prop flagsEqual((left.getNaN() == right.getNaN()) &&
+		    (left.getInf() == right.getInf()) &&
+		    (left.getZero() == right.getZero()) &&
+		    (left.getSign() == right.getSign()));
+    
+    prop flagsAndExponent(flagsEqual && left.getExponent() == right.getExponent());
+
+    // Avoid comparing (and thus instantiating) the significand unless necessary
+    probabilityAnnotation<t,prop>(flagsAndExponent, UNLIKELY);
+
+    prop res(ITE(flagsAndExponent,
+		 left.getSignificand() == right.getSignificand(),
+		 prop(false)));
+
+    return res;
   }
   
   // IEEE-754 Equality (not actually an equivalence relation but ...)
@@ -67,13 +79,18 @@ namespace symfpu {
     prop bothZero(left.getZero() && right.getZero());  // Both zeros are equal
     prop neitherZero(!left.getZero() && !right.getZero());
 
+    prop flagsAndExponent(neitherNan &&
+			  (bothZero || (neitherZero &&
+					(left.getInf() == right.getInf() && 
+					 left.getSign() == right.getSign() &&
+					 left.getExponent() == right.getExponent()))));
 
-    return neitherNan &&
-      (bothZero || (neitherZero &&
-		    (left.getInf() == right.getInf() && 
-		     left.getSign() == right.getSign() &&
-		     left.getExponent() == right.getExponent() &&
-		     left.getSignificand() == right.getSignificand())));
+    // Avoid comparing (and thus instantiating) the significand unless necessary
+    probabilityAnnotation<t,prop>(flagsAndExponent, UNLIKELY);
+    
+    prop res(ITE(flagsAndExponent, left.getSignificand() == right.getSignificand(), prop(false)));
+
+    return res;
   }
   
 

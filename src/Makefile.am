@@ -334,6 +334,7 @@ libcvc4_la_SOURCES = \
 	theory/fp/fp_converter.cpp \
 	symfpu/baseTypes/cvc4_symbolic.cpp \
 	symfpu/baseTypes/cvc4_literal.cpp \
+	symfpu/utils/common.cpp \
 	theory/idl/idl_assertion.cpp \
 	theory/idl/idl_assertion.h \
 	theory/idl/idl_assertion_db.cpp \

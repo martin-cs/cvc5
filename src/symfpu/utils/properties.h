@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -40,9 +40,17 @@
 
 #define IMPLIES(X,Y) (!(X) || (Y))
 
+#ifndef PRECONDITION
 #define PRECONDITION(X) t::precondition(X)
+#endif
+
+#ifndef POSTCONDITION
 #define POSTCONDITION(X) t::postcondition(X)
+#endif
+
+#ifndef INVARIANT
 #define INVARIANT(X) t::invariant(X)
+#endif
 
 #endif
 

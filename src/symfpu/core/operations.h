@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -30,7 +30,12 @@
 **
 */
 
+#include <malloc.h>
 #include <cassert>
+#include <map>
+
+#include "../utils/common.h"
+
 
 #ifndef SYMFPU_OPERATIONS
 #define SYMFPU_OPERATIONS
@@ -39,7 +44,7 @@ namespace symfpu {
 
   /*** Expanding operations ***/
   template <class t, class bv>
-  inline bv expandingAdd (const bv &op1, const bv &op2) {
+  bv expandingAdd (const bv &op1, const bv &op2) {
     PRECONDITION(op1.getWidth() == op2.getWidth());
 
     bv x(op1.extend(1));
@@ -48,8 +53,25 @@ namespace symfpu {
     return x + y;
   }
 
+  template <class t, class bv, class prop>
+    bv expandingAddWithCarryIn (const bv &op1, const bv &op2, const prop &cin) {
+    PRECONDITION(op1.getWidth() == op2.getWidth());
+
+    bv x(op1.extend(1));
+    bv y(op2.extend(1));
+    
+    bv sum(x + y);
+
+    typename t::bwt w(sum.getWidth());
+    bv carry(ITE(cin, bv::one(w), bv::zero(w)));
+    bv res(sum.modularAdd(carry)); // Modular is safe due to the extension
+                                   // (2^n - 1) + (2^n - 1) + 1 == 2^(n+1) - 1
+                                   // -(2^n) + -(2^n) + 1 > 2^(n+1)
+    return res;
+  }
+
   template <class t, class bv>
-  inline bv expandingSubtract (const bv &op1, const bv &op2) {
+  bv expandingSubtract (const bv &op1, const bv &op2) {
     PRECONDITION(op1.getWidth() == op2.getWidth());
 
     bv x(op1.extend(1));
@@ -59,7 +81,7 @@ namespace symfpu {
   }
 
   template <class t, class bv>
-  inline bv expandingMultiply (const bv &op1, const bv &op2) {
+  bv expandingMultiply (const bv &op1, const bv &op2) {
     typename t::bwt width = op1.getWidth();
     PRECONDITION(width == op2.getWidth());
     
@@ -72,23 +94,27 @@ namespace symfpu {
 
   /*** Conditional Operations ***/
   template <class t, class bv, class prop>
-  inline bv conditionalIncrement (const prop &p, const bv &b) {
+  bv conditionalIncrement (const prop &p, const bv &b) {
     PRECONDITION(IMPLIES(p, b <  bv::maxValue(b.getWidth())));
+
+    typename t::bwt w(b.getWidth());
+    bv inc(ITE(p, bv::one(w), bv::zero(w)));
     
-    bv incremented(b.modularIncrement());
-    return bv(ITE(p, incremented, b));
+    return b + inc;
   }
 
   template <class t, class bv, class prop>
-  inline bv conditionalDecrement (const prop &p, const bv &b) {
+  bv conditionalDecrement (const prop &p, const bv &b) {
     PRECONDITION(IMPLIES(p, bv::minValue(b.getWidth()) < b));
-    
-    bv incremented(b.modularDecrement());
-    return bv(ITE(p, incremented, b));
+
+    typename t::bwt w(b.getWidth());
+    bv inc(ITE(p, bv::one(w), bv::zero(w)));
+
+    return b - inc;
   }
 
   template <class t, class bv, class prop>
-  inline bv conditionalLeftShiftOne (const prop &p, const bv &b) {
+  bv conditionalLeftShiftOne (const prop &p, const bv &b) {
     typename t::bwt w(b.getWidth());
     PRECONDITION(IMPLIES(p, (b.extract(w - 1, w - 1).isAllZeros())));
 
@@ -97,7 +123,7 @@ namespace symfpu {
   }
 
   template <class t, class bv, class prop>
-  inline bv conditionalRightShiftOne (const prop &p, const bv &b) {
+  bv conditionalRightShiftOne (const prop &p, const bv &b) {
     typename t::bwt w(b.getWidth());
     // PRECONDITION(IMPLIES(p, (b.extract(0, 0).isAllZeros())));  // Adder uses and compensates for this case.
 
@@ -106,7 +132,7 @@ namespace symfpu {
   }
 
   template <class t, class bv, class prop>
-  inline bv conditionalNegate (const prop &p, const bv &b) {
+  bv conditionalNegate (const prop &p, const bv &b) {
     typename t::bwt w(b.getWidth());
     PRECONDITION(w >= 2);
     PRECONDITION(IMPLIES(p, !(b.extract(w - 1, w - 1).isAllOnes() &&
@@ -116,7 +142,7 @@ namespace symfpu {
   }
 
   template <class t, class bv>
-  inline bv abs(const bv &b) {
+  bv abs(const bv &b) {
     return conditionalNegate<t, bv, typename t::prop>(b < bv::zero(b.getWidth()), b);
   }
 
@@ -132,7 +158,7 @@ namespace symfpu {
   };
 
   template <class t, class prop>
-  inline void probabilityAnnotation (const prop &, const probability &) {
+  void probabilityAnnotation (const prop &, const probability &) {
     // Back-ends can make use of this information if they want
     return;
   }
@@ -140,17 +166,17 @@ namespace symfpu {
 
   /*** Max and min ***/
   template <class t, class bv>
-  inline bv max (const bv &op1, const bv &op2) {
+  bv max (const bv &op1, const bv &op2) {
     return ITE(op1 <= op2, op2, op1);
   }
 
   template <class t, class bv>
-  inline bv min (const bv &op1, const bv &op2) {
+  bv min (const bv &op1, const bv &op2) {
     return ITE(op1 <= op2, op1, op2);
   }
 
   template <class t, class bv>
-  inline bv collar(const bv &op, const bv &lower, const bv &upper) {
+  bv collar(const bv &op, const bv &lower, const bv &upper) {
     return ITE(op < lower,
 	       lower,
 	       ITE(upper < op,
@@ -161,7 +187,7 @@ namespace symfpu {
 
   /*** Unary/Binary operations ***/
   template <class t, class bv, class prop, class bwt>
-  inline bv countLeadingZerosRec (const bv &op, const bwt position, const prop &allPreceedingZeros) {
+  bv countLeadingZerosRec (const bv &op, const bwt position, const prop &allPreceedingZeros) {
     typename t::bwt w(op.getWidth());
     
     PRECONDITION(0 <= position && position < w);
@@ -181,7 +207,7 @@ namespace symfpu {
   }
   
   template <class t, class bv>
-  inline bv countLeadingZeros (const bv &op) {
+  bv countLeadingZeros (const bv &op) {
     typedef typename t::bwt bwt;
     typedef typename t::prop prop;    
     bwt w(op.getWidth());
@@ -191,7 +217,7 @@ namespace symfpu {
   
   // This is sort of the opposite of count trailing 1's (a.k.a. clz(reverse(not(x))) )
   template <class t, class bv>
-  inline bv orderEncode (const bv &op) {
+  bv orderEncode (const bv &op) {
     typename t::bwt w(op.getWidth());
     
     //PRECONDITION(bv::zero(w) <= op && op <= bv(w, w)); // Not needed as using modular shift
@@ -201,15 +227,254 @@ namespace symfpu {
   }
 
 
+  // The comparison we need to do is
+  //   op.extract(relevantBits - 1, 0) == bv(relevantBits, position + 1)
+  // bits can be shared between instances of this.
+  // The following is a dynamic programming style solution.
+  // HOWEVER : it may not actually give a net saving depending on your application
+  template <class t, class bv>
+  struct fragmentMap {
+    typedef typename t::bwt bwt;
+    typedef typename t::prop prop;
+    
+    typedef std::pair<bwt, bwt> fragment;
+    typedef std::map<fragment, prop> map;
+
+  protected :
+    const bv &op;
+    map m;
+
+    prop getComparitorRec(bwt length, bwt value)
+    {
+      PRECONDITION(length > 0);
+      PRECONDITION(bitsToRepresent(value) <= length);
+      typename map::const_iterator it = m.find(std::make_pair(length, value));
+      
+      if (it != m.end()) {
+	return it->second;
+      } else {
+	bwt leadingBit = bwt(1) << (length - 1);
+	prop leadingBitIsOne(op.extract(length - 1, length - 1).isAllOnes());
+	prop correctComparison((value & leadingBit) ?
+			       leadingBitIsOne : !leadingBitIsOne);
+	prop *step = NULL;
+	
+	if (length == 1) {
+	  step = new prop(correctComparison);
+	} else {
+	  prop rec(getComparitorRec(length - 1, value & (~leadingBit)));
+	  step = new prop(correctComparison && rec);
+	}
+
+	prop res(*step);
+	delete step;
+	
+	m.insert(std::make_pair(std::make_pair(length, value), res));
+	return res;
+      }
+    }
+    
+  public :
+    fragmentMap(const bv &_op) : op(_op) {}
+
+    prop getComparitor(bwt length, bwt value)
+    {
+      PRECONDITION(length > 0);
+      PRECONDITION(bitsToRepresent(value) <= length);
+
+      prop res(getComparitorRec(length, value));
+      
+      POSTCONDITION(bv(res) == (op.extract(length - 1, 0) == bv(length, value)));
+      return res;
+    }    
+  };
+ 
+  
+  // A more compact, bitwise implementation of orderEncode for SAT encoding
+  // Intended to be used in specialisation of orderEncode
+  template <class t, class bv>
+  bv orderEncodeBitwise (const bv &op) {
+    typedef typename t::bwt bwt;
+    bwt w(op.getWidth());
+
+    fragmentMap<t,bv> m(op);
+
+    // If op is too large, then set everything to 1
+    bv outOfRange(op >= bv(w, w));
+    
+    // SAND to fill in the remaining bits
+    bv * working = new bv(outOfRange);
+    for (bwt i = w; i > 0; --i) {
+      bwt position = i - 1;    // Position in the output bitvectors
+      bwt relevantBits = bitsToRepresent(position + 1);
+      INVARIANT(relevantBits > 0);
+      
+      //bv activateBit(m.getComparitor(relevantBits, position + 1));  // No more compact and slower
+      bv activateBit(op.extract(relevantBits - 1, 0) == bv(relevantBits, position + 1));
+      bv nextBit(working->extract(0,0) | activateBit);
+      
+      bv * tmp = working;
+      working = new bv(working->append(nextBit));
+      delete tmp;
+    }
+
+    bv output(working->extract(w - 1,0));
+    delete working;
+
+    POSTCONDITION(output == (bv::one(w + 1).modularLeftShift(op.resize(w + 1))).modularDecrement().extract(w-1,0));
+    
+    return output;
+  }
+
+  
   /*** Custom shifts ***/
   // 1 if and only if the right shift moves at least one 1 out of the word
   template <class t, class bv>
-  inline bv rightShiftStickyBit (const bv &op, const bv &shift) {
+  bv rightShiftStickyBit (const bv &op, const bv &shift) {
     bv stickyBit(ITE((orderEncode<t>(shift) & op).isAllZeros(),
 		     bv::zero(op.getWidth()),
 		     bv::one(op.getWidth())));
     
     return stickyBit;
+  }
+
+
+  // It is easier to compute along with the shift
+  template <class t>
+  struct stickyRightShiftResult {
+    typedef typename t::ubv ubv;
+
+    ubv signExtendedResult;
+    ubv stickyBit;
+
+    stickyRightShiftResult(const ubv &ser, const ubv &sb) : signExtendedResult(ser), stickyBit(sb) {}
+  stickyRightShiftResult(const stickyRightShiftResult &old) : signExtendedResult(old.signExtendedResult), stickyBit(old.stickyBit) {}
+  };
+
+  
+  template <class t>
+  stickyRightShiftResult<t> stickyRightShift (const typename t::ubv &input, const typename t::ubv &shiftAmount) {    
+    stickyRightShiftResult<t> res(input.signExtendRightShift(shiftAmount), rightShiftStickyBit<t>(input, shiftAmount));
+
+    return res;
+  }
+
+  
+  template <class t>
+  stickyRightShiftResult<t> stickyRightShiftBitwise (const typename t::ubv &input, const typename t::ubv &shiftAmount) {
+    typedef typename t::bwt bwt;
+    typedef typename t::prop prop;
+    typedef typename t::ubv ubv;
+
+    bwt width(input.getWidth());
+    bwt startingPosition(positionOfLeadingOne(width));
+    INVARIANT(0 < startingPosition && startingPosition < width);
+    
+    // Catch the out of bounds case
+    PRECONDITION(shiftAmount.getWidth() == width);
+    prop fullShift(shiftAmount >= ubv(width, width));
+    // Note the shiftAmount is treated as unsigned...
+
+    ubv *working = new ubv(input);
+    prop *stickyBit = new prop(ITE(fullShift, !input.isAllZeros(), prop(false)));
+    
+    for (bwt i = startingPosition + 1; i > 0; --i)
+    {
+      bwt shiftAmountPosition = i - 1;
+
+      prop shiftEnabled = fullShift || shiftAmount.extract(shiftAmountPosition, shiftAmountPosition).isAllOnes();
+
+      prop stickyAccumulate(shiftEnabled && !(working->extract((1ULL << shiftAmountPosition) - 1, 0).isAllZeros())); // Would this loose data?
+      
+      prop * tmp = stickyBit;
+      stickyBit = new prop(*stickyBit || stickyAccumulate);
+      delete tmp;
+
+
+      // Note the slightly unexpected sign extension
+      ubv shifted(working->signExtendRightShift(ubv::one(width) << ubv(width, shiftAmountPosition)));
+      
+      ubv * workingTmp = working;
+      working = new ubv(ITE(shiftEnabled, shifted, *working));
+      delete workingTmp;
+    }
+    
+    stickyRightShiftResult<t> res(*working, ubv(*stickyBit).extend(width - 1));
+
+    delete working;
+    delete stickyBit;
+
+    POSTCONDITION(res.signExtendedResult == input.signExtendRightShift(shiftAmount));
+    POSTCONDITION(res.stickyBit == rightShiftStickyBit<t>(input, shiftAmount));
+
+    return res;
+  }
+  
+  
+  
+  template <class t>
+  struct normaliseShiftResult {
+    typedef typename t::ubv ubv;
+    typedef typename t::prop prop;
+    
+    ubv normalised;
+    ubv shiftAmount;
+    prop isZero;
+    
+  normaliseShiftResult(const ubv &n, const ubv &s, const prop &z) : normalised(n), shiftAmount(s), isZero(z) {}
+  normaliseShiftResult(const normaliseShiftResult<t> &old) :  normalised(old.normalised), shiftAmount(old.shiftAmount), isZero(old.isZero) {}
+  };
+
+  template <class t>
+  normaliseShiftResult<t> normaliseShift (const typename t::ubv input) {
+    typedef typename t::bwt bwt;
+    typedef typename t::prop prop;
+    typedef typename t::ubv ubv;
+
+    bwt width(input.getWidth());
+    bwt startingMask(previousPowerOfTwo(width));
+    INVARIANT(startingMask < width);
+    
+    // Catch the zero case
+    prop zeroCase(input.isAllZeros());
+
+    ubv *working = new ubv(input);
+    ubv *shiftAmount = NULL;
+    prop *deactivateShifts = new prop(zeroCase);
+    
+    for (bwt i = startingMask; i > 0; i >>= 1) {
+      prop newDeactivateShifts = *deactivateShifts || working->extract(width-1,width-1).isAllOnes();
+      delete deactivateShifts;
+      deactivateShifts = new prop(newDeactivateShifts);
+      
+      ubv mask(ubv::allOnes(i).append(ubv::zero(width - i)));
+      prop shiftNeeded(!(*deactivateShifts) && (mask & *working).isAllZeros());
+
+      // Modular is safe because of the mask comparison
+      ubv shifted(ITE(shiftNeeded, working->modularLeftShift(ubv(width, i)), *working));
+      delete working;
+      working = new ubv(shifted);
+
+      if (shiftAmount == NULL) {
+	shiftAmount = new ubv(shiftNeeded);
+      } else {
+	ubv newShiftAmount = shiftAmount->append(ubv(shiftNeeded));
+	delete shiftAmount;
+	shiftAmount = new ubv(newShiftAmount);
+      }
+    }
+
+    normaliseShiftResult<t> res(*working, *shiftAmount, zeroCase);
+
+    delete deactivateShifts;
+    delete working;
+    delete shiftAmount;
+
+    POSTCONDITION(res.normalised.extract(width-1,width-1).isAllZeros() == res.isZero);
+    POSTCONDITION(IMPLIES(res.isZero, res.shiftAmount.isAllZeros()));
+    POSTCONDITION(res.shiftAmount < ubv(res.shiftAmount.getWidth(), width));
+
+    return res;
   }
 
 
@@ -230,7 +495,7 @@ namespace symfpu {
   // Compute o \in [0.5,2), r \in [0,\delta) such that:  x = o*y + r
   // Return (o, r != 0)
   template <class t>
-  inline resultWithRemainderBit<t> fixedPointDivide (const typename t::ubv &x, const typename t::ubv &y) {
+  resultWithRemainderBit<t> fixedPointDivide (const typename t::ubv &x, const typename t::ubv &y) {
     typename t::bwt w(x.getWidth());
 
     // Same width and both have MSB ones
@@ -255,7 +520,7 @@ namespace symfpu {
   // Compute o \in [1,sqrt(2)), r \in [0,o*2 + 1) such that x = o*o + r with 1/p bits
   // Return (o, r != 0)
   template <class t>
-  inline resultWithRemainderBit<t> fixedPointSqrt (const typename t::ubv &x) {
+  resultWithRemainderBit<t> fixedPointSqrt (const typename t::ubv &x) {
     typedef typename t::bwt bwt;
     typedef typename t::ubv ubv;
     typedef typename t::prop prop;
@@ -292,7 +557,7 @@ namespace symfpu {
   // Here the "remainder bit" is actual the result bit and
   // The result is the remainder
   template <class t>
-  inline resultWithRemainderBit<t> divideStep (const typename t::ubv &x, const typename t::ubv &y) {
+  resultWithRemainderBit<t> divideStep (const typename t::ubv &x, const typename t::ubv &y) {
     typedef typename t::bwt bwt;
     typedef typename t::ubv ubv;
     typedef typename t::prop prop;

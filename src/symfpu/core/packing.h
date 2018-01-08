@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -53,26 +53,14 @@ namespace symfpu {
     ubv packedExponent(packedFloat.extract(sigWidth + exWidth - 1, sigWidth));
     prop sign(packedFloat.extract(pWidth - 1, sigWidth + exWidth).isAllOnes());
 
-    // Analyse
-    prop zeroExponent(packedExponent.isAllZeros());
-    prop onesExponent(packedExponent.isAllOnes());
-    prop zeroSignificand(packedSignificand.isAllZeros());
-
-    // Identify the cases
-    prop isZero(zeroExponent && zeroSignificand);
-    prop isSubnormal(zeroExponent && !zeroSignificand);
-    prop isNormal(!zeroExponent && !onesExponent);
-    prop isInf(onesExponent && zeroSignificand);
-    prop isNaN(onesExponent && !zeroSignificand);
-
-    INVARIANT(isZero || isSubnormal || isNormal || isInf || isNaN);
-
     // Prepare the normal and subnormal cases
     bwt unpackedExWidth = unpackedFloat<t>::exponentWidth(format);
     bwt unpackedSigWidth = unpackedFloat<t>::significandWidth(format);
 
     INVARIANT(unpackedExWidth > exWidth); // To avoid overflow
     sbv biasedExponent(packedExponent.extend(unpackedExWidth - exWidth).toSigned() - unpackedFloat<t>::bias(format));
+    // Optimisation : both the normal and subnormal paths subtract a constant
+    // from the exponent as the last step (bias and minNormalExponent respectively)
 
     ubv significandWithLeadingZero(packedSignificand.extend(unpackedSigWidth - sigWidth));
     ubv significandWithLeadingOne(unpackedFloat<t>::leadingOne(unpackedFloat<t>::significandWidth(format)) | significandWithLeadingZero);
@@ -84,6 +72,23 @@ namespace symfpu {
     //                and then set the carry in when you add to the exponent.
     //                May be sufficient to just assert that it has a leading zero
 
+    
+    // Analyse
+    prop zeroExponent(packedExponent.isAllZeros());
+    prop onesExponent(packedExponent.isAllOnes());
+    prop zeroSignificand(significandWithLeadingZero.isAllZeros()); // Shared with normaliseUp
+
+    // Identify the cases
+    prop isZero(zeroExponent && zeroSignificand);
+    prop isSubnormal(zeroExponent && !zeroSignificand);
+    prop isNormal(!zeroExponent && !onesExponent);
+    prop isInf(onesExponent && zeroSignificand);
+    prop isNaN(onesExponent && !zeroSignificand);
+
+    INVARIANT(isZero || isSubnormal || isNormal || isInf || isNaN);
+
+    probabilityAnnotation<t,prop>(isSubnormal, UNLIKELY);
+    
     // Splice together
     unpackedFloat<t> uf(ITE(isNaN,
 			    unpackedFloat<t>::makeNaN(format),
@@ -91,7 +96,7 @@ namespace symfpu {
 				unpackedFloat<t>::makeInf(format, sign),
 				ITE(isZero,
 				    unpackedFloat<t>::makeZero(format, sign),
-				    ITE(isNormal,
+				    ITE(!isSubnormal,
 					ufNormal,
 					ufSubnormalBase.normaliseUp(format) )))));
 
@@ -111,21 +116,34 @@ namespace symfpu {
     PRECONDITION(uf.valid(format));
 
     // Sign
-    ubv packedSign(ITE(uf.getSign(), ubv::one(1), ubv::zero(1)));
+    ubv packedSign(uf.getSign());
 
     // Exponent
     bwt packedExWidth = format.packedExponentWidth();
-    ubv maxSig(ubv::allOnes(packedExWidth));
-    ubv minSig(ubv::zero(packedExWidth));
 
-    prop inNormalRange(uf.inNormalRange(format));
-    prop inSubnormalRange(uf.inSubnormalRange(format));
-    INVARIANT(inNormalRange || inSubnormalRange);        // Default values ensure this.
+    prop inNormalRange(uf.inNormalRange(format, prop(true)));
+    INVARIANT(inNormalRange || uf.inSubnormalRange(format, prop(true)));     // Default values ensure this.
+    //prop inSubnormalRange(uf.inSubnormalRange(format));        // Allowing this optimisation
+    prop inSubnormalRange(!inNormalRange);
 
-    sbv biasedSig(uf.getExponent() + unpackedFloat<t>::bias(format));
+    probabilityAnnotation<t,prop>(inNormalRange, LIKELY);
+    probabilityAnnotation<t,prop>(inSubnormalRange, UNLIKELY);
+    
+    sbv biasedExp(uf.getExponent() + unpackedFloat<t>::bias(format));
     // Will be correct for normal values only, subnormals may still be negative.
-    ubv packedBiasedSig(biasedSig.toUnsigned().extract(packedExWidth - 1,0));
+    ubv packedBiasedExp(biasedExp.toUnsigned().extract(packedExWidth - 1,0));
 
+    ubv maxExp(ubv::allOnes(packedExWidth));
+    ubv minExp(ubv::zero(packedExWidth));
+
+    prop hasMaxExp(uf.getNaN() || uf.getInf());
+    prop hasMinExp(uf.getZero() || inSubnormalRange);
+    prop hasFixedExp(hasMaxExp || hasMinExp);
+    
+    ubv packedExp(ITE(hasFixedExp,
+		      ITE(hasMaxExp, maxExp, minExp),
+		      packedBiasedExp));
+    
 
     // Significand
     bwt packedSigWidth = format.packedSignificandWidth();
@@ -135,26 +153,23 @@ namespace symfpu {
     ubv dropLeadingOne(unpackedSignificand.extract(packedSigWidth - 1,0));
     ubv correctedSubnormal((unpackedSignificand >> (uf.getSubnormalAmount(format).toUnsigned().matchWidth(unpackedSignificand))).extract(packedSigWidth - 1,0));
 
+    prop hasFixedSignificand(uf.getNaN() || uf.getInf() || uf.getZero());
     
-    // Encodings
-    ubv packedNaN(maxSig.append(unpackedFloat<t>::nanPattern(format.packedSignificandWidth())));
-    ubv packedInf(maxSig.append(dropLeadingOne));          // Uses the default value.
-    ubv packedZero(minSig.append(dropLeadingOne));         // Uses the default value.
-    ubv packedNormal(packedBiasedSig.append(dropLeadingOne));
-    ubv packedSubnormal(minSig.append(correctedSubnormal));
+    ubv packedSig(ITE(hasFixedSignificand,
+		      ITE(uf.getNaN(),
+			  unpackedFloat<t>::nanPattern(packedSigWidth),
+			  ubv::zero(packedSigWidth)),
+		      ITE(inNormalRange,
+			  dropLeadingOne,
+			  correctedSubnormal)));
 
-    ubv result(packedSign.append(ITE(uf.getNaN(),
-				     packedNaN,
-				     ITE(uf.getInf(),
-					 packedInf,
-					 ITE(uf.getZero(),
-					     packedZero,
-					     ITE(inNormalRange,
-						 packedNormal,
-						 packedSubnormal))))));
-    POSTCONDITION(result.getWidth() == format.packedWidth());
 
-    return result;
+    // Finish up
+    ubv packed(packedSign.append(packedExp).append(packedSig));
+
+    POSTCONDITION(packed.getWidth() == format.packedWidth());
+
+    return packed;
   }
 
 }

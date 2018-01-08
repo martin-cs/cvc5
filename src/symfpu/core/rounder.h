@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 Martin Brain
+** Copyright (C) 2018 Martin Brain
 ** 
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -366,6 +366,11 @@ template <class t>
   //                && sigWidth > targetSignificandBits
   probabilityAnnotation<t>(earlyOverflow, UNLIKELY);  // (over,under)flows are generally rare events
   probabilityAnnotation<t>(earlyUnderflow, UNLIKELY);
+
+  prop potentialLateOverflow(exp == unpackedFloat<t>::maxNormalExponent(format).extend(exponentExtension));
+  prop potentialLateUnderflow(exp == unpackedFloat<t>::minSubnormalExponent(format).extend(exponentExtension).decrement());
+  probabilityAnnotation<t>(potentialLateOverflow, VERYUNLIKELY);
+  probabilityAnnotation<t>(potentialLateUnderflow, VERYUNLIKELY);
   
 
 
@@ -388,23 +393,29 @@ template <class t>
 
   // For subnormals, locating the guard and stick bits is a bit more involved
   //sbv subnormalAmount(uf.getSubnormalAmount(format)); // Catch is, uf isn't in the given format, so this doesn't work
-  sbv subnormalAmount(max<t>(unpackedFloat<t>::minNormalExponent(format).matchWidth(exp) - exp,
-			     sbv::zero(exp.getWidth())));
-  INVARIANT((subnormalAmount < sbv(expWidth, sigWidth - 1)) || earlyUnderflow);
-  
+  sbv subnormalAmount(expandingSubtract<t>(unpackedFloat<t>::minNormalExponent(format).matchWidth(exp),exp));
+  INVARIANT((subnormalAmount < sbv(expWidth + 1, sigWidth - 1)) || earlyUnderflow);
+  // Note that this is negative if normal, giving a full subnormal mask
+  // but the result will be ignored (see the next invariant)
+
   ubv subnormalShiftPrepared(subnormalAmount.toUnsigned().matchWidth(extractedSignificand));
-  
+
+  // Compute masks
   ubv subnormalMask(orderEncode<t>(subnormalShiftPrepared)); // Invariant implies this if all ones, it will not be used
-  ubv subnormalIncrementAmount(subnormalMask.modularIncrement()); // The only case when this looses info is earlyUnderflow
-  INVARIANT(IMPLIES(subnormalIncrementAmount.isAllZeros(), earlyUnderflow));
   ubv subnormalStickyMask(subnormalMask >> ubv::one(targetSignificandWidth + 1)); // +1 as the exponent is extended
-  ubv subnormalGuardLocation(subnormalMask & (~subnormalStickyMask));
 
+  // Apply
+  ubv subnormalMaskedSignificand(extractedSignificand & (~subnormalMask));
+  ubv subnormalMaskRemoved(extractedSignificand & subnormalMask);
+  // Optimisation : remove the masking with a single orderEncodeBitwise style construct
   
-  prop subnormalGuardBit(!(extractedSignificand & subnormalGuardLocation).isAllZeros());
+  prop subnormalGuardBit(!(subnormalMaskRemoved & (~subnormalStickyMask)).isAllZeros());
   prop subnormalStickyBit(guardBit || stickyBit || 
-			  !((extractedSignificand & subnormalStickyMask).isAllZeros()));
+			  !((subnormalMaskRemoved & subnormalStickyMask).isAllZeros()));
 
+
+  ubv subnormalIncrementAmount((subnormalMask.modularLeftShift(ubv::one(targetSignificandWidth + 1))) & ~subnormalMask); // The only case when this looses info is earlyUnderflow
+  INVARIANT(IMPLIES(subnormalIncrementAmount.isAllZeros(), earlyUnderflow || normalRounding));
   
 
   // Have to choose the right one dependent on rounding mode
@@ -420,7 +431,6 @@ template <class t>
 
 
   // Perform the increment as needed
-  ubv subnormalMaskedSignificand(extractedSignificand & (~subnormalMask));
   ubv leadingOne(unpackedFloat<t>::leadingOne(targetSignificandWidth));
   // Not actually true, consider minSubnormalExponent - 1 : not an early underfow and empty significand
   //INVARIANT(!(subnormalMaskedSignificand & leadingOne).isAllZeros() ||
@@ -478,8 +488,8 @@ template <class t>
   
   /*** Finish ***/
 
-  prop computedOverflow(correctedExponent > maxNormal);
-  prop computedUnderflow(correctedExponent < minSubnormal);
+  prop computedOverflow(potentialLateOverflow && incrementExponentNeeded);
+  prop computedUnderflow(potentialLateUnderflow && !incrementExponentNeeded);
   probabilityAnnotation<t>(computedOverflow, UNLIKELY);
   probabilityAnnotation<t>(computedUnderflow, UNLIKELY);
 
