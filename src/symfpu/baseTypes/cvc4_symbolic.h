@@ -500,19 +500,20 @@ namespace symfpu {
     public : 
 
       inline proposition operator <= (const bitVector<isSigned> &op) const {
-	  return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLE : ::CVC4::kind::BITVECTOR_ULE, this->node, op.node)));
+	// TODO add kind::BITVECTOR_SLEBV and BITVECTOR_ULEBV
+	return (*this < op) || (*this == op);
       }
 
       inline proposition operator >= (const bitVector<isSigned> &op) const {
-	return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGE : ::CVC4::kind::BITVECTOR_UGE, this->node, op.node)));
+	return (*this < op) || (*this == op);
       }
 
       inline proposition operator < (const bitVector<isSigned> &op) const {
-	return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLT : ::CVC4::kind::BITVECTOR_ULT, this->node, op.node)));
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLTBV : ::CVC4::kind::BITVECTOR_ULTBV, this->node, op.node));
       }
 
       inline proposition operator > (const bitVector<isSigned> &op) const {
-	return proposition(toProposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SGT : ::CVC4::kind::BITVECTOR_UGT, this->node, op.node)));
+	return proposition(::CVC4::NodeManager::currentNM()->mkNode((isSigned) ? ::CVC4::kind::BITVECTOR_SLTBV : ::CVC4::kind::BITVECTOR_ULTBV, op.node, this->node));
       }
 
       /*** Type conversion ***/
@@ -633,22 +634,17 @@ namespace symfpu {
       return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::ITE, cond.getNode(), l.getNode(), r.getNode())); \
     }									\
   }
-#endif
 
+#else
 #define CVC4SYMITEDFN(T) template <>					\
     struct ite<cvc4_symbolic::proposition, T> {				\
     static const T iteOp (const cvc4_symbolic::proposition &cond,	\
 			  const T &l,					\
 			  const T &r) {					\
-      ::CVC4::NodeManager *nm = ::CVC4::NodeManager::currentNM();	\
-      return T(nm->mkNode(::CVC4::kind::ITE,				\
-			  nm->mkNode(::CVC4::kind::EQUAL,		\
-				     cond.getNode(),			\
-				     nm->mkConst(::CVC4::BitVector(1U, 1U))), \
-			  l.getNode(),					\
-			  r.getNode()));				\
+      return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ITE, cond.getNode(), l.getNode(), r.getNode())); \
     }									\
   }
+#endif
 
   // Can (unsurprisingly) only ITE things which contain Nodes  
   CVC4SYMITEDFN(cvc4_symbolic::traits::rm);
