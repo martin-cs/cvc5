@@ -704,6 +704,16 @@ namespace symfpu {
   CVC4SYMITEDFN(cvc4_symbolic::traits::ubv);
 
 #undef CVC4SYMITEDFN
+
+  template <>
+  cvc4_symbolic::traits::ubv orderEncode<cvc4_symbolic::traits, cvc4_symbolic::traits::ubv> (const cvc4_symbolic::traits::ubv &b);
+
+  template <>
+  stickyRightShiftResult<cvc4_symbolic::traits> stickyRightShift (const cvc4_symbolic::traits::ubv &input, const cvc4_symbolic::traits::ubv &shiftAmount);
+
+  template <>
+  void probabilityAnnotation<cvc4_symbolic::traits, cvc4_symbolic::traits::prop> (const cvc4_symbolic::traits::prop &p, const probability &pr);
+
   
 };
 

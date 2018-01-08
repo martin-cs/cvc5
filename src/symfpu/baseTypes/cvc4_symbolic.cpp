@@ -66,4 +66,21 @@ namespace symfpu {
     }    
     
   };
+
+  template <>
+  cvc4_symbolic::traits::ubv orderEncode<cvc4_symbolic::traits, cvc4_symbolic::traits::ubv> (const cvc4_symbolic::traits::ubv &b) {
+    return orderEncodeBitwise<cvc4_symbolic::traits, cvc4_symbolic::traits::ubv>(b);
+  }
+
+  template <>
+  stickyRightShiftResult<cvc4_symbolic::traits> stickyRightShift (const cvc4_symbolic::traits::ubv &input, const cvc4_symbolic::traits::ubv &shiftAmount) {
+    return stickyRightShiftBitwise<cvc4_symbolic::traits>(input, shiftAmount);
+  }
+
+  template <>
+  void probabilityAnnotation<cvc4_symbolic::traits, cvc4_symbolic::traits::prop> (const cvc4_symbolic::traits::prop &p, const probability &pr) {
+    // For now, do nothing...
+    return;
+  }
+
 };
