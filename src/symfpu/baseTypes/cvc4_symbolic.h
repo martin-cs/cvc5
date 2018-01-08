@@ -638,12 +638,63 @@ namespace symfpu {
 #else
 #define CVC4SYMITEDFN(T) template <>					\
     struct ite<cvc4_symbolic::proposition, T> {				\
-    static const T iteOp (const cvc4_symbolic::proposition &cond,	\
-			  const T &l,					\
-			  const T &r) {					\
-      return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ITE, cond.getNode(), l.getNode(), r.getNode())); \
+    static const T iteOp (const cvc4_symbolic::proposition &_cond,	\
+			  const T &_l,					\
+			  const T &_r) {				\
+      ::CVC4::NodeManager* nm = ::CVC4::NodeManager::currentNM();	\
+      									\
+      ::CVC4::Node cond = _cond.getNode();				\
+      ::CVC4::Node l = _l.getNode();					\
+      ::CVC4::Node r = _r.getNode();					\
+									\
+      /* Handle some common symfpu idioms */				\
+      if (cond.isConst()) {						\
+	if (cond == nm->mkConst(::CVC4::BitVector(1U, 1U))) {		\
+	  return l;							\
+	} else {							\
+	  return r;							\
+	}								\
+      } else {								\
+	if (l.getKind() == ::CVC4::kind::BITVECTOR_ITE) {		\
+	  if (l[1] == r) {						\
+	    return nm->mkNode(::CVC4::kind::BITVECTOR_ITE,		\
+			      nm->mkNode(::CVC4::kind::BITVECTOR_AND,	\
+					 cond,				\
+					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, l[0])), \
+			      l[2],					\
+			      r);					\
+	  } else if (l[2] == r) {					\
+	    return nm->mkNode(::CVC4::kind::BITVECTOR_ITE,		\
+			      nm->mkNode(::CVC4::kind::BITVECTOR_AND,	\
+					 cond,				\
+					 l[0]),				\
+			      l[1],					\
+			      r);					\
+	  }								\
+	  								\
+	} else if (r.getKind() == ::CVC4::kind::BITVECTOR_ITE) {	\
+	  if (l[1] == l) {						\
+	    return nm->mkNode(::CVC4::kind::BITVECTOR_ITE,		\
+			      nm->mkNode(::CVC4::kind::BITVECTOR_AND,	\
+					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, cond), \
+					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, l[0])), \
+			      l[2],					\
+			      l);					\
+	  } else if (l[2] == l) {					\
+	    return nm->mkNode(::CVC4::kind::BITVECTOR_ITE,		\
+			      nm->mkNode(::CVC4::kind::BITVECTOR_AND,	\
+					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, cond), \
+					 l[0]),				\
+			      l[1],					\
+			      l);					\
+	  }								\
+	  								\
+	}								\
+      }									\
+      return T(::CVC4::NodeManager::currentNM()->mkNode(::CVC4::kind::BITVECTOR_ITE, cond, l, r)); \
     }									\
   }
+
 #endif
 
   // Can (unsurprisingly) only ITE things which contain Nodes  
