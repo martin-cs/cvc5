@@ -505,7 +505,7 @@ namespace symfpu {
       }
 
       inline proposition operator >= (const bitVector<isSigned> &op) const {
-	return (*this < op) || (*this == op);
+	return (*this > op) || (*this == op);
       }
 
       inline proposition operator < (const bitVector<isSigned> &op) const {
@@ -673,19 +673,19 @@ namespace symfpu {
 	  }								\
 	  								\
 	} else if (r.getKind() == ::CVC4::kind::BITVECTOR_ITE) {	\
-	  if (l[1] == l) {						\
+	  if (r[1] == l) {						\
 	    return nm->mkNode(::CVC4::kind::BITVECTOR_ITE,		\
 			      nm->mkNode(::CVC4::kind::BITVECTOR_AND,	\
 					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, cond), \
-					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, l[0])), \
-			      l[2],					\
+					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, r[0])), \
+			      r[2],					\
 			      l);					\
-	  } else if (l[2] == l) {					\
+	  } else if (r[2] == l) {					\
 	    return nm->mkNode(::CVC4::kind::BITVECTOR_ITE,		\
 			      nm->mkNode(::CVC4::kind::BITVECTOR_AND,	\
 					 nm->mkNode(::CVC4::kind::BITVECTOR_NOT, cond), \
-					 l[0]),				\
-			      l[1],					\
+					 r[0]),				\
+			      r[1],					\
 			      l);					\
 	  }								\
 	  								\

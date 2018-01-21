@@ -101,15 +101,18 @@ template <class t>
   prop  idLeft(!left.getZero() &&  right.getZero());
   prop idRight( left.getZero() && !right.getZero());
 
+  // At most one of idLeft, idRight, generatesNaN, generatesInf and bothZero is true.
+  // If used in addition additionResult is guaranteed to not be NaN.
+
   // Subtle trick : as the input to this will have been rounded it will have
   // an ITE with the default values "on top", thus doing the special cases
   // first (inner) rather than last (outer) allows them to be compacted better
-  return ITE(idLeft,
-	     leftID,
-	     ITE(idRight,
-		 ITE(isAdd,
-		     right,
-		     negate(format, right)),
+  return ITE(idRight,
+	     ITE(isAdd,
+		 right,
+		 negate(format, right)),
+	     ITE(idLeft,
+		 leftID,
 		 ITE(generatesNaN,
 		     unpackedFloat<t>::makeNaN(format),
 		     ITE(generatesInf,

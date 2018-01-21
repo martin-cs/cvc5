@@ -98,6 +98,8 @@ namespace symfpu {
    // It is not zero, inf or NaN so it only matters when addArgument is zero when it would be returned.
    unpackedFloat<t> roundedMultiplyResult(rounder(format, roundingMode, arithmeticMultiplyResult));
 
+   unpackedFloat<t> fullMultiplyResult(addMultiplySpecialCases(format, leftMultiply, rightMultiply, roundedMultiplyResult.getSign(), roundedMultiplyResult));
+
    
    // We need the flags from the multiply special cases, determined on the arithemtic result,
    // i.e. handling special values and not the underflow / overflow of the result.
@@ -111,7 +113,7 @@ namespace symfpu {
    unpackedFloat<t> result(addAdditionSpecialCasesWithID(format,
 							 roundingMode,
 							 multiplyResultWithSpecialCases,
-							 roundedMultiplyResult, // for the identity case
+							 fullMultiplyResult, // for the identity case
 							 addArgument,
 							 roundedResult,
 							 prop(true)));
