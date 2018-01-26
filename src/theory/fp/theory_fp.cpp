@@ -306,7 +306,7 @@ Node TheoryFp::toRealUF (Node node) {
     std::vector<TypeNode> args(1);
     args[0] = t;
     fun = nm->mkSkolem("floatingpoint_to_real_infinity_and_NaN_case",
-		       nm->mkFunctionType(t, nm->realType()),
+		       nm->mkFunctionType(args, nm->realType()),
 		       "floatingpoint_to_real_infinity_and_NaN_case",
 		       NodeManager::SKOLEM_EXACT_NAME);
     toRealMap.insert(t,fun);
@@ -323,10 +323,10 @@ Node TheoryFp::abstractRealToFloat (Node node) {
   Assert(t.getKind() == kind::FLOATINGPOINT_TYPE);
 
   NodeManager *nm = NodeManager::currentNM();
-  comparisonUFMap::const_iterator i(floatToRealMap.find(t));
+  comparisonUFMap::const_iterator i(realToFloatMap.find(t));
 
   Node fun;
-  if (i == floatToRealMap.end()) {
+  if (i == realToFloatMap.end()) {
     std::vector<TypeNode> args(2);
     args[0] = node[0].getType();
     args[1] = node[1].getType();
@@ -334,7 +334,7 @@ Node TheoryFp::abstractRealToFloat (Node node) {
 		       nm->mkFunctionType(args, node.getType()),
 		       "floatingpoint_abstract_real_to_float",
 		       NodeManager::SKOLEM_EXACT_NAME);
-    toRealMap.insert(t,fun);
+    realToFloatMap.insert(t,fun);
   } else {
     fun = (*i).second;
   }
@@ -362,7 +362,7 @@ Node TheoryFp::abstractFloatToReal (Node node) {
 		       nm->mkFunctionType(args, nm->realType()),
 		       "floatingpoint_abstract_float_to_real",
 		       NodeManager::SKOLEM_EXACT_NAME);
-    toRealMap.insert(t,fun);
+    floatToRealMap.insert(t,fun);
   } else {
     fun = (*i).second;
   }
