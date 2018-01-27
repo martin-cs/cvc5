@@ -5,4 +5,7 @@
 
 module FP "options/fp_options.h" Fp
 
+option fpOverApproximation --fp-over-approximate bool :default false :read-write
+ overapproximate bit-vector encodings of floating-point operations
+
 endmodule

@@ -86,6 +86,14 @@ namespace fp {
     /* Creates the relevant components for a variable */
     uf buildComponents(TNode current);
 
+    typedef context::CDHashMap<Node, int, NodeHashFunction> probabilityMapType;
+    probabilityMapType probabilityAnnotation;   // Set by symfpu
+    probabilityMapType getProbabilityCache;     // Computed by getProbability
+
+  public:   // HACK!!!
+    static fpConverter *currentConverter;
+    void registerProbabilityAnnotation(Node, int);
+
 
   public :
     context::CDList<Node> additionalAssertions;
@@ -97,6 +105,10 @@ namespace fp {
 
     /** Gives the node representing the value of a given variable */
     Node getValue (Valuation &, TNode);
+
+    /** Returns the probability scoring for a condition.
+	Positive is likely, negative is unlikely, 0 is unbiased. */
+    int getProbability(TNode);
 
   };
 

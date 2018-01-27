@@ -29,6 +29,9 @@
 
 #include "symfpu/baseTypes/cvc4_symbolic.h"
 
+// CVC4 headers
+#include "theory/fp/fp_converter.h"
+
 namespace symfpu {
   namespace cvc4_symbolic {
 
@@ -79,7 +82,7 @@ namespace symfpu {
 
   template <>
   void probabilityAnnotation<cvc4_symbolic::traits, cvc4_symbolic::traits::prop> (const cvc4_symbolic::traits::prop &p, const probability &pr) {
-    // For now, do nothing...
+    ::CVC4::theory::fp::fpConverter::currentConverter->registerProbabilityAnnotation(p.getNode(), pr);
     return;
   }
 

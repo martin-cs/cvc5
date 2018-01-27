@@ -117,6 +117,13 @@ protected :
   bool refineAbstraction(TheoryModel *m, TNode abstract, TNode concrete);
 
 
+  /** Bit-blasting over/underapproximation **/
+  abstractionMapType approximateExpressionCache;  // To handle sharing
+  Node approximateExpression(TNode);
+
+  size_t uninterpretedFunctionCounter;
+  Node makeUninterpretedFunction(TypeNode);
+
 public:
 
   /** Constructs a new instance of TheoryFp w.r.t. the provided contexts. */

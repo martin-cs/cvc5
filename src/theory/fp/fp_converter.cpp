@@ -47,8 +47,12 @@ namespace fp {
 
   fpConverter::fpConverter (context::UserContext* user) :
     f(user), r(user), b(user), u(user), s(user), 
+    probabilityAnnotation(user),
+    getProbabilityCache(user),
     additionalAssertions(user)
   {
+    // HACK!
+    currentConverter = this;
   }
 
   Node fpConverter::ufToNode (const fpt &format, const uf &u) const {
@@ -954,6 +958,197 @@ namespace fp {
     Unreachable("Unable to find value");
     return Node::null();
   }
+
+
+fpConverter *fpConverter::currentConverter = NULL;
+
+void fpConverter::registerProbabilityAnnotation(Node node, int p) {
+  Trace("fp-registerProbabilityAnnotation")  << "fpConverter::registerProbabilityAnnotation(): called for "
+					     << node << " with probability "
+					     << p << std::endl;
+  probabilityAnnotation.insert(node, p);
+}
+
+int fpConverter::getProbability(TNode node) {
+  Trace("fp-getProbability")  << "fpConverter::getProbability(): called for "
+			      << node << std::endl;
+  std::stack<TNode> workStack;
+
+  workStack.push(node);
+
+  while (!workStack.empty()) {
+    TNode current = workStack.top();
+    workStack.pop();
+
+    // Cached results
+    {
+      probabilityMapType::const_iterator i = getProbabilityCache.find(current);
+      if (i != getProbabilityCache.end()) {
+	continue;
+      }
+    }
+
+    // Annotations
+    {
+      probabilityMapType::const_iterator i = probabilityAnnotation.find(current);
+      if (i != probabilityAnnotation.end()) {
+	getProbabilityCache.insert(current, (*i).second);
+	continue;
+      }
+    }
+
+    // Compute probabilities for operations
+    switch (current.getKind()) {
+    case kind::BITVECTOR_NOT :
+      {
+	probabilityMapType::const_iterator i = getProbabilityCache.find(current[0]);
+	if (i == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[0]);
+	  continue;
+	}
+
+	int result = -((*i).second);
+	getProbabilityCache.insert(current, result);
+	continue;
+      }
+      break;
+
+    case kind::BITVECTOR_AND :
+      {
+	probabilityMapType::const_iterator i = getProbabilityCache.find(current[0]);
+	if (i == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[0]);
+	  continue;
+	}
+
+	probabilityMapType::const_iterator j = getProbabilityCache.find(current[1]);
+	if (j == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[1]);
+	  continue;
+	}
+
+	int result = std::min((*i).second, (*j).second);
+	getProbabilityCache.insert(current, result);
+	continue;
+      }
+      break;
+
+    case kind::BITVECTOR_OR :
+      {
+	probabilityMapType::const_iterator i = getProbabilityCache.find(current[0]);
+	if (i == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[0]);
+	  continue;
+	}
+
+	probabilityMapType::const_iterator j = getProbabilityCache.find(current[1]);
+	if (j == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[1]);
+	  continue;
+	}
+
+	int result = std::max((*i).second, (*j).second);
+	getProbabilityCache.insert(current, result);
+	continue;
+      }
+      break;
+
+    case kind::BITVECTOR_COMP :
+      {
+	probabilityMapType::const_iterator i = getProbabilityCache.find(current[0]);
+	if (i == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[0]);
+	  continue;
+	}
+
+	probabilityMapType::const_iterator j = getProbabilityCache.find(current[1]);
+	if (j == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[1]);
+	  continue;
+	}
+
+	int result = std::max(std::min(  (*i).second,    (*j).second),
+			      std::min(-((*i).second), -((*j).second)));
+	getProbabilityCache.insert(current, result);
+	continue;
+      }
+      break;
+
+    case kind::BITVECTOR_XOR :
+      {
+	probabilityMapType::const_iterator i = getProbabilityCache.find(current[0]);
+	if (i == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[0]);
+	  continue;
+	}
+
+	probabilityMapType::const_iterator j = getProbabilityCache.find(current[1]);
+	if (j == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[1]);
+	  continue;
+	}
+
+	int result = std::max(std::min(  (*i).second,  -((*j).second)),
+			      std::min(-((*i).second),   (*j).second));
+	getProbabilityCache.insert(current, result);
+	continue;
+      }
+      break;
+
+    case kind::BITVECTOR_ITE :
+      {
+	probabilityMapType::const_iterator i = getProbabilityCache.find(current[0]);
+	if (i == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[0]);
+	  continue;
+	}
+
+	probabilityMapType::const_iterator j = getProbabilityCache.find(current[1]);
+	if (j == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[1]);
+	  continue;
+	}
+
+	probabilityMapType::const_iterator k = getProbabilityCache.find(current[2]);
+	if (k == getProbabilityCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[2]);
+	  continue;
+	}
+
+	int result = std::max(std::min(  (*i).second,  (*j).second),
+			      std::min(-((*i).second), (*k).second));
+	getProbabilityCache.insert(current, result);
+	continue;
+      }
+      break;
+
+    default :
+      // Don't compute probabilities for other kinds comparisons, etc.
+      getProbabilityCache.insert(current, 0);
+      break;
+    }
+  }
+
+  probabilityMapType::const_iterator i = getProbabilityCache.find(node);
+  Assert(i != getProbabilityCache.end());
+
+  Trace("fp-getProbability")  << "fpConverter::getProbability(): result = "
+			      << (*i).second << std::endl;
+
+  return (*i).second;
+}
 
 
 }/* CVC4::theory::fp namespace */

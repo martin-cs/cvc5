@@ -19,6 +19,8 @@
 #include "theory/theory_model.h"
 #include "theory/rewriter.h"
 
+#include "options/fp_options.h"
+
 #include <stack>
 
 using namespace std;
@@ -115,7 +117,9 @@ TheoryFp::TheoryFp(context::Context* c,
   toRealMap(u),
   realToFloatMap(u),
   floatToRealMap(u),
-  abstractionMap(u)
+  abstractionMap(u),
+  approximateExpressionCache(u),
+  uninterpretedFunctionCounter(0)
   {
 
     // Kinds that are to be handled in the congruence closure
@@ -388,6 +392,11 @@ Node TheoryFp::expandDefinition(LogicRequest &lr, Node node) {
   Trace("fp-expandDefinition") << "TheoryFp::expandDefinition(): " << node << std::endl;
 
   Node res = node;
+
+  if (options::fpOverApproximation()) {
+    // Over-approximations are implemented as UF
+    enableUF(lr);
+  }
 
   if (node.getKind() == kind::FLOATINGPOINT_TO_FP_GENERIC) {
     res = removeToFPGeneric::removeToFPGeneric(node);
@@ -720,6 +729,55 @@ bool TheoryFp::refineAbstraction(TheoryModel *m, TNode abstract, TNode concrete)
     }
 
 
+  } else if (k == kind::BITVECTOR_ITE) {
+    /*
+    Assert(m->hasTerm(abstract));
+    Assert(m->hasTerm(abstract[0]));
+    Assert(m->hasTerm(abstract[1]));
+    Assert(m->hasTerm(abstract[2]));
+    */
+
+    Node abstractValue = m->getValue(abstract);
+    Assert(abstractValue.isConst());
+
+    Node concreteValue = m->getValue(concrete);
+    Assert(concreteValue.isConst());
+
+    Trace("fp-refineAbstraction") << "TheoryFp::refineAbstraction(): "
+				  << abstract << " = " << abstractValue << std::endl
+				  << "TheoryFp::refineAbstraction(): "
+				  << concrete << " = " << concreteValue << std::endl;
+
+    if (abstractValue != concreteValue) {
+      NodeManager *nm = NodeManager::currentNM();
+
+      /* // This is not currently done by the solver
+      if (abstract[0] != concrete[0]) {
+	handleLemma(NodeManager::currentNM()->mkNode(kind::EQUAL, abstract[0], approximateExpression(concrete[0])));
+      }
+      */
+
+      /*
+      // TODO : this is not actually safe in the most general case
+      bool trueCaseAbstracted = (abstract[1].getKind() == kind::APPLY);
+      bool falseCaseAbstracted = (abstract[2].getKind() == kind::APPLY);
+
+      Assert(( trueCaseAbstracted && !falseCaseAbstracted) ||
+	     (!trueCaseAbstracted &&  falseCaseAbstracted));
+
+      if (trueCaseAbstracted) {
+
+      } else {
+	handleLemma(nm->mkNode(kind::EQUAL, abstract[2], approximateExpression(concrete[2])));
+      }
+      */
+      handleLemma(nm->mkNode(kind::EQUAL, abstract[1], approximateExpression(concrete[1])));
+      handleLemma(nm->mkNode(kind::EQUAL, abstract[2], approximateExpression(concrete[2])));
+    } else {
+      // No refinement needed
+      return false;
+    }
+
   } else {
     Unreachable("Unknown abstraction");
   }
@@ -727,6 +785,172 @@ bool TheoryFp::refineAbstraction(TheoryModel *m, TNode abstract, TNode concrete)
   return false;
 }
 
+Node TheoryFp::approximateExpression(TNode node) {
+  Trace("fp-approximateExpression")  << "TheoryFp::approximateExpression(): called for "
+			      << node << std::endl;
+  NodeManager *nm = NodeManager::currentNM();
+  std::stack<TNode> workStack;
+
+  workStack.push(node);
+
+  while (!workStack.empty()) {
+    TNode current = workStack.top();
+    workStack.pop();
+
+    // Cached
+    {
+      abstractionMapType::const_iterator i = approximateExpressionCache.find(current);
+      if (i != approximateExpressionCache.end()) {
+	continue;
+      }
+    }
+
+    // ITE is the root of the approximation
+    if (current.getKind() == kind::BITVECTOR_ITE) {
+      // We include the whole condition as then branching on it
+      // for example, using the underapproximation, gives more applicable constraints.
+      // However this means we may need to recurse as the condition may be based on
+      // things that have to be abstracted
+      abstractionMapType::const_iterator i = approximateExpressionCache.find(current[0]);
+      if (i == approximateExpressionCache.end()) {
+	workStack.push(current);
+	workStack.push(current[0]);
+	continue;
+      }
+
+
+      int p = conv.getProbability(current[0]);
+
+      // TODO : threshold
+      if (p > 0) {                  // Assume true
+	abstractionMapType::const_iterator j = approximateExpressionCache.find(current[1]);
+	if (j == approximateExpressionCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[1]);
+	  continue;
+	}
+
+	Node abstract = nm->mkNode(kind::BITVECTOR_ITE,
+				   (*i).second,
+				   (*j).second,
+				   makeUninterpretedFunction(current[2].getType()));
+
+	abstractionMap.insert(abstract, current);
+	approximateExpressionCache.insert(current, abstract);
+
+	continue;
+
+      } else if (p < 0) {           // Assume false
+	abstractionMapType::const_iterator j = approximateExpressionCache.find(current[2]);
+	if (j == approximateExpressionCache.end()) {
+	  workStack.push(current);
+	  workStack.push(current[2]);
+	  continue;
+	}
+
+	Node abstract = nm->mkNode(kind::BITVECTOR_ITE,
+				   (*i).second,
+				   makeUninterpretedFunction(current[1].getType()),
+				   (*j).second);
+
+	abstractionMap.insert(abstract, current);
+	approximateExpressionCache.insert(current, abstract);
+
+	continue;
+
+      } else {
+	// No bias detected -- proceed as normal
+      }
+    }
+
+    // Recurse if necessary
+    {
+      bool recursionNecessary = false;
+
+      for (size_t i = 0; i < current.getNumChildren(); ++i) {
+	abstractionMapType::const_iterator j = approximateExpressionCache.find(current[i]);
+	if (j == approximateExpressionCache.end()) {
+	  if (!recursionNecessary) {
+	    recursionNecessary = true;
+	    workStack.push(current);
+	  }
+
+	  workStack.push(current[i]);
+	}
+      }
+
+      if (recursionNecessary) {
+	continue;
+      }
+    }
+
+    // Assemble new operation from cached values
+    {
+      bool changed = false;
+      NodeBuilder<> nb(current.getKind());
+      if (current.getMetaKind() == kind::metakind::PARAMETERIZED) {
+	nb << current.getOperator();
+      }
+
+      for (size_t i = 0; i < current.getNumChildren(); ++i) {
+	abstractionMapType::const_iterator j = approximateExpressionCache.find(current[i]);
+	Assert(j != approximateExpressionCache.end());
+
+	nb << (*j).second;
+	if ((*j).second != current[i]) {
+	  changed = true;
+	}
+      }
+
+      if (changed) {
+	Node abstract = nb;
+
+	approximateExpressionCache.insert(current, abstract);
+      } else {
+	approximateExpressionCache.insert(current, current);
+      }
+
+      continue;
+    }
+
+    Unreachable();
+  }
+
+  abstractionMapType::const_iterator i = approximateExpressionCache.find(node);
+  Assert(i != approximateExpressionCache.end());
+
+  if ((*i).second == node) {
+    Trace("fp-approximateExpression")  << "TheoryFp::approximateExpression(): no change"
+				       << std::endl;
+  } else {
+    Trace("fp-approximateExpression")  << "TheoryFp::approximateExpression(): changed to "
+				       << (*i).second << std::endl;
+  }
+
+  return (*i).second;
+}
+
+Node TheoryFp::makeUninterpretedFunction(TypeNode t) {
+  NodeManager *nm = NodeManager::currentNM();
+
+  std::stringstream ss;
+
+  ss << "floatingpoint_abstraction_uf_" << uninterpretedFunctionCounter;
+  ++uninterpretedFunctionCounter;
+
+  std::string name = ss.str();
+
+  std::vector<TypeNode> args(1);  // Empty
+  args[0] = nm->mkBitVectorType(1U);
+  Node fun = nm->mkSkolem(name,
+			  nm->mkFunctionType(args, t),
+			  name,
+			  NodeManager::SKOLEM_EXACT_NAME);
+
+  Node app = nm->mkNode(kind::APPLY_UF, fun, nm->mkConst(BitVector(1U,1U)));
+
+  return app;
+}
 
 void TheoryFp::convertAndEquateTerm(TNode node) {
   Trace("fp-convertTerm") << "TheoryFp::convertTerm(): " << node << std::endl;
@@ -760,6 +984,10 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
     ++oldAdditionalAssertions;
   }
 
+  // Abstract if needed
+  if (options::fpOverApproximation()) {
+    converted = approximateExpression(converted);
+  }
 
 
   // Equate the floating-point atom and the converted one.
@@ -965,10 +1193,13 @@ void TheoryFp::check(Effort level) {
     for (abstractionMapType::const_iterator i = abstractionMap.begin();
 	 i != abstractionMap.end();
 	 ++i) {
-      if (m->hasTerm((*i).first)) { // Is actually used in the model
+      if (m->hasTerm((*i).first) || // Is actually used in the model
+	  (*i).first.getKind() == kind::BITVECTOR_ITE) {
 	lemmaAdded |= refineAbstraction(m, (*i).first, (*i).second);
       }
     }
+
+    // TODO : check which ITE abstractions actually change things
   }
 
   
