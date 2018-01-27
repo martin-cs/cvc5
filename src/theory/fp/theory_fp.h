@@ -102,7 +102,7 @@ protected :
   Node toRealUF(Node);
 
 
-  /** Uninterpretted functions for lazy handling of conversions **/
+  /** Uninterpretted functions for lazy handling of conversions */
   typedef comparisonUFMap conversionAbstractionMap;
 
   conversionAbstractionMap realToFloatMap;
