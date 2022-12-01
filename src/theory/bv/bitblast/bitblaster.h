@@ -91,6 +91,9 @@ class TBitblaster
   void getBBTerm(TNode node, Bits& bits) const;
   virtual void storeBBTerm(TNode term, const Bits& bits);
 
+  // Needs to be hooked here because of the interface of the *BB things
+  virtual void registerAbstraction(Node node) {}
+
   /**
    * Return a constant representing the value of a in the  model.
    * If fullModel is true set unconstrained bits to 0. If not return

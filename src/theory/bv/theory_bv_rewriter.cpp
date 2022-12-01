@@ -14,6 +14,7 @@
  */
 
 #include "options/bv_options.h"
+#include "theory/bv/branch_hints.h"
 #include "theory/bv/theory_bv_rewrite_rules.h"
 #include "theory/bv/theory_bv_rewrite_rules_constant_evaluation.h"
 #include "theory/bv/theory_bv_rewrite_rules_core.h"
@@ -29,24 +30,61 @@ using namespace cvc5::internal::theory::bv;
 
 TheoryBVRewriter::TheoryBVRewriter() { initializeRewrites(); }
 
+// This is ... a hack
+void moveOverITEAnnotation(TNode original, TNode rewritten) {
+  /*
+  // Only move the annotation on the condition of an ITE
+  if (original.getKind() == kind::BITVECTOR_ITE &&
+      rewritten.getKind() == kind::BITVECTOR_ITE) {
+    
+    int p = hints::getBranchingHint(original[0]);
+    if (p != 0) {
+      // Have a hint to move
+
+      // This is kinda insane and hacky but *shrug*
+      if (original[1] == rewritten[1] || original[2] == rewritten[2]) {
+	hints::setBranchingHint(rewritten[0], p);
+	Trace("theory-bv-branchingHint") << "Hint moved from " << original[0] << " to " << rewritten[0] << std::endl;
+      } else if (original[1] == rewritten[2] || original[2] == rewritten[1]) {
+	hints::setBranchingHint(rewritten[0], -p);
+	Trace("theory-bv-branchingHint") << "Hint moved and negated from " << original[0] << " to " << rewritten[0] << std::endl;
+      }
+    }
+  }
+  */
+  if (hints::hasBranchingHint(original)) {
+    int p = hints::getBranchingHint(original);
+    hints::setBranchingHint(rewritten, p);
+    Trace("theory-bv-branchingHint") << "Hint moved from " << original << " to " << rewritten << std::endl;
+  }
+}
+
 RewriteResponse TheoryBVRewriter::preRewrite(TNode node) {
   RewriteResponse res = d_rewriteTable[node.getKind()](node, true);
+  /*if (node.getKind() == kind::BITVECTOR_ITE) {
+    Trace("rewriting-a-bv-ite") << "Pre condition is " << node[0] << std::endl;
+   }*/
   if (res.d_node != node)
   {
     Trace("bitvector-rewrite") << "TheoryBV::preRewrite    " << node << std::endl;
     Trace("bitvector-rewrite")
         << "TheoryBV::preRewrite to " << res.d_node << std::endl;
+    moveOverITEAnnotation(node, res.d_node);
   }
   return res;
 }
 
 RewriteResponse TheoryBVRewriter::postRewrite(TNode node) {
   RewriteResponse res = d_rewriteTable[node.getKind()](node, false);
+  /* if (node.getKind() == kind::BITVECTOR_ITE) {
+    Trace("rewriting-a-bv-ite") << "Post condition is " << node[0] << std::endl;
+    } */
   if (res.d_node != node)
   {
     Trace("bitvector-rewrite") << "TheoryBV::postRewrite    " << node << std::endl;
     Trace("bitvector-rewrite")
         << "TheoryBV::postRewrite to " << res.d_node << std::endl;
+    moveOverITEAnnotation(node, res.d_node);
   }
   return res;
 }

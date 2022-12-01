@@ -77,7 +77,7 @@ class NotifyResetAssertions : public context::ContextNotifyObj
 class BBRegistrar : public prop::Registrar
 {
  public:
-  BBRegistrar(NodeBitblaster* bb) : d_bitblaster(bb) {}
+  BBRegistrar(AbstractionBitblaster* bb) : d_bitblaster(bb) {}
 
   void preRegister(Node n) override
   {
@@ -101,7 +101,7 @@ class BBRegistrar : public prop::Registrar
 
  private:
   /** The bitblaster used. */
-  NodeBitblaster* d_bitblaster;
+  AbstractionBitblaster* d_bitblaster;
 
   /** Stores bit-vector atoms encounterd on preRegister(). */
   std::unordered_set<TNode> d_registeredAtoms;
@@ -111,7 +111,7 @@ BVSolverBitblast::BVSolverBitblast(Env& env,
                                    TheoryState* s,
                                    TheoryInferenceManager& inferMgr)
     : BVSolver(env, *s, inferMgr),
-      d_bitblaster(new NodeBitblaster(env, s)),
+      d_bitblaster(new AbstractionBitblaster(env, s)),
       d_bbRegistrar(new BBRegistrar(d_bitblaster.get())),
       d_nullContext(new context::Context()),
       d_bbFacts(context()),
@@ -206,6 +206,23 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
     d_assumptions.push_back(d_factLiteralCache[fact]);
   }
 
+  /* Process the underapproximations due to structural abstraction */
+  auto structuralAssumptions = d_bitblaster->getAbstractionAssumptions();
+  std::set<prop::SatLiteral> structural;
+  for (const auto fact : structuralAssumptions) {
+    d_bitblaster->bbAtom(fact);
+    Node bb_fact = d_bitblaster->getStoredBBAtom(fact);
+    
+    d_cnfStream->ensureLiteral(bb_fact);
+    auto lit = d_cnfStream->getLiteral(bb_fact);
+    
+    d_factLiteralCache[fact] = lit;
+    d_literalFactCache[lit] = fact;
+
+    d_assumptions.push_back(d_factLiteralCache[fact]);
+    structural.insert(d_factLiteralCache[fact]);
+  }
+
   std::vector<prop::SatLiteral> assumptions(d_assumptions.begin(),
                                             d_assumptions.end());
   prop::SatValue val = d_satSolver->solve(assumptions);
@@ -213,8 +230,21 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
   if (val == prop::SatValue::SAT_VALUE_FALSE)
   {
     std::vector<prop::SatLiteral> unsat_assumptions;
-    d_satSolver->getUnsatAssumptions(unsat_assumptions);
+    std::vector<prop::SatLiteral> tmp_unsat_assumptions;
+    d_satSolver->getUnsatAssumptions(tmp_unsat_assumptions);
 
+    // Filter out structural assumptions
+    for (const auto &lit : tmp_unsat_assumptions) {
+      if (structural.find(lit) == structural.end()) {
+	unsat_assumptions.push_back(lit);
+      } else {
+	Trace("abstraction-bb") << "Refinement needed for "
+				<< "(" << lit << "): "
+				<< Node(d_literalFactCache[lit])
+				<< std::endl;
+      }
+    }
+    
     Node conflict;
     // Unsat assumptions produce conflict.
     if (unsat_assumptions.size() > 0)

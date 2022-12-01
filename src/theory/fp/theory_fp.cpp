@@ -650,10 +650,11 @@ void TheoryFp::preRegisterTerm(TNode node)
 void TheoryFp::handleLemma(Node node, InferenceId id)
 {
   Trace("fp") << "TheoryFp::handleLemma(): asserting " << node << std::endl;
-  if (rewrite(node) != d_true)
+  Node rewritten = rewrite(node);
+  if (rewritten != d_true)
   {
     /* We only send non-trivial lemmas. */
-    d_im.lemma(node, id);
+    d_im.lemma(rewritten, id);
   }
 }
 

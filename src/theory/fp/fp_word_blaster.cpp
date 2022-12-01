@@ -15,6 +15,9 @@
 
 #include "theory/fp/fp_word_blaster.h"
 
+// Containment failure!
+#include "theory/bv/branch_hints.h"
+
 #include <vector>
 
 #include "base/check.h"
@@ -54,63 +57,6 @@ using namespace cvc5::internal::theory::fp::symfpuSymbolic;
       cvc5::internal::Node cond = _cond;                                     \
       cvc5::internal::Node l = _l;                                           \
       cvc5::internal::Node r = _r;                                           \
-                                                                             \
-      /* Handle some common symfpu idioms */                                 \
-      if (cond.isConst())                                                    \
-      {                                                                      \
-        return (cond == nm->mkConst(cvc5::internal::BitVector(1U, 1U))) ? l  \
-                                                                        : r; \
-      }                                                                      \
-      else                                                                   \
-      {                                                                      \
-        if (l.getKind() == cvc5::internal::kind::BITVECTOR_ITE)              \
-        {                                                                    \
-          if (l[1] == r)                                                     \
-          {                                                                  \
-            return nm->mkNode(                                               \
-                cvc5::internal::kind::BITVECTOR_ITE,                         \
-                nm->mkNode(                                                  \
-                    cvc5::internal::kind::BITVECTOR_AND,                     \
-                    cond,                                                    \
-                    nm->mkNode(cvc5::internal::kind::BITVECTOR_NOT, l[0])),  \
-                l[2],                                                        \
-                r);                                                          \
-          }                                                                  \
-          else if (l[2] == r)                                                \
-          {                                                                  \
-            return nm->mkNode(                                               \
-                cvc5::internal::kind::BITVECTOR_ITE,                         \
-                nm->mkNode(cvc5::internal::kind::BITVECTOR_AND, cond, l[0]), \
-                l[1],                                                        \
-                r);                                                          \
-          }                                                                  \
-        }                                                                    \
-        else if (r.getKind() == cvc5::internal::kind::BITVECTOR_ITE)         \
-        {                                                                    \
-          if (r[1] == l)                                                     \
-          {                                                                  \
-            return nm->mkNode(                                               \
-                cvc5::internal::kind::BITVECTOR_ITE,                         \
-                nm->mkNode(                                                  \
-                    cvc5::internal::kind::BITVECTOR_AND,                     \
-                    nm->mkNode(cvc5::internal::kind::BITVECTOR_NOT, cond),   \
-                    nm->mkNode(cvc5::internal::kind::BITVECTOR_NOT, r[0])),  \
-                r[2],                                                        \
-                l);                                                          \
-          }                                                                  \
-          else if (r[2] == l)                                                \
-          {                                                                  \
-            return nm->mkNode(                                               \
-                cvc5::internal::kind::BITVECTOR_ITE,                         \
-                nm->mkNode(                                                  \
-                    cvc5::internal::kind::BITVECTOR_AND,                     \
-                    nm->mkNode(cvc5::internal::kind::BITVECTOR_NOT, cond),   \
-                    r[0]),                                                   \
-                r[1],                                                        \
-                l);                                                          \
-          }                                                                  \
-        }                                                                    \
-      }                                                                      \
       return T(nm->mkNode(cvc5::internal::kind::BITVECTOR_ITE, cond, l, r)); \
     }                                                                        \
   }
@@ -140,7 +86,7 @@ template <>
 void probabilityAnnotation<traits, traits::prop>(const traits::prop& p,
                                                  const probability& pr)
 {
-  // For now, do nothing...
+  cvc5::internal::theory::bv::hints::setBranchingHint(cvc5::internal::Node(p), int(pr));
   return;
 }
 };  // namespace symfpu

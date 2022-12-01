@@ -26,6 +26,7 @@
 #include "prop/sat_solver.h"
 #include "smt/env_obj.h"
 #include "theory/bv/bitblast/node_bitblaster.h"
+#include "theory/bv/bitblast/abstraction_bitblaster.h"
 #include "theory/bv/bv_solver.h"
 #include "theory/bv/proof_checker.h"
 
@@ -90,7 +91,7 @@ class BVSolverBitblast : public BVSolver
   void handleEagerAtom(TNode fact, bool assertFact);
 
   /** Bit-blaster used to bit-blast atoms/terms. */
-  std::unique_ptr<NodeBitblaster> d_bitblaster;
+  std::unique_ptr<AbstractionBitblaster> d_bitblaster;
 
   /** Used for initializing `d_cnfStream`. */
   std::unique_ptr<BBRegistrar> d_bbRegistrar;
