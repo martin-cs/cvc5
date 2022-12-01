@@ -31,31 +31,68 @@ using namespace cvc5::internal::theory::bv;
 TheoryBVRewriter::TheoryBVRewriter() { initializeRewrites(); }
 
 // This is ... a hack
-void moveOverITEAnnotation(TNode original, TNode rewritten) {
-  /*
-  // Only move the annotation on the condition of an ITE
-  if (original.getKind() == kind::BITVECTOR_ITE &&
-      rewritten.getKind() == kind::BITVECTOR_ITE) {
-    
-    int p = hints::getBranchingHint(original[0]);
-    if (p != 0) {
-      // Have a hint to move
+void moveOverProbabilityAnnotation(TNode original, TNode rewritten) {
+  if (original.getType().isBitVector() &&
+      original.getType().getBitVectorSize() == 1 &&
+      rewritten.getType().isBitVector() &&
+      rewritten.getType().getBitVectorSize() == 1 &&
+      !original.isConst() && !rewritten.isConst()) {
 
-      // This is kinda insane and hacky but *shrug*
-      if (original[1] == rewritten[1] || original[2] == rewritten[2]) {
-	hints::setBranchingHint(rewritten[0], p);
-	Trace("theory-bv-branchingHint") << "Hint moved from " << original[0] << " to " << rewritten[0] << std::endl;
-      } else if (original[1] == rewritten[2] || original[2] == rewritten[1]) {
-	hints::setBranchingHint(rewritten[0], -p);
-	Trace("theory-bv-branchingHint") << "Hint moved and negated from " << original[0] << " to " << rewritten[0] << std::endl;
+    if (hints::hasBranchingHint(original)) {
+      int p = hints::getBranchingHint(original);
+      hints::setBranchingHint(rewritten, p);
+      Trace("theory-bv-branchingHint") << "Hint moved from " << original << " to " << rewritten << std::endl;
+      
+    } else if (original.getKind() == kind::BITVECTOR_NOT) {
+      if (hints::hasBranchingHint(original[0])) {
+	int p = hints::getBranchingHint(original);
+	hints::setBranchingHint(rewritten, -p);
+	Trace("theory-bv-branchingHint") << "Hint promoted from " << original[0] << " to " << rewritten << std::endl;
       }
+      
+    } else if (original.getKind() == kind::BITVECTOR_AND) {
+      // Take the max...
+      int pMax = 0;
+      Node input;
+
+      int absPMax = 0;
+      for (size_t i = 0, csize = original.getNumChildren(); i < csize; ++i) {
+	int p = hints::getBranchingHint(original[i]);
+	int absP = (p < 0) ? -p : p;
+	if (absP > absPMax) {
+	  pMax = p;
+	  absPMax = absP;
+	  input = original[i];
+	}
+      }
+
+      if (absPMax > 0) {
+	hints::setBranchingHint(rewritten, pMax);
+	Trace("theory-bv-branchingHint") << "Hint promoted from " << input << " to " << rewritten << std::endl;
+      }
+      
+    } else if (original.getKind() == kind::BITVECTOR_OR) {
+      // Take the min...
+      int pMin = 0;
+      Node input;
+
+      int absPMin = 100;
+      for (size_t i = 0, csize = original.getNumChildren(); i < csize; ++i) {
+	int p = hints::getBranchingHint(original[i]);
+	int absP = (p < 0) ? -p : p;
+	if (absP < absPMin) {
+	  pMin = p;
+	  absPMin = absP;
+	  input = original[i];
+	}
+      }
+
+      if (absPMin > 0 && original.getNumChildren() >= 1) {
+	hints::setBranchingHint(rewritten, pMin);
+	Trace("theory-bv-branchingHint") << "Hint promoted from " << input << " to " << rewritten << std::endl;
+      }
+      
     }
-  }
-  */
-  if (hints::hasBranchingHint(original)) {
-    int p = hints::getBranchingHint(original);
-    hints::setBranchingHint(rewritten, p);
-    Trace("theory-bv-branchingHint") << "Hint moved from " << original << " to " << rewritten << std::endl;
   }
 }
 
@@ -69,7 +106,7 @@ RewriteResponse TheoryBVRewriter::preRewrite(TNode node) {
     Trace("bitvector-rewrite") << "TheoryBV::preRewrite    " << node << std::endl;
     Trace("bitvector-rewrite")
         << "TheoryBV::preRewrite to " << res.d_node << std::endl;
-    moveOverITEAnnotation(node, res.d_node);
+    moveOverProbabilityAnnotation(node, res.d_node);
   }
   return res;
 }
@@ -84,7 +121,7 @@ RewriteResponse TheoryBVRewriter::postRewrite(TNode node) {
     Trace("bitvector-rewrite") << "TheoryBV::postRewrite    " << node << std::endl;
     Trace("bitvector-rewrite")
         << "TheoryBV::postRewrite to " << res.d_node << std::endl;
-    moveOverITEAnnotation(node, res.d_node);
+    moveOverProbabilityAnnotation(node, res.d_node);
   }
   return res;
 }
