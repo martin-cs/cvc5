@@ -246,6 +246,8 @@ class symbolicBitVector : public nodeWrapper
   symbolicBitVector<isSigned> modularAdd(
       const symbolicBitVector<isSigned>& op) const;
   symbolicBitVector<isSigned> modularNegate() const;
+  symbolicBitVector<isSigned> modularSubtract(
+      const symbolicBitVector<isSigned>& op) const;
 
   /*** Comparisons ***/
   symbolicProposition operator==(const symbolicBitVector<isSigned>& op) const;
