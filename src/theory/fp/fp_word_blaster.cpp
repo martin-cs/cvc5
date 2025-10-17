@@ -122,6 +122,15 @@ CVC5_SYM_ITE_DFN(traits::ubv);
 
 #undef CVC5_SYM_ITE_DFN
 
+template <class T>
+struct ite<bool, T>
+{
+  static const T iteOp(bool _cond, const T& _l, const T& _r)
+  {
+    return (_cond) ? _l : _r;
+  }
+};
+
 template <>
 traits::ubv orderEncode<traits, traits::ubv>(const traits::ubv& b)
 {
@@ -571,6 +580,13 @@ template <bool isSigned>
 symbolicBitVector<isSigned> symbolicBitVector<isSigned>::modularNegate() const
 {
   return -(*this);
+}
+
+template <bool isSigned>
+symbolicBitVector<isSigned> symbolicBitVector<isSigned>::modularSubtract(
+    const symbolicBitVector<isSigned>& op) const
+{
+  return *this - op;
 }
 
 /*** Comparisons ***/

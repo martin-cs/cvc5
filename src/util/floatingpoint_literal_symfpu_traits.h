@@ -203,6 +203,8 @@ class wrappedBitVector : public BitVector
   wrappedBitVector<isSigned> modularAdd(
       const wrappedBitVector<isSigned>& op) const;
   wrappedBitVector<isSigned> modularNegate() const;
+  wrappedBitVector<isSigned> modularSubtract(
+      const wrappedBitVector<isSigned>& op) const;
 
   /** Bit-vector equality. */
   Cvc5Prop operator==(const wrappedBitVector<isSigned>& op) const;
